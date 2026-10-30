@@ -12,12 +12,23 @@ public static class DocumentSerializer
     public const int CurrentVersion = 1;
     public const string Extension = ".loadpath";
 
-    private static readonly JsonSerializerOptions Options = new()
+    /// <summary>
+    /// Source-generated metadata: trimmed heads (WebAssembly) turn reflection-based System.Text.Json off, so the
+    /// reflection overloads would throw there. Indented for files, compact for share codes.
+    /// </summary>
+    private static readonly DocumentJsonContext Indented = new(new JsonSerializerOptions
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
+    });
+
+    private static readonly DocumentJsonContext Compact = new(new JsonSerializerOptions
+    {
+        WriteIndented = false,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    });
 
     public sealed class FileModel
     {
@@ -45,8 +56,6 @@ public static class DocumentSerializer
         public string Section { get; set; } = Model.Section.Chs48.Id;
     }
 
-    private static readonly JsonSerializerOptions CompactOptions = new(Options) { WriteIndented = false };
-
     /// <summary>Serialize the document. Compact output drops whitespace; share codes use it.</summary>
     public static string Serialize(StructureDocument doc, bool indented = true)
     {
@@ -67,12 +76,12 @@ public static class DocumentSerializer
         {
             model.Members.Add(new MemberModel { Id = m.Id, Start = m.StartNodeId, End = m.EndNodeId, Section = m.Section.Id });
         }
-        return JsonSerializer.Serialize(model, indented ? Options : CompactOptions);
+        return JsonSerializer.Serialize(model, (indented ? Indented : Compact).FileModel);
     }
 
     public static DocumentSnapshot Deserialize(string json)
     {
-        var model = JsonSerializer.Deserialize<FileModel>(json, Options) ?? throw new InvalidDataException("Empty document.");
+        var model = JsonSerializer.Deserialize(json, Indented.FileModel) ?? throw new InvalidDataException("Empty document.");
         if (model.Version > CurrentVersion) throw new InvalidDataException($"Document version {model.Version} is newer than this app supports.");
         var nodeIds = model.Nodes.Select(n => n.Id).ToHashSet();
         foreach (var m in model.Members)
@@ -90,4 +99,9 @@ public static class DocumentSerializer
             Members = model.Members.Select(m => (m.Id, m.Start, m.End, m.Section)).ToList(),
         };
     }
+}
+
+[JsonSerializable(typeof(DocumentSerializer.FileModel))]
+internal sealed partial class DocumentJsonContext : JsonSerializerContext
+{
 }
