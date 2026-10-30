@@ -79,6 +79,9 @@ public partial record EditorModel
     public IState<bool> SnapEnabled => State.Value(this, () => _engine.Options.SnapEnabled);
     public IState<string> SnapText => State.Value(this, () => SnapLabel());
     public IState<bool> InspectorVisible => State.Value(this, () => _engine.Options.InspectorVisible);
+    public IState<bool> IsThemeSystem => State.Value(this, () => _engine.Options.Theme == ThemeChoice.System);
+    public IState<bool> IsThemeLight => State.Value(this, () => _engine.Options.Theme == ThemeChoice.Light);
+    public IState<bool> IsThemeDark => State.Value(this, () => _engine.Options.Theme == ThemeChoice.Dark);
 
     // ---- reduce noise: the toggle, which layers stay, and what the panels show ----
 
@@ -104,6 +107,9 @@ public partial record EditorModel
     // One declaration per layer: MVUX keys each state by its declaring member, so a shared factory would merge them.
 
     [Command] public void ShowAll() => Ui(() => _engine.Options.ReduceNoise = false);
+    [Command] public void ThemeSystem() => Ui(() => _engine.Options.Theme = ThemeChoice.System);
+    [Command] public void ThemeLight() => Ui(() => _engine.Options.Theme = ThemeChoice.Light);
+    [Command] public void ThemeDark() => Ui(() => _engine.Options.Theme = ThemeChoice.Dark);
     [Command] public void ResetNoiseLayers() => Ui(() => _engine.Options.Keep = ViewOptions.DefaultKeep);
 
     private void Push(Action<ViewOptions> apply)
@@ -140,6 +146,9 @@ public partial record EditorModel
             await SnapEnabled.SetAsync(o.SnapEnabled);
             await SnapText.SetAsync(SnapLabel());
             await InspectorVisible.SetAsync(o.InspectorVisible);
+            await IsThemeSystem.SetAsync(o.Theme == ThemeChoice.System);
+            await IsThemeLight.SetAsync(o.Theme == ThemeChoice.Light);
+            await IsThemeDark.SetAsync(o.Theme == ThemeChoice.Dark);
             await ReduceNoise.SetAsync(o.ReduceNoise);
             await KeepGrid.SetAsync((o.Keep & NoiseLayer.Grid) != 0);
             await KeepDimensions.SetAsync((o.Keep & NoiseLayer.Dimensions) != 0);

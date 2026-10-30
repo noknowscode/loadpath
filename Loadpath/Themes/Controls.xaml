@@ -7,23 +7,23 @@
   <Style x:Key="BodyText" TargetType="TextBlock">
     <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
     <Setter Property="FontSize" Value="{StaticResource TextBody}" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="LineHeight" Value="18" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
   <Style x:Key="SecondaryText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
-    <Setter Property="Foreground" Value="{StaticResource InkSecondaryBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkSecondaryBrush}" />
   </Style>
   <Style x:Key="CaptionText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
     <Setter Property="FontSize" Value="12" />
     <Setter Property="LineHeight" Value="16" />
-    <Setter Property="Foreground" Value="{StaticResource InkSecondaryBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkSecondaryBrush}" />
   </Style>
   <!-- Section label: mono, small, the "01 Position" register of the drawing sheet. -->
   <Style x:Key="SectionLabel" TargetType="TextBlock">
     <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
     <Setter Property="FontSize" Value="{StaticResource TextCaption}" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="LineHeight" Value="15" />
   </Style>
   <Style x:Key="TitleText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
@@ -42,39 +42,39 @@
   <Style x:Key="ValueText" TargetType="TextBlock">
     <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
     <Setter Property="FontSize" Value="{StaticResource TextValue}" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="LineHeight" Value="18" />
   </Style>
   <Style x:Key="MonoCaption" TargetType="TextBlock" BasedOn="{StaticResource ValueText}">
     <Setter Property="FontSize" Value="12" />
     <Setter Property="LineHeight" Value="16" />
-    <Setter Property="Foreground" Value="{StaticResource InkSecondaryBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkSecondaryBrush}" />
   </Style>
 
   <!-- Label above a numeric field (inspector, presets). -->
   <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource MonoCaption}">
     <Setter Property="FontSize" Value="11" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="Margin" Value="0,0,0,8" />
   </Style>
 
   <!-- ===== Pills (read-only badges) ===== -->
   <Style x:Key="PillBorder" TargetType="Border">
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource HairlineStrongBrush}" />
     <Setter Property="CornerRadius" Value="9" />
     <Setter Property="Padding" Value="7,1" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style x:Key="DangerPill" TargetType="Border" BasedOn="{StaticResource PillBorder}">
-    <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource DangerBorderBrush}" />
+    <Setter Property="Background" Value="{ThemeResource DangerSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource DangerBorderBrush}" />
   </Style>
 
   <!-- ===== Buttons ===== -->
   <Style x:Key="QuietButton" TargetType="Button">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Padding" Value="8,0" />
@@ -153,7 +153,7 @@
                     BorderThickness="{TemplateBinding BorderThickness}"
                     CornerRadius="{StaticResource RadiusField}" />
             <!-- Hover wash over any background: darkens light chrome and the accent fill alike. -->
-            <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{StaticResource HoverWashBrush}" CornerRadius="{StaticResource RadiusField}" />
+            <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource HoverWashBrush}" CornerRadius="{StaticResource RadiusField}" />
             <ContentPresenter x:Name="ContentPresenter"
                               Margin="{TemplateBinding Padding}"
                               Content="{TemplateBinding Content}"
@@ -164,7 +164,7 @@
                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="-2"
-                    BorderBrush="{StaticResource AccentBrush}" BorderThickness="1.5" CornerRadius="6" />
+                    BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1.5" CornerRadius="6" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -172,8 +172,8 @@
   </Style>
 
   <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
-    <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource AccentInkBrush}" />
+    <Setter Property="Background" Value="{ThemeResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource AccentInkBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Padding" Value="18,0" />
@@ -182,7 +182,7 @@
   </Style>
 
   <Style x:Key="LinkButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
-    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource AccentBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Height" Value="38" />
@@ -190,15 +190,15 @@
   </Style>
 
   <Style x:Key="OutlineButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineStrongBrush}" />
-    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource HairlineStrongBrush}" />
+    <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Padding" Value="12,0" />
   </Style>
 
   <Style x:Key="DangerTextButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
-    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource DangerBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Padding" Value="0" />
@@ -210,7 +210,7 @@
     <Setter Property="Height" Value="32" />
     <Setter Property="MinHeight" Value="32" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
   </Style>
 
   <!-- Tool palette button: 36 px, icon follows Foreground, single-key label in the bottom-right corner. -->
@@ -218,7 +218,7 @@
     <Setter Property="Width" Value="40" />
     <Setter Property="Height" Value="40" />
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource AccentBrush}" />
     <Setter Property="UseSystemFocusVisuals" Value="False" />
     <Setter Property="IsTabStop" Value="True" />
     <Setter Property="Template">
@@ -271,7 +271,7 @@
                 </VisualState>
                 <VisualState x:Name="Active">
                   <VisualState.Setters>
-                    <Setter Target="Key.Foreground" Value="{StaticResource AccentBrush}" />
+                    <Setter Target="Key.Foreground" Value="{ThemeResource AccentBrush}" />
                   </VisualState.Setters>
                   <Storyboard>
                     <DoubleAnimationUsingKeyFrames Storyboard.TargetName="ActiveWash" Storyboard.TargetProperty="Opacity"><SplineDoubleKeyFrame KeyTime="0:0:0.150" Value="1" KeySpline="0.22,1 0.36,1" /></DoubleAnimationUsingKeyFrames>
@@ -297,14 +297,14 @@
               </VisualStateGroup>
             </VisualStateManager.VisualStateGroups>
             <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="{StaticResource RadiusField}" />
-            <Border x:Name="ActiveWash" Opacity="0" IsHitTestVisible="False" Background="{StaticResource AccentSoftBrush}"
-                    BorderBrush="{StaticResource AccentBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusField}" />
-            <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{StaticResource HoverWashBrush}" CornerRadius="{StaticResource RadiusField}" />
+            <Border x:Name="ActiveWash" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource AccentSoftBrush}"
+                    BorderBrush="{ThemeResource AccentBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusField}" />
+            <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource HoverWashBrush}" CornerRadius="{StaticResource RadiusField}" />
             <c:Icon x:Name="Glyph" Kind="{TemplateBinding IconKind}" Foreground="{TemplateBinding Foreground}" Width="18" Height="18" Margin="-4,-4,0,0" />
-            <TextBlock x:Name="Key" Text="{TemplateBinding KeyLabel}" FontFamily="{StaticResource MonoFont}" FontSize="9" Foreground="{StaticResource InkSecondaryBrush}"
+            <TextBlock x:Name="Key" Text="{TemplateBinding KeyLabel}" FontFamily="{StaticResource MonoFont}" FontSize="9" Foreground="{ThemeResource InkSecondaryBrush}"
                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,4,2" IsHitTestVisible="False" />
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="-2"
-                    BorderBrush="{StaticResource AccentBrush}" BorderThickness="1.5" CornerRadius="6" />
+                    BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1.5" CornerRadius="6" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -317,7 +317,7 @@
   -->
   <Style x:Key="SegmentToggle" TargetType="ToggleButton">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="Padding" Value="14,0" />
     <Setter Property="Height" Value="38" />
     <Setter Property="MinHeight" Value="0" />
@@ -406,12 +406,12 @@
               </VisualStateGroup>
             </VisualStateManager.VisualStateGroups>
             <Border x:Name="Chrome" Background="{TemplateBinding Background}" />
-            <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{StaticResource SurfaceHoverBrush}" />
-            <Border x:Name="Wash" Opacity="0" IsHitTestVisible="False" Background="{StaticResource AccentSoftBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" />
+            <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource SurfaceHoverBrush}" />
+            <Border x:Name="Wash" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource AccentSoftBrush}" BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1" />
             <ContentPresenter x:Name="Label" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" Margin="{TemplateBinding Padding}"
                               FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="1"
-                    BorderBrush="{StaticResource AccentBrush}" BorderThickness="1.5" CornerRadius="2" />
+                    BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1.5" CornerRadius="2" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -420,10 +420,10 @@
 
   <!-- Frame around a group of SegmentToggles; cells are separated by 1 px rules placed between them. -->
   <Style x:Key="SegmentGroup" TargetType="Border">
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource HairlineStrongBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="2" />
-    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
   </Style>
 
   <!--
@@ -433,7 +433,7 @@
   -->
   <Style x:Key="SwitchToggle" TargetType="ToggleButton">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="Padding" Value="12,0" />
     <Setter Property="Height" Value="38" />
     <Setter Property="MinWidth" Value="0" />
@@ -527,12 +527,12 @@
                 </VisualState>
               </VisualStateGroup>
             </VisualStateManager.VisualStateGroups>
-            <Border x:Name="Hover" Opacity="0" Background="{StaticResource SurfaceHoverBrush}" />
+            <Border x:Name="Hover" Opacity="0" Background="{ThemeResource SurfaceHoverBrush}" />
             <StackPanel x:Name="Body" Orientation="Horizontal" Spacing="10" Margin="{TemplateBinding Padding}" VerticalAlignment="Center">
               <Grid Width="30" Height="16" VerticalAlignment="Center">
-                <Rectangle RadiusX="8" RadiusY="8" Fill="{StaticResource HairlineStrongBrush}" />
-                <Rectangle x:Name="TrackOn" Opacity="0" RadiusX="8" RadiusY="8" Fill="{StaticResource AccentBrush}" />
-                <Ellipse Width="12" Height="12" Fill="{StaticResource AccentInkBrush}" HorizontalAlignment="Left" Margin="2,0,0,0">
+                <Rectangle RadiusX="8" RadiusY="8" Fill="{ThemeResource HairlineStrongBrush}" />
+                <Rectangle x:Name="TrackOn" Opacity="0" RadiusX="8" RadiusY="8" Fill="{ThemeResource AccentBrush}" />
+                <Ellipse Width="12" Height="12" Fill="{ThemeResource AccentInkBrush}" HorizontalAlignment="Left" Margin="2,0,0,0">
                   <Ellipse.RenderTransform>
                     <TranslateTransform x:Name="KnobShift" X="0" />
                   </Ellipse.RenderTransform>
@@ -542,7 +542,7 @@
                                 FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" />
             </StackPanel>
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="1"
-                    BorderBrush="{StaticResource AccentBrush}" BorderThickness="1.5" CornerRadius="2" />
+                    BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1.5" CornerRadius="2" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -551,7 +551,7 @@
 
   <!-- Keycap: a keyboard hint ("F", "CTRL K") inside a button or label. -->
   <Style x:Key="Keycap" TargetType="Border">
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource HairlineStrongBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="2" />
     <Setter Property="Padding" Value="5,1" />
@@ -561,30 +561,20 @@
     <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
     <Setter Property="FontSize" Value="10" />
     <Setter Property="LineHeight" Value="13" />
-    <Setter Property="Foreground" Value="{StaticResource InkSecondaryBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkSecondaryBrush}" />
   </Style>
 
   <!-- Dashed rule: the sheet's separator. A zero-height rectangle so its top and bottom strokes coincide. -->
   <Style x:Key="DashedRule" TargetType="Rectangle">
     <Setter Property="Height" Value="1" />
-    <Setter Property="Stroke" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="Stroke" Value="{ThemeResource HairlineBrush}" />
     <Setter Property="StrokeThickness" Value="1" />
     <Setter Property="StrokeDashArray" Value="3,3" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="IsHitTestVisible" Value="False" />
   </Style>
 
-  <!-- CheckBox: lightweight keys only, so the platform template keeps its states and accessibility. -->
-  <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="{StaticResource AccentColor}" />
-  <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="{StaticResource AccentColor}" />
-  <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="{StaticResource AccentColor}" />
-  <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="{StaticResource AccentColor}" />
-  <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="{StaticResource HairlineStrongColor}" />
-  <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" Color="{StaticResource InkSecondaryColor}" />
-  <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUnchecked" Color="{StaticResource SurfaceColor}" />
-  <SolidColorBrush x:Key="CheckBoxForegroundUnchecked" Color="{StaticResource InkColor}" />
-  <SolidColorBrush x:Key="CheckBoxForegroundChecked" Color="{StaticResource InkColor}" />
-
+  <!-- CheckBox: lightweight keys only (themed, in Tokens.xaml), so the platform template keeps its states and accessibility. -->
   <Style x:Key="LayerCheckBox" TargetType="CheckBox">
     <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
     <Setter Property="FontSize" Value="{StaticResource TextBody}" />
@@ -595,8 +585,8 @@
 
   <!-- Sheet flyout: paper surface, hairline frame, no inner padding (content owns its gutters). -->
   <Style x:Key="SheetFlyoutPresenter" TargetType="FlyoutPresenter">
-    <Setter Property="Background" Value="{StaticResource CanvasBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineStrongBrush}" />
+    <Setter Property="Background" Value="{ThemeResource CanvasBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource HairlineStrongBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="0" />
@@ -606,9 +596,9 @@
 
   <!-- Numeric field: mono value, unit suffix supplied by the NumberField control around it. -->
   <Style x:Key="FieldTextBox" TargetType="TextBox">
-    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineStrongBrush}" />
+    <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource HairlineStrongBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
     <Setter Property="FontSize" Value="{StaticResource TextValue}" />
@@ -617,7 +607,7 @@
     <Setter Property="Height" Value="40" />
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="TextAlignment" Value="Right" />
-    <Setter Property="SelectionHighlightColor" Value="{StaticResource AccentBrush}" />
+    <Setter Property="SelectionHighlightColor" Value="{ThemeResource AccentBrush}" />
     <Setter Property="UseSystemFocusVisuals" Value="False" />
     <Setter Property="Template">
       <Setter.Value>
@@ -663,8 +653,8 @@
                             IsTabStop="False" ZoomMode="Disabled"
                             Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
             </Border>
-            <Border x:Name="HoverEdge" Opacity="0" IsHitTestVisible="False" BorderBrush="{StaticResource InkBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2" />
-            <Border x:Name="FocusEdge" Opacity="0" IsHitTestVisible="False" BorderBrush="{StaticResource AccentBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2" />
+            <Border x:Name="HoverEdge" Opacity="0" IsHitTestVisible="False" BorderBrush="{ThemeResource InkBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2" />
+            <Border x:Name="FocusEdge" Opacity="0" IsHitTestVisible="False" BorderBrush="{ThemeResource AccentBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -684,8 +674,8 @@
 
   <!-- ===== Menus, tooltips ===== -->
   <Style TargetType="MenuFlyoutPresenter">
-    <Setter Property="Background" Value="{StaticResource CanvasBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource HairlineStrongBrush}" />
+    <Setter Property="Background" Value="{ThemeResource CanvasBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource HairlineStrongBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{StaticResource RadiusPopover}" />
     <Setter Property="Padding" Value="4" />
@@ -694,7 +684,7 @@
 
   <Style TargetType="MenuFlyoutItem">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
     <Setter Property="FontSize" Value="{StaticResource TextBody}" />
     <Setter Property="Padding" Value="8,0" />
@@ -732,7 +722,7 @@
                 </VisualState>
               </VisualStateGroup>
             </VisualStateManager.VisualStateGroups>
-            <Border x:Name="Hover" Opacity="0" Background="{StaticResource SurfaceHoverBrush}" CornerRadius="{StaticResource RadiusField}" />
+            <Border x:Name="Hover" Opacity="0" Background="{ThemeResource SurfaceHoverBrush}" CornerRadius="{StaticResource RadiusField}" />
             <Grid x:Name="Content" ColumnSpacing="16" Padding="{TemplateBinding Padding}">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -741,7 +731,7 @@
               <TextBlock x:Name="TextBlock" Text="{TemplateBinding Text}" Foreground="{TemplateBinding Foreground}"
                          FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" />
               <TextBlock x:Name="KeyboardAcceleratorTextBlock" Grid.Column="1" Text="{TemplateBinding KeyboardAcceleratorTextOverride}"
-                         Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkTertiaryBrush}" VerticalAlignment="Center" />
+                         Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkTertiaryBrush}" VerticalAlignment="Center" />
             </Grid>
           </Grid>
         </ControlTemplate>
@@ -749,8 +739,86 @@
     </Setter>
   </Style>
 
+  <!--
+    Checkable menu items (Reduce noise, the theme choice): the plain item's look plus a check column. One template for
+    both: ToggleMenuFlyoutItem and RadioMenuFlyoutItem drive the same Checked / Unchecked states.
+  -->
+  <ControlTemplate x:Key="CheckMenuItemTemplate" TargetType="MenuFlyoutItem">
+    <Grid x:Name="LayoutRoot" Background="{TemplateBinding Background}" CornerRadius="{StaticResource RadiusField}">
+      <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="CommonStates">
+          <VisualState x:Name="Normal">
+            <Storyboard>
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Hover" Storyboard.TargetProperty="Opacity"><SplineDoubleKeyFrame KeyTime="0:0:0.150" Value="0" KeySpline="0.22,1 0.36,1" /></DoubleAnimationUsingKeyFrames>
+            </Storyboard>
+          </VisualState>
+          <VisualState x:Name="PointerOver">
+            <Storyboard>
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Hover" Storyboard.TargetProperty="Opacity"><SplineDoubleKeyFrame KeyTime="0:0:0.150" Value="1" KeySpline="0.22,1 0.36,1" /></DoubleAnimationUsingKeyFrames>
+            </Storyboard>
+          </VisualState>
+          <VisualState x:Name="Pressed">
+            <Storyboard>
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Hover" Storyboard.TargetProperty="Opacity"><SplineDoubleKeyFrame KeyTime="0:0:0.150" Value="1" KeySpline="0.22,1 0.36,1" /></DoubleAnimationUsingKeyFrames>
+            </Storyboard>
+          </VisualState>
+          <VisualState x:Name="Disabled">
+            <VisualState.Setters>
+              <Setter Target="Content.Opacity" Value="0.4" />
+            </VisualState.Setters>
+          </VisualState>
+        </VisualStateGroup>
+        <VisualStateGroup x:Name="CheckStates">
+          <VisualState x:Name="Unchecked" />
+          <VisualState x:Name="Checked">
+            <VisualState.Setters>
+              <Setter Target="CheckGlyph.Opacity" Value="1" />
+            </VisualState.Setters>
+          </VisualState>
+        </VisualStateGroup>
+      </VisualStateManager.VisualStateGroups>
+      <Border x:Name="Hover" Opacity="0" Background="{ThemeResource SurfaceHoverBrush}" CornerRadius="{StaticResource RadiusField}" />
+      <Grid x:Name="Content" ColumnSpacing="8" Padding="{TemplateBinding Padding}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="14" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <c:Icon x:Name="CheckGlyph" Kind="check" Width="12" Height="12" Opacity="0" Foreground="{ThemeResource AccentBrush}" />
+        <TextBlock Grid.Column="1" Text="{TemplateBinding Text}" Foreground="{TemplateBinding Foreground}"
+                   FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2" Text="{TemplateBinding KeyboardAcceleratorTextOverride}"
+                   Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkTertiaryBrush}" VerticalAlignment="Center" />
+      </Grid>
+    </Grid>
+  </ControlTemplate>
+
+  <Style TargetType="ToggleMenuFlyoutItem">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
+    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="UseSystemFocusVisuals" Value="False" />
+    <Setter Property="Template" Value="{StaticResource CheckMenuItemTemplate}" />
+  </Style>
+
+  <Style TargetType="RadioMenuFlyoutItem">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
+    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="UseSystemFocusVisuals" Value="False" />
+    <Setter Property="Template" Value="{StaticResource CheckMenuItemTemplate}" />
+  </Style>
+
   <Style TargetType="MenuFlyoutSeparator">
-    <Setter Property="Background" Value="{StaticResource HairlineBrush}" />
+    <Setter Property="Background" Value="{ThemeResource HairlineBrush}" />
     <Setter Property="Height" Value="1" />
     <Setter Property="Margin" Value="4,4" />
     <Setter Property="Template">
@@ -763,9 +831,9 @@
   </Style>
 
   <Style TargetType="ToolTip">
-    <Setter Property="Background" Value="{StaticResource InkBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource CanvasBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource InkBrush}" />
+    <Setter Property="Background" Value="{ThemeResource InkBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource CanvasBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource InkBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
     <Setter Property="FontSize" Value="{StaticResource TextCaption}" />
@@ -792,7 +860,7 @@
         <ControlTemplate TargetType="c:NumberField">
           <Grid>
             <TextBox x:Name="PART_Box" Style="{StaticResource FieldTextBox}" Padding="10,3,32,3" />
-            <TextBlock Text="{TemplateBinding Unit}" Style="{StaticResource MonoCaption}" FontSize="11" Foreground="{StaticResource InkTertiaryBrush}"
+            <TextBlock Text="{TemplateBinding Unit}" Style="{StaticResource MonoCaption}" FontSize="11" Foreground="{ThemeResource InkTertiaryBrush}"
                        HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False" />
           </Grid>
         </ControlTemplate>
@@ -808,8 +876,8 @@
     <Setter Property="MinHeight" Value="4" />
     <Setter Property="Height" Value="4" />
     <Setter Property="CornerRadius" Value="2" />
-    <Setter Property="Background" Value="{StaticResource HairlineBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+    <Setter Property="Background" Value="{ThemeResource HairlineBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="IsTabStop" Value="False" />
   </Style>

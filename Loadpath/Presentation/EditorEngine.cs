@@ -356,6 +356,9 @@ public sealed class EditorEngine
         c.Add(new AppCommand("view.snap", "Toggle snapping", "View", "G", () => Options.SnapEnabled = !Options.SnapEnabled));
         c.Add(new AppCommand("view.inspector", "Toggle inspector", "View", "Ctrl+\\", () => Options.InspectorVisible = !Options.InspectorVisible, icon: "panel"));
         c.Add(new AppCommand("view.palette", "Command palette", "View", "Ctrl+K", RequestPalette, icon: "search"));
+        c.Add(new AppCommand("view.themeSystem", "Theme: follow system", "View", null, () => Options.Theme = ThemeChoice.System, icon: "theme"));
+        c.Add(new AppCommand("view.themeLight", "Theme: light sheet", "View", null, () => Options.Theme = ThemeChoice.Light, icon: "theme"));
+        c.Add(new AppCommand("view.themeDark", "Theme: dark table", "View", null, () => Options.Theme = ThemeChoice.Dark, icon: "theme"));
 
         foreach (var preset in TrussPresets.Catalog)
         {

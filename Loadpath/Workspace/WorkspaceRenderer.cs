@@ -58,6 +58,13 @@ public sealed class WorkspaceRenderer : IDisposable
     }
 
     private volatile CanvasTypefaces? _pendingTypefaces;
+    private volatile SkiaPalette? _pendingPalette;
+
+    /// <summary>The palette of the frame being drawn; swapped in from <see cref="SetPalette"/> at the start of a frame.</summary>
+    private SkiaPalette _pal = null!;
+
+    /// <summary>Hands over the palette for the current theme; it takes effect on the next frame, on the drawing thread.</summary>
+    public void SetPalette(SkiaPalette palette) => _pendingPalette = palette;
 
     /// <summary>
     /// Hands over the bundled faces. They are swapped in at the start of the next <see cref="Render"/>, on the thread
@@ -81,7 +88,9 @@ public sealed class WorkspaceRenderer : IDisposable
     public void Render(SKCanvas canvas, RenderSnapshot s)
     {
         ApplyPendingTypefaces();
-        canvas.Clear(SkiaPalette.Canvas);
+        if (_pendingPalette is { } palette) { _pal = palette; _pendingPalette = null; }
+        if (_pal is null) return;
+        canvas.Clear(_pal.Canvas);
         _labelRects.Clear();
         // The XAML tool palette floats over the top-left of the sheet (MainPage: Margin 40,24, ~56 x 300).
         _labelRects.Add(new SKRect(36, 20, 100, 330));
@@ -107,7 +116,7 @@ public sealed class WorkspaceRenderer : IDisposable
     private void DrawFrame(SKCanvas canvas, RenderSnapshot s)
     {
         _stroke.StrokeWidth = 1f;
-        _stroke.Color = SkiaPalette.AccentFaint;
+        _stroke.Color = _pal.AccentFaint;
         _stroke.PathEffect = _frameDash;
         canvas.DrawRect(FrameInset + 0.5f, FrameInset + 0.5f, s.Width - 2 * FrameInset - 1, s.Height - 2 * FrameInset - 1, _stroke);
         _stroke.PathEffect = null;
@@ -120,7 +129,7 @@ public sealed class WorkspaceRenderer : IDisposable
         float l = FrameInset + 4, t = FrameInset + 4, r = s.Width - FrameInset - 4, b = s.Height - FrameInset - 4;
         if (minor >= 12)
         {
-            _fill.Color = SkiaPalette.GridMark;
+            _fill.Color = _pal.GridMark;
             for (var x = Start(s.Origin.X, minor, l); x <= r; x += minor)
                 for (var y = Start(s.Origin.Y, minor, t); y <= b; y += minor)
                     canvas.DrawCircle(x, y, 0.8f, _fill);
@@ -128,7 +137,7 @@ public sealed class WorkspaceRenderer : IDisposable
         if (major >= 24)
         {
             _stroke.StrokeWidth = 1f;
-            _stroke.Color = SkiaPalette.AccentFaint;
+            _stroke.Color = _pal.AccentFaint;
             for (var x = Start(s.Origin.X, major, l); x <= r; x += major)
                 for (var y = Start(s.Origin.Y, major, t); y <= b; y += major)
                 {
@@ -169,15 +178,15 @@ public sealed class WorkspaceRenderer : IDisposable
         return kind == Stroke.Over ? Math.Max(w, 8) : kind == Stroke.Compression ? Math.Max(w, 7) : w;
     }
 
-    private static SKColor ColorOf(RenderSnapshot s, in RenderSnapshot.MemberItem m, Stroke kind)
+    private SKColor ColorOf(RenderSnapshot s, in RenderSnapshot.MemberItem m, Stroke kind)
     {
         var c = kind switch
         {
-            Stroke.Over => SkiaPalette.Danger,
-            Stroke.Unsolved => SkiaPalette.InkTertiary,
-            _ => s.Mode == DisplayMode.Utilization ? SkiaPalette.Utilization(m.Utilization) : SkiaPalette.Accent,
+            Stroke.Over => _pal.Danger,
+            Stroke.Unsolved => _pal.InkTertiary,
+            _ => s.Mode == DisplayMode.Utilization ? _pal.Utilization(m.Utilization) : _pal.Accent,
         };
-        return m.Dimmed ? c.WithAlpha(0.3) : c;
+        return m.Dimmed ? c.WithAlpha(_pal.DimAlpha) : c;
     }
 
     /// <summary>One member in its line style. Wide members are ribbons: open for tension, hatched for compression.</summary>
@@ -209,7 +218,7 @@ public sealed class WorkspaceRenderer : IDisposable
         _pb.LineTo(a.X - nx, a.Y - ny);
         _pb.Close();
         using var ribbon = _pb.Detach();
-        _fill.Color = kind == Stroke.Over ? SkiaPalette.DangerSoft : SkiaPalette.Canvas;
+        _fill.Color = kind == Stroke.Over ? _pal.DangerSoft : _pal.Canvas;
         canvas.DrawPath(ribbon, _fill);
 
         if (kind is Stroke.Compression or Stroke.Over)
@@ -236,7 +245,7 @@ public sealed class WorkspaceRenderer : IDisposable
         {
             if (!m.Selected && !m.Hovered && s.Overlay.HighlightMember != m.ElementId) continue;
             _stroke.StrokeWidth = RibbonWidth(s, m, StrokeOf(s, m)) + 12;
-            _stroke.Color = m.Selected ? SkiaPalette.AccentSoft : SkiaPalette.AccentSoft.WithAlpha(0.6);
+            _stroke.Color = m.Selected ? _pal.AccentSoft : _pal.AccentSoft.WithAlpha(_pal.HaloAlpha);
             canvas.DrawLine(m.A, m.B, _stroke);
         }
         foreach (ref readonly var m in s.Members.AsSpan())
@@ -270,7 +279,7 @@ public sealed class WorkspaceRenderer : IDisposable
             var amp = RibbonWidth(s, m, Stroke.Over) / 2 + Math.Clamp(len * 0.07f, 5, 16);
             using var bow = BowPath(m.A, m.B, nx, ny, amp);
             _stroke.StrokeWidth = 1.3f;
-            _stroke.Color = m.Dimmed ? SkiaPalette.Danger.WithAlpha(0.35) : SkiaPalette.Danger;
+            _stroke.Color = m.Dimmed ? _pal.Danger.WithAlpha(_pal.DimInkAlpha) : _pal.Danger;
             _stroke.PathEffect = _deflectDash;
             canvas.DrawPath(bow, _stroke);
             _stroke.PathEffect = null;
@@ -323,15 +332,15 @@ public sealed class WorkspaceRenderer : IDisposable
             _labelRects.Add(rect);
             if (pill)
             {
-                _fill.Color = m.Dimmed ? SkiaPalette.DangerSoft.WithAlpha(0.5) : SkiaPalette.DangerSoft;
+                _fill.Color = m.Dimmed ? _pal.DangerSoft.WithAlpha(_pal.DimInkAlpha + 0.15) : _pal.DangerSoft;
                 canvas.DrawRoundRect(rect, 8, 8, _fill);
-                _text.Color = m.Dimmed ? SkiaPalette.Danger.WithAlpha(0.45) : SkiaPalette.Danger;
+                _text.Color = m.Dimmed ? _pal.Danger.WithAlpha(_pal.DimInkAlpha + 0.1) : _pal.Danger;
             }
             else
             {
-                _fill.Color = SkiaPalette.Canvas.WithAlpha(0.85);
+                _fill.Color = _pal.Canvas.WithAlpha(_pal.PlateAlpha);
                 canvas.DrawRect(rect, _fill);
-                _text.Color = m.Dimmed ? SkiaPalette.AccentFaint : SkiaPalette.Accent;
+                _text.Color = m.Dimmed ? _pal.AccentFaint : _pal.Accent;
             }
             canvas.DrawText(text, cx - width / 2, cy + 3.8f, SKTextAlign.Left, font, _text);
         }
@@ -401,7 +410,7 @@ public sealed class WorkspaceRenderer : IDisposable
         foreach (var r in _labelRects) if (r.IntersectsWith(box)) return;
         _labelRects.Add(box);
         _stroke.StrokeWidth = 0.9f;
-        _stroke.Color = SkiaPalette.Accent;
+        _stroke.Color = _pal.Accent;
         canvas.DrawLine(from, to, _stroke);
         var d = new SKPoint(to.X - from.X, to.Y - from.Y);
         var len = MathF.Sqrt(d.X * d.X + d.Y * d.Y);
@@ -413,10 +422,10 @@ public sealed class WorkspaceRenderer : IDisposable
             _pb.LineTo(to.X - ux * 6 + uy * 2.5f, to.Y - uy * 6 - ux * 2.5f);
             _pb.Close();
             using var head = _pb.Detach();
-            _fill.Color = SkiaPalette.Accent;
+            _fill.Color = _pal.Accent;
             canvas.DrawPath(head, _fill);
         }
-        _text.Color = SkiaPalette.Accent;
+        _text.Color = _pal.Accent;
         canvas.DrawText(text, box.Left + 3, box.MidY + 3.8f, SKTextAlign.Left, _monoSmall, _text);
     }
 
@@ -457,7 +466,7 @@ public sealed class WorkspaceRenderer : IDisposable
         if (maxX - minX > 1e-6)
         {
             _stroke.StrokeWidth = 0.8f;
-            _stroke.Color = SkiaPalette.AccentFaint;
+            _stroke.Color = _pal.AccentFaint;
             _stroke.PathEffect = _extDash;
             var from = sy(minY) + 30;
             if (drawChain) foreach (var x in _xs) canvas.DrawLine(sx(x), from, sx(x), chainY + 5, _stroke);
@@ -485,7 +494,7 @@ public sealed class WorkspaceRenderer : IDisposable
         {
             var x = maxScreenX + 70;
             _stroke.StrokeWidth = 0.8f;
-            _stroke.Color = SkiaPalette.AccentFaint;
+            _stroke.Color = _pal.AccentFaint;
             _stroke.PathEffect = _extDash;
             canvas.DrawLine(FindScreenX(s, maxY) + 12, topScreenY, x + 5, topScreenY, _stroke);
             canvas.DrawLine(maxScreenX + 18, sy(minY), x + 5, sy(minY), _stroke);
@@ -498,7 +507,7 @@ public sealed class WorkspaceRenderer : IDisposable
             canvas.Save();
             canvas.Translate(x - 6, (topScreenY + sy(minY)) / 2 + w / 2);
             canvas.RotateDegrees(-90);
-            _text.Color = SkiaPalette.Accent;
+            _text.Color = _pal.Accent;
             canvas.DrawText(text, 0, 0, SKTextAlign.Left, _monoSmall, _text);
             canvas.Restore();
         }
@@ -514,21 +523,21 @@ public sealed class WorkspaceRenderer : IDisposable
     private void DimLine(SKCanvas canvas, float x1, float y1, float x2, float y2)
     {
         _stroke.StrokeWidth = 0.9f;
-        _stroke.Color = SkiaPalette.Accent.WithAlpha(0.75);
+        _stroke.Color = _pal.Accent.WithAlpha(_pal.DimLineAlpha);
         canvas.DrawLine(x1, y1, x2, y2, _stroke);
     }
 
     private void Slash(SKCanvas canvas, float x, float y)
     {
         _stroke.StrokeWidth = 1.1f;
-        _stroke.Color = SkiaPalette.Accent;
+        _stroke.Color = _pal.Accent;
         canvas.DrawLine(x - 4, y + 4, x + 4, y - 4, _stroke);
     }
 
     private void DimText(SKCanvas canvas, string text, float cx, float baseline)
     {
         var w = _monoSmall.MeasureText(text);
-        _text.Color = SkiaPalette.Accent;
+        _text.Color = _pal.Accent;
         canvas.DrawText(text, cx - w / 2, baseline, SKTextAlign.Left, _monoSmall, _text);
     }
 
@@ -537,7 +546,7 @@ public sealed class WorkspaceRenderer : IDisposable
     private void DrawDeflectedShape(SKCanvas canvas, RenderSnapshot s)
     {
         _stroke.StrokeWidth = 1f;
-        _stroke.Color = SkiaPalette.AccentFaint;
+        _stroke.Color = _pal.AccentFaint;
         _stroke.PathEffect = _deflectDash;
         foreach (ref readonly var m in s.Members.AsSpan()) canvas.DrawLine(m.DeflectedA, m.DeflectedB, _stroke);
         _stroke.PathEffect = null;
@@ -551,11 +560,11 @@ public sealed class WorkspaceRenderer : IDisposable
         {
             if (n.Support == SupportKind.None) continue;
             var p = n.Screen;
-            var ink = n.Dimmed ? SkiaPalette.Accent.WithAlpha(0.35) : SkiaPalette.Accent;
+            var ink = n.Dimmed ? _pal.Accent.WithAlpha(_pal.DimInkAlpha) : _pal.Accent;
             canvas.Save();
             canvas.Translate(p.X, p.Y);
             if (n.Support == SupportKind.RollerX) canvas.RotateDegrees(90);
-            _fill.Color = SkiaPalette.AccentSoft;
+            _fill.Color = _pal.AccentSoft;
             canvas.DrawPath(_supportTriangle, _fill);
             _stroke.StrokeWidth = 1.3f;
             _stroke.Color = ink;
@@ -585,7 +594,7 @@ public sealed class WorkspaceRenderer : IDisposable
                 foreach (var r in _labelRects) if (r.IntersectsWith(box)) { clear = false; break; }
                 if (!clear) continue;
                 _labelRects.Add(box);
-                _text.Color = SkiaPalette.Accent;
+                _text.Color = _pal.Accent;
                 canvas.DrawText(name, x, p.Y + 21, SKTextAlign.Left, _monoSmall, _text);
             }
         }
@@ -596,7 +605,7 @@ public sealed class WorkspaceRenderer : IDisposable
         foreach (ref readonly var n in s.Nodes.AsSpan())
         {
             if (n.LoadKn.LengthSquared < 1e-12) continue;
-            var color = n.Dimmed ? SkiaPalette.Accent.WithAlpha(0.35) : SkiaPalette.Accent;
+            var color = n.Dimmed ? _pal.Accent.WithAlpha(_pal.DimInkAlpha) : _pal.Accent;
             DrawArrow(canvas, n.LoadTail, n.Screen, 8f, color, 1.3f, n.Selected || n.Hovered, true);
             DrawArrowLabel(canvas, n.LoadTail, n.Screen, $"{n.LoadKn.Length:0.#} kN", color, s.Center);
         }
@@ -612,12 +621,12 @@ public sealed class WorkspaceRenderer : IDisposable
                 var dir = n.ReactionKn.Y > 0 ? 1f : -1f; // positive Y reaction pushes up on screen (−y)
                 var tail = new SKPoint(n.Screen.X, n.Screen.Y + dir * 92);
                 var head = new SKPoint(n.Screen.X, n.Screen.Y + dir * 32);
-                DrawArrow(canvas, tail, head, 7f, SkiaPalette.Accent, 1.1f, false, false);
+                DrawArrow(canvas, tail, head, 7f, _pal.Accent, 1.1f, false, false);
                 var text = $"R {Math.Abs(n.ReactionKn.Y):0.0} kN";
                 var w = _monoSmall.MeasureText(text);
                 var y = dir > 0 ? tail.Y + 15 : tail.Y - 7;
                 _labelRects.Add(new SKRect(tail.X - w / 2 - 3, y - 11, tail.X + w / 2 + 3, y + 3));
-                _text.Color = SkiaPalette.Accent;
+                _text.Color = _pal.Accent;
                 canvas.DrawText(text, tail.X - w / 2, y, SKTextAlign.Left, _monoSmall, _text);
             }
             if (n.Support.FixesX() && Math.Abs(n.ReactionKn.X) > 1e-6)
@@ -625,8 +634,8 @@ public sealed class WorkspaceRenderer : IDisposable
                 var dir = n.ReactionKn.X > 0 ? -1f : 1f;
                 var tail = new SKPoint(n.Screen.X + dir * 76, n.Screen.Y);
                 var head = new SKPoint(n.Screen.X + dir * 16, n.Screen.Y);
-                DrawArrow(canvas, tail, head, 7f, SkiaPalette.Accent, 1.1f, false, false);
-                DrawArrowLabel(canvas, tail, head, $"R {Math.Abs(n.ReactionKn.X):0.0} kN", SkiaPalette.Accent, s.Center);
+                DrawArrow(canvas, tail, head, 7f, _pal.Accent, 1.1f, false, false);
+                DrawArrowLabel(canvas, tail, head, $"R {Math.Abs(n.ReactionKn.X):0.0} kN", _pal.Accent, s.Center);
             }
         }
     }
@@ -653,10 +662,10 @@ public sealed class WorkspaceRenderer : IDisposable
         }
         if (!handle) return;
         // Tail handle: a hollow ring the user can drag to aim the load.
-        _fill.Color = SkiaPalette.Canvas;
+        _fill.Color = _pal.Canvas;
         canvas.DrawCircle(tail, 4f, _fill);
         _stroke.StrokeWidth = 1.4f;
-        _stroke.Color = emphasized ? SkiaPalette.Accent : color;
+        _stroke.Color = emphasized ? _pal.Accent : color;
         canvas.DrawCircle(tail, 4f, _stroke);
     }
 
@@ -707,23 +716,23 @@ public sealed class WorkspaceRenderer : IDisposable
         foreach (ref readonly var n in s.Nodes.AsSpan())
         {
             var p = n.Screen;
-            var ink = n.Dimmed ? SkiaPalette.Accent.WithAlpha(0.35) : SkiaPalette.Accent;
+            var ink = n.Dimmed ? _pal.Accent.WithAlpha(_pal.DimInkAlpha) : _pal.Accent;
             if (n.Selected)
             {
-                _fill.Color = SkiaPalette.AccentSoft;
+                _fill.Color = _pal.AccentSoft;
                 canvas.DrawCircle(p, 15, _fill);
                 _stroke.StrokeWidth = 1f;
-                _stroke.Color = SkiaPalette.Accent.WithAlpha(0.6);
+                _stroke.Color = _pal.Accent.WithAlpha(_pal.HaloAlpha);
                 _stroke.PathEffect = _haloDash;
                 canvas.DrawCircle(p, 15, _stroke);
                 _stroke.PathEffect = null;
             }
             else if (n.Hovered)
             {
-                _fill.Color = SkiaPalette.AccentSoft;
+                _fill.Color = _pal.AccentSoft;
                 canvas.DrawCircle(p, 11, _fill);
             }
-            _fill.Color = SkiaPalette.Canvas;
+            _fill.Color = _pal.Canvas;
             canvas.DrawCircle(p, 5.8f, _fill);
             _stroke.StrokeWidth = n.Selected ? 1.8f : 1.4f;
             _stroke.Color = ink;
@@ -738,7 +747,7 @@ public sealed class WorkspaceRenderer : IDisposable
             {
                 if (n.ElementId != flash) continue;
                 _stroke.StrokeWidth = 1.5f;
-                _stroke.Color = SkiaPalette.Accent.WithAlpha(0.8);
+                _stroke.Color = _pal.Accent.WithAlpha(_pal.TagAlpha);
                 canvas.DrawCircle(n.Screen, 12, _stroke);
             }
         }
@@ -752,7 +761,7 @@ public sealed class WorkspaceRenderer : IDisposable
         if (o.Guides.Count > 0)
         {
             _stroke.StrokeWidth = 1f;
-            _stroke.Color = SkiaPalette.Accent.WithAlpha(0.6);
+            _stroke.Color = _pal.Accent.WithAlpha(_pal.HaloAlpha);
             _stroke.PathEffect = _dash;
             foreach (var g in o.Guides)
             {
@@ -773,31 +782,31 @@ public sealed class WorkspaceRenderer : IDisposable
         if (o.RubberBand is { } band)
         {
             _stroke.StrokeWidth = 1.6f;
-            _stroke.Color = SkiaPalette.Accent;
+            _stroke.Color = _pal.Accent;
             canvas.DrawLine(band.From, band.To, _stroke);
         }
 
         if (o.LoadPreview is { } lp)
         {
-            DrawArrow(canvas, lp.Tail, lp.Node, 8f, SkiaPalette.Accent, 1.3f, true, true);
-            DrawArrowLabel(canvas, lp.Tail, lp.Node, $"{lp.MagnitudeKn:0.#} kN", SkiaPalette.Accent, s.Center);
+            DrawArrow(canvas, lp.Tail, lp.Node, 8f, _pal.Accent, 1.3f, true, true);
+            DrawArrowLabel(canvas, lp.Tail, lp.Node, $"{lp.MagnitudeKn:0.#} kN", _pal.Accent, s.Center);
         }
 
         if (o.GhostNode is { } ghost)
         {
-            _fill.Color = SkiaPalette.AccentSoft;
+            _fill.Color = _pal.AccentSoft;
             canvas.DrawCircle(ghost, 7f, _fill);
             _stroke.StrokeWidth = 1.5f;
-            _stroke.Color = SkiaPalette.Accent;
+            _stroke.Color = _pal.Accent;
             canvas.DrawCircle(ghost, 5.8f, _stroke);
         }
 
         if (o.Marquee is { } r)
         {
-            _fill.Color = SkiaPalette.Accent.WithAlpha(0.06);
+            _fill.Color = _pal.Accent.WithAlpha(_pal.MarqueeAlpha);
             canvas.DrawRect(r, _fill);
             _stroke.StrokeWidth = 1f;
-            _stroke.Color = SkiaPalette.Accent;
+            _stroke.Color = _pal.Accent;
             canvas.DrawRect(r, _stroke);
         }
     }
@@ -807,7 +816,7 @@ public sealed class WorkspaceRenderer : IDisposable
     private void DrawLegend(SKCanvas canvas, RenderSnapshot s)
     {
         // Frame tags, set vertically on the frame edges like a drawing sheet.
-        _text.Color = SkiaPalette.Accent.WithAlpha(0.8);
+        _text.Color = _pal.Accent.WithAlpha(_pal.TagAlpha);
         VerticalText(canvas, "FIG_001", FrameInset + 16, FrameInset + 12);
         if (s.Members.Length > 0)
         {
@@ -823,37 +832,37 @@ public sealed class WorkspaceRenderer : IDisposable
         var caption = $"{s.StructureKind}, {maxX - minX:0.000} m span. {what}";
 
         var left = FrameInset + 24;
-        _text.Color = SkiaPalette.InkSecondary;
+        _text.Color = _pal.InkSecondary;
         canvas.DrawText(caption, left, s.Height - FrameInset - 42, SKTextAlign.Left, _ui, _text);
 
         var y = s.Height - FrameInset - 16;
         var x = left;
-        x = LegendItem(canvas, x, y, Stroke.Tension, SkiaPalette.Accent, "TENSION");
-        x = LegendItem(canvas, x, y, Stroke.Compression, SkiaPalette.Accent, "COMPRESSION");
-        x = LegendItem(canvas, x, y, Stroke.Over, SkiaPalette.Danger, "OVER CAPACITY");
+        x = LegendItem(canvas, x, y, Stroke.Tension, _pal.Accent, "TENSION");
+        x = LegendItem(canvas, x, y, Stroke.Compression, _pal.Accent, "COMPRESSION");
+        x = LegendItem(canvas, x, y, Stroke.Over, _pal.Danger, "OVER CAPACITY");
         var anyBuckles = false;
         foreach (ref readonly var m in s.Members.AsSpan()) anyBuckles |= m.Overstressed && m.BucklingGoverns;
         if (anyBuckles && s.ShowOverCapacity && s.Status == AnalysisStatus.Solved)
         {
             using var bow = BowPath(new SKPoint(x, y - 2), new SKPoint(x + 26, y - 2), 0, -1, 6);
             _stroke.StrokeWidth = 1.3f;
-            _stroke.Color = SkiaPalette.Danger;
+            _stroke.Color = _pal.Danger;
             _stroke.PathEffect = _deflectDash;
             canvas.DrawPath(bow, _stroke);
             _stroke.PathEffect = null;
-            _text.Color = SkiaPalette.Danger;
+            _text.Color = _pal.Danger;
             canvas.DrawText("BUCKLED SHAPE", x + 34, y, SKTextAlign.Left, _monoSmall, _text);
             x += 34 + _monoSmall.MeasureText("BUCKLED SHAPE") + 26;
         }
-        x = LegendItem(canvas, x, y, Stroke.Zero, SkiaPalette.Accent, "ZERO FORCE");
+        x = LegendItem(canvas, x, y, Stroke.Zero, _pal.Accent, "ZERO FORCE");
         if (s.ShowDeflection)
         {
             _stroke.StrokeWidth = 1f;
-            _stroke.Color = SkiaPalette.AccentFaint;
+            _stroke.Color = _pal.AccentFaint;
             _stroke.PathEffect = _deflectDash;
             canvas.DrawLine(x, y - 4, x + 26, y - 4, _stroke);
             _stroke.PathEffect = null;
-            _text.Color = SkiaPalette.Accent;
+            _text.Color = _pal.Accent;
             canvas.DrawText($"DEFLECTED ×{s.Exaggeration:0.0}", x + 34, y, SKTextAlign.Left, _monoSmall, _text);
         }
     }
@@ -870,7 +879,7 @@ public sealed class WorkspaceRenderer : IDisposable
     private float LegendItem(SKCanvas canvas, float x, float y, Stroke kind, SKColor color, string label)
     {
         DrawMember(canvas, new SKPoint(x, y - 4), new SKPoint(x + 26, y - 4), kind, kind == Stroke.Zero ? 0 : 8, color);
-        _text.Color = kind == Stroke.Over ? SkiaPalette.Danger : SkiaPalette.Accent;
+        _text.Color = kind == Stroke.Over ? _pal.Danger : _pal.Accent;
         canvas.DrawText(label, x + 34, y, SKTextAlign.Left, _monoSmall, _text);
         return x + 34 + _monoSmall.MeasureText(label) + 26;
     }

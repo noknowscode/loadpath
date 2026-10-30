@@ -30,8 +30,15 @@ public sealed partial class MainPage : Page
         Engine = new EditorEngine();
         _settingsModel = Environment.GetEnvironmentVariable("LOADPATH_RESET") == "1" ? new SettingsService.Model() : _settings.Load();
         _settings.Apply(_settingsModel, Engine.Options);
+#if DEBUG
+        ApplyThemeFixture();
+#endif
         RegisterFileCommands();
+        // Before the views are built, so the canvas and the converter brushes start in the right theme.
+        ApplyTheme();
         InitializeComponent();
+        // Converter-made brushes and the canvas follow the window's theme, including live system changes under System.
+        ActualThemeChanged += (_, _) => ThemeBrushes.Apply(ActualTheme);
 
         // MVUX: the generated view model is the binding surface; the engine stays reachable for pointer-level code.
         var viewModel = new EditorViewModel(Engine);
@@ -50,7 +57,11 @@ public sealed partial class MainPage : Page
         Engine.SelectionChanged += (_, _) => { UpdateFloatingBar(glide: true); EnsureKeyboardTarget(); };
         Engine.ViewportChanged += (_, _) => UpdateFloatingBar();
         Engine.AnalysisChanged += (_, _) => { UpdateFloatingBar(); ScheduleAutosave(); };
-        Engine.OptionsChanged += (_, _) => PersistSettings();
+        Engine.OptionsChanged += (_, name) =>
+        {
+            if (name == nameof(ViewOptions.Theme)) ApplyTheme();
+            PersistSettings();
+        };
         Engine.Interaction.ToolChanged += (_, _) => UpdateFloatingBar();
         // The bar's label and buttons are bound, so its width settles after the binding; re-anchor when it does.
         FloatingBar.SizeChanged += (_, _) => UpdateFloatingBar();
@@ -137,6 +148,28 @@ public sealed partial class MainPage : Page
 #endif
     }
 
+    // ---- theme ----
+
+    /// <summary>
+    /// The theme lives on the window content (the root frame), so every page element, flyout and dialog resolves its
+    /// {ThemeResource} brushes from one place. System leaves it unset and the app follows the platform, live.
+    /// </summary>
+    private void ApplyTheme()
+    {
+        var requested = Engine.Options.Theme switch
+        {
+            ThemeChoice.Light => ElementTheme.Light,
+            ThemeChoice.Dark => ElementTheme.Dark,
+            _ => ElementTheme.Default,
+        };
+        var root = App.MainWindow?.Content as FrameworkElement ?? this;
+        root.RequestedTheme = requested;
+        // Before the page is in the tree ActualTheme is not known yet: resolve it the way the root will.
+        var actual = requested != ElementTheme.Default ? requested
+            : Application.Current.RequestedTheme == ApplicationTheme.Dark ? ElementTheme.Dark : ElementTheme.Light;
+        ThemeBrushes.Apply(IsLoaded && ActualTheme != ElementTheme.Default ? ActualTheme : actual);
+    }
+
     // ---- startup: autosave restore, DEBUG fixture hooks ----
 
     private void RestoreOrSeed()
@@ -180,6 +213,16 @@ public sealed partial class MainPage : Page
     }
 
 #if DEBUG
+    /// <summary><c>LOADPATH_THEME=light|dark|system</c>: start in a theme without touching the saved choice first.</summary>
+    private void ApplyThemeFixture()
+    {
+        if (Environment.GetEnvironmentVariable("LOADPATH_THEME") is { Length: > 0 } theme && Enum.TryParse<ThemeChoice>(theme, true, out var t))
+        {
+            Engine.Options.Theme = t;
+            Console.Error.WriteLine($"VERIFY theme={t}");
+        }
+    }
+
     /// <summary>Env-driven start states so headless captures are deterministic without a pointer.</summary>
     private void ApplyFixtureHooks()
     {
@@ -643,6 +686,8 @@ public sealed partial class MainPage : Page
             SecondaryButtonText = "Discard",
             CloseButtonText = "Cancel",
             XamlRoot = XamlRoot,
+            // A dialog opens in the popup layer, outside the page: hand it the page's theme.
+            RequestedTheme = ActualTheme,
         };
         var result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary) { await SaveAsync(false); return !Engine.IsDirty; }

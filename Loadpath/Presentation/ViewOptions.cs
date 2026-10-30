@@ -2,6 +2,9 @@ namespace Loadpath.Presentation;
 
 public enum DisplayMode { Forces, Utilization }
 
+/// <summary>The theme choice. System follows the platform (and its live changes); Light and Dark pin one.</summary>
+public enum ThemeChoice { System, Light, Dark }
+
 /// <summary>Everything "Reduce noise" can hide. The structure, the selection and the inspector inputs always stay.</summary>
 [Flags]
 public enum NoiseLayer
@@ -42,6 +45,7 @@ public sealed class ViewOptions
     private bool _inspectorVisible = true;
     private bool _reduceNoise;
     private NoiseLayer _keep = DefaultKeep;
+    private ThemeChoice _theme = ThemeChoice.System;
 
     public event EventHandler<string>? Changed;
 
@@ -57,6 +61,7 @@ public sealed class ViewOptions
     public bool ReduceNoise { get => _reduceNoise; set => Set(ref _reduceNoise, value); }
     /// <summary>The layers that stay on screen while noise is reduced.</summary>
     public NoiseLayer Keep { get => _keep; set => Set(ref _keep, value & NoiseLayer.All); }
+    public ThemeChoice Theme { get => _theme; set => Set(ref _theme, value); }
 
     public void SetKeep(NoiseLayer layer, bool keep) => Keep = keep ? Keep | layer : Keep & ~layer;
 

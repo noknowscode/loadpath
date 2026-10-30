@@ -26,10 +26,10 @@
     </Style>
     <Style x:Key="Eyebrow" TargetType="TextBlock" BasedOn="{StaticResource MonoCaption}">
       <Setter Property="FontSize" Value="11" />
-      <Setter Property="Foreground" Value="{StaticResource InkSecondaryBrush}" />
+      <Setter Property="Foreground" Value="{ThemeResource InkSecondaryBrush}" />
     </Style>
     <Style x:Key="SectionNumber" TargetType="TextBlock" BasedOn="{StaticResource SectionLabel}">
-      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Foreground" Value="{ThemeResource AccentBrush}" />
       <Setter Property="Margin" Value="0,0,10,0" />
     </Style>
   </UserControl.Resources>
@@ -100,7 +100,7 @@
             <Button Style="{StaticResource InspectorAction}" Command="{Binding JumpToCritical}" HorizontalAlignment="Stretch" Margin="0,10,0,0"
                     Visibility="{Binding Inspector.HasCritical, Converter={StaticResource Vis}}" AutomationProperties.Name="Jump to critical member">
               <StackPanel Orientation="Horizontal" Spacing="8">
-                <c:Icon Kind="target" Width="14" Height="14" Foreground="{StaticResource InkBrush}" />
+                <c:Icon Kind="target" Width="14" Height="14" Foreground="{ThemeResource InkBrush}" />
                 <TextBlock Text="{Binding Inspector.CriticalText, Converter={StaticResource Upper}}" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
@@ -117,7 +117,7 @@
             <!-- Members over capacity, worst first. The failure mode is spelled out; red only reinforces it. -->
             <StackPanel Margin="0,14,0,0" c:Motion.Reveal="True" Visibility="{Binding HasFailures, Converter={StaticResource Vis}}">
               <Grid Margin="0,0,0,4">
-                <TextBlock Text="OVER CAPACITY" Style="{StaticResource MonoCaption}" FontSize="11" Foreground="{StaticResource DangerBrush}" />
+                <TextBlock Text="OVER CAPACITY" Style="{StaticResource MonoCaption}" FontSize="11" Foreground="{ThemeResource DangerBrush}" />
                 <TextBlock Text="{Binding FailuresHeader}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" />
               </Grid>
               <ItemsControl ItemsSource="{Binding Failures}">
@@ -128,14 +128,14 @@
                             AutomationProperties.Name="{Binding AutomationName}">
                       <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                          <TextBlock Text="{Binding Mode}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" FontSize="11" Foreground="{StaticResource DangerBrush}" />
+                          <TextBlock Text="{Binding Mode}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" FontSize="11" Foreground="{ThemeResource DangerBrush}" />
                           <TextBlock Text="{Binding Detail}" Style="{StaticResource MonoCaption}" FontSize="10.5" LineHeight="14" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                         <!-- xaml-lint: allow card - utilization pill, not a card; no Toolkit by README decision -->
                         <Border Grid.Column="2" Style="{StaticResource DangerPill}">
-                          <TextBlock Text="{Binding Util}" Style="{StaticResource MonoCaption}" FontSize="10" LineHeight="14" Foreground="{StaticResource DangerBrush}" />
+                          <TextBlock Text="{Binding Util}" Style="{StaticResource MonoCaption}" FontSize="10" LineHeight="14" Foreground="{ThemeResource DangerBrush}" />
                         </Border>
                       </Grid>
                     </Button>
@@ -159,7 +159,7 @@
               <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                 <TextBlock Text="03" Style="{StaticResource SectionNumber}" /><TextBlock Text="REACTIONS" Style="{StaticResource SectionLabel}" />
               </StackPanel>
-              <TextBlock Text="{Binding Inspector.ReactionsText}" Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkBrush}" LineHeight="22" />
+              <TextBlock Text="{Binding Inspector.ReactionsText}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" LineHeight="22" />
             </StackPanel>
           </StackPanel>
           <TextBlock Text="{Binding Inspector.SummaryHint}" Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="20,4,20,20" />
@@ -202,12 +202,12 @@
                   <ColumnDefinition Width="*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <ToggleButton Style="{StaticResource SegmentToggle}" Padding="2,0" Content="NONE" IsChecked="{Binding Inspector.IsFree}" Command="{Binding SupportNone}" AutomationProperties.Name="No support" />
-                <Rectangle Grid.Column="1" Fill="{StaticResource HairlineStrongBrush}" />
+                <Rectangle Grid.Column="1" Fill="{ThemeResource HairlineStrongBrush}" />
                 <ToggleButton Grid.Column="2" Style="{StaticResource SegmentToggle}" Padding="2,0" Content="PIN" IsChecked="{Binding Inspector.IsPin}" Command="{Binding SupportPin}" AutomationProperties.Name="Pin support" />
-                <Rectangle Grid.Column="3" Fill="{StaticResource HairlineStrongBrush}" />
+                <Rectangle Grid.Column="3" Fill="{ThemeResource HairlineStrongBrush}" />
                 <ToggleButton Grid.Column="4" Style="{StaticResource SegmentToggle}" Padding="2,0" Content="ROLLER X" IsChecked="{Binding Inspector.IsRoller}" Command="{Binding SupportRoller}"
                               ToolTipService.ToolTip="Fixed in y, free to roll in x" AutomationProperties.Name="Roller support, free in x" />
-                <Rectangle Grid.Column="5" Fill="{StaticResource HairlineStrongBrush}" />
+                <Rectangle Grid.Column="5" Fill="{ThemeResource HairlineStrongBrush}" />
                 <ToggleButton Grid.Column="6" Style="{StaticResource SegmentToggle}" Padding="2,0" Content="ROLLER Y" IsChecked="{Binding Inspector.IsRollerX}" Command="{Binding SupportRollerX}"
                               ToolTipService.ToolTip="Fixed in x, free to roll in y" AutomationProperties.Name="Roller support, free in y" />
               </Grid>
@@ -248,13 +248,13 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="72" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <!-- Direction of travel: center dot, line to the displaced position (fixed length, so small motions still read). -->
                 <Grid Width="72" Height="72" VerticalAlignment="Top">
-                  <Rectangle Stroke="{StaticResource HairlineStrongBrush}" StrokeThickness="1" StrokeDashArray="3,3" />
+                  <Rectangle Stroke="{ThemeResource HairlineStrongBrush}" StrokeThickness="1" StrokeDashArray="3,3" />
                   <Canvas Width="70" Height="70">
-                    <Line X1="35" Y1="4" X2="35" Y2="66" Stroke="{StaticResource HairlineBrush}" StrokeThickness="1" StrokeDashArray="2,2" />
-                    <Line X1="4" Y1="35" X2="66" Y2="35" Stroke="{StaticResource HairlineBrush}" StrokeThickness="1" StrokeDashArray="2,2" />
-                    <Line X1="35" Y1="35" X2="{Binding Inspector.DispDotX}" Y2="{Binding Inspector.DispDotY}" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.5" />
-                    <Ellipse Width="6" Height="6" Fill="{StaticResource AccentBrush}" Canvas.Left="32" Canvas.Top="32" />
-                    <Ellipse Width="7" Height="7" Fill="{StaticResource CanvasBrush}" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.5" Margin="-3.5,-3.5,0,0">
+                    <Line X1="35" Y1="4" X2="35" Y2="66" Stroke="{ThemeResource HairlineBrush}" StrokeThickness="1" StrokeDashArray="2,2" />
+                    <Line X1="4" Y1="35" X2="66" Y2="35" Stroke="{ThemeResource HairlineBrush}" StrokeThickness="1" StrokeDashArray="2,2" />
+                    <Line X1="35" Y1="35" X2="{Binding Inspector.DispDotX}" Y2="{Binding Inspector.DispDotY}" Stroke="{ThemeResource AccentBrush}" StrokeThickness="1.5" />
+                    <Ellipse Width="6" Height="6" Fill="{ThemeResource AccentBrush}" Canvas.Left="32" Canvas.Top="32" />
+                    <Ellipse Width="7" Height="7" Fill="{ThemeResource CanvasBrush}" Stroke="{ThemeResource AccentBrush}" StrokeThickness="1.5" Margin="-3.5,-3.5,0,0">
                       <Ellipse.RenderTransform>
                         <TranslateTransform X="{Binding Inspector.DispDotX}" Y="{Binding Inspector.DispDotY}" />
                       </Ellipse.RenderTransform>
@@ -295,7 +295,7 @@
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="48" />
                       </Grid.ColumnDefinitions>
-                      <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
                       <TextBlock Grid.Column="1" Text="{Binding Endpoints}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
                       <TextBlock Grid.Column="2" Text="{Binding Force}" Style="{StaticResource MonoCaption}" Foreground="{Binding ForceToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center" />
                       <!-- xaml-lint: allow card - utilization pill, not a card; no Toolkit by README decision -->
@@ -359,7 +359,7 @@
               <ItemsRepeater.ItemTemplate>
                 <DataTemplate>
                   <!-- xaml-lint: allow card - draggable section chip; no Toolkit by README decision -->
-                  <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="2" Padding="6,3" Tag="{Binding Id}"
+                  <Border Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="2" Padding="6,3" Tag="{Binding Id}"
                           PointerPressed="OnSectionChipPressed" ToolTipService.ToolTip="{Binding Name}">
                     <TextBlock Text="{Binding ShortName}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Center" />
                   </Border>
@@ -394,7 +394,7 @@
               <Grid Style="{StaticResource Row}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <TextBlock Text="Buckling" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{Binding Inspector.BucklingText}" Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{Binding Inspector.BucklingText}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
               </Grid>
             </StackPanel>
             <Button Style="{StaticResource InspectorAction}" Command="{Binding SplitMember}" Content="SPLIT AT MIDPOINT" Margin="0,12,0,0" AutomationProperties.Name="Split at midpoint" />
@@ -453,10 +453,10 @@
       <Rectangle Style="{StaticResource DashedRule}" />
       <Button Style="{StaticResource DangerTextButton}" Command="{Binding DeleteSelection}" Margin="20,10,20,12" AutomationProperties.Name="Delete selection">
         <StackPanel Orientation="Horizontal" Spacing="8">
-          <c:Icon Kind="delete" Width="14" Height="14" Foreground="{StaticResource DangerBrush}" />
-          <TextBlock Text="DELETE NODE" Foreground="{StaticResource DangerBrush}" VerticalAlignment="Center" Visibility="{Binding Inspector.IsNode, Converter={StaticResource Vis}}" />
-          <TextBlock Text="DELETE MEMBER" Foreground="{StaticResource DangerBrush}" VerticalAlignment="Center" Visibility="{Binding Inspector.IsMember, Converter={StaticResource Vis}}" />
-          <TextBlock Text="DELETE SELECTION" Foreground="{StaticResource DangerBrush}" VerticalAlignment="Center" Visibility="{Binding Inspector.IsMixed, Converter={StaticResource Vis}}" />
+          <c:Icon Kind="delete" Width="14" Height="14" Foreground="{ThemeResource DangerBrush}" />
+          <TextBlock Text="DELETE NODE" Foreground="{ThemeResource DangerBrush}" VerticalAlignment="Center" Visibility="{Binding Inspector.IsNode, Converter={StaticResource Vis}}" />
+          <TextBlock Text="DELETE MEMBER" Foreground="{ThemeResource DangerBrush}" VerticalAlignment="Center" Visibility="{Binding Inspector.IsMember, Converter={StaticResource Vis}}" />
+          <TextBlock Text="DELETE SELECTION" Foreground="{ThemeResource DangerBrush}" VerticalAlignment="Center" Visibility="{Binding Inspector.IsMixed, Converter={StaticResource Vis}}" />
         </StackPanel>
       </Button>
     </StackPanel>

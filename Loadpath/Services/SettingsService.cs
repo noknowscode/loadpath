@@ -23,6 +23,8 @@ public sealed class SettingsService
         public bool InspectorVisible { get; set; } = true;
         public bool ReduceNoise { get; set; }
         public int NoiseKeep { get; set; } = (int)ViewOptions.DefaultKeep;
+        /// <summary>"System", "Light" or "Dark". Missing in older settings files, which then follow the system.</summary>
+        public string Theme { get; set; } = nameof(ThemeChoice.System);
         public string? LastFilePath { get; set; }
         public List<string> RecentFiles { get; set; } = new();
     }
@@ -70,6 +72,7 @@ public sealed class SettingsService
         o.InspectorVisible = m.InspectorVisible;
         o.ReduceNoise = m.ReduceNoise;
         o.Keep = (NoiseLayer)m.NoiseKeep;
+        o.Theme = Enum.TryParse<ThemeChoice>(m.Theme, out var theme) ? theme : ThemeChoice.System;
     }
 
     public void Capture(ViewOptions o, Model m)
@@ -85,6 +88,7 @@ public sealed class SettingsService
         m.InspectorVisible = o.InspectorVisible;
         m.ReduceNoise = o.ReduceNoise;
         m.NoiseKeep = (int)o.Keep;
+        m.Theme = o.Theme.ToString();
     }
 }
 

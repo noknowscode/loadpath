@@ -1,3 +1,4 @@
+using Loadpath.Controls;
 using Loadpath.Core.Geometry;
 using Loadpath.Presentation;
 using Loadpath.Workspace.Tools;
@@ -51,6 +52,10 @@ public sealed partial class WorkspaceView : SKCanvasElement
             MarkDirty();
         };
         Unloaded += (_, _) => { _animTimer?.Stop(); };
+        // The canvas palette follows the theme: read once now (the theme the page starts in), then on every change.
+        _renderer.SetPalette(SkiaPalette.FromResources(ThemeBrushes.Theme));
+        Loaded += (_, _) => ApplyThemePalette();
+        ActualThemeChanged += (_, _) => ApplyThemePalette();
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
         PointerReleased += OnPointerReleased;
@@ -62,6 +67,13 @@ public sealed partial class WorkspaceView : SKCanvasElement
         PointerWheelChanged += OnPointerWheelChanged;
 #endif
         _ = LoadTypefacesAsync();
+    }
+
+    private void ApplyThemePalette()
+    {
+        if (ActualTheme == ElementTheme.Default) return;
+        _renderer.SetPalette(SkiaPalette.FromResources(ActualTheme));
+        Invalidate();
     }
 
     /// <summary>The bundled canvas fonts load from the app package; the first frames use the fallback faces.</summary>

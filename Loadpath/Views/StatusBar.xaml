@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="using:Loadpath.Controls"
              Height="{StaticResource StatusBarHeight}">
-  <Grid Background="{StaticResource CanvasBrush}" Padding="16,0,16,0" ColumnSpacing="20">
+  <Grid Background="{ThemeResource CanvasBrush}" Padding="16,0,16,0" ColumnSpacing="20">
     <!-- Below 1080 px the cursor readout and hint yield so the noise status and max utilization stay whole. -->
     <VisualStateManager.VisualStateGroups>
       <VisualStateGroup x:Name="WidthStates">
@@ -29,17 +29,17 @@
 
     <Rectangle Grid.ColumnSpan="4" Style="{StaticResource DashedRule}" VerticalAlignment="Top" Margin="-16,0" />
 
-    <TextBlock x:Name="Cursor" Text="{Binding CursorText}" Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkBrush}" MinWidth="120" VerticalAlignment="Center" />
+    <TextBlock x:Name="Cursor" Text="{Binding CursorText}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" MinWidth="120" VerticalAlignment="Center" />
 
     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="18" VerticalAlignment="Center">
       <TextBlock Style="{StaticResource MonoCaption}" VerticalAlignment="Center">
-        <Run Text="SNAP " /><Run Text="{Binding SnapText}" Foreground="{StaticResource InkBrush}" />
+        <Run Text="SNAP " /><Run Text="{Binding SnapText}" Foreground="{ThemeResource InkBrush}" />
       </TextBlock>
       <TextBlock Style="{StaticResource MonoCaption}" VerticalAlignment="Center">
-        <Run Text="ZOOM " /><Run Text="{Binding ZoomText}" Foreground="{StaticResource InkBrush}" />
+        <Run Text="ZOOM " /><Run Text="{Binding ZoomText}" Foreground="{ThemeResource InkBrush}" />
       </TextBlock>
       <TextBlock Style="{StaticResource MonoCaption}" VerticalAlignment="Center">
-        <Run Text="SOLVED " /><Run Text="{Binding Status.SolveText}" Foreground="{StaticResource InkBrush}" />
+        <Run Text="SOLVED " /><Run Text="{Binding Status.SolveText}" Foreground="{ThemeResource InkBrush}" />
       </TextBlock>
     </StackPanel>
 
@@ -48,7 +48,7 @@
     <!-- Right: what Reduce noise is hiding, with the way back; otherwise the max utilization. -->
     <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center"
                 c:Motion.Reveal="True" Visibility="{Binding ReduceNoise, Converter={StaticResource Vis}}">
-      <TextBlock Text="{Binding NoiseStatus}" Style="{StaticResource MonoCaption}" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+      <TextBlock Text="{Binding NoiseStatus}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
       <Button Style="{StaticResource OutlineButton}" Content="SHOW ALL" Command="{Binding ShowAll}" AutomationProperties.Name="Show all layers" />
     </StackPanel>
     <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
