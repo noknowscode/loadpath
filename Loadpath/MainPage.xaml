@@ -78,16 +78,16 @@
         <c:KeySink x:Name="KeySink" />
 
         <!-- Floating tool palette, inside the drawing frame -->
-        <v:ToolRail x:Name="Rail" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="40,24,0,0" />
+        <v:ToolRail x:Name="Rail" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="{StaticResource RailMargin}" />
 
         <!-- Mechanism / unsupported banner -->
 
         <!-- xaml-lint: allow card - status banner over the drawing; no Toolkit by README decision -->
-        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,28,0,0" Padding="14,8" CornerRadius="4"
+        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{StaticResource BannerMargin}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}"
                 Background="{ThemeResource DangerSoftBrush}" BorderBrush="{ThemeResource DangerBorderBrush}" BorderThickness="1"
                 c:Motion.Reveal="True" Visibility="{Binding Status.IsMechanism, Converter={StaticResource Vis}}" IsHitTestVisible="False">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <c:Icon Kind="warning" Foreground="{ThemeResource DangerBrush}" Width="14" Height="14" />
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
+            <c:Icon Kind="warning" Foreground="{ThemeResource DangerBrush}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" />
             <TextBlock Text="{Binding Status.MechanismText}" Style="{StaticResource BodyText}" Foreground="{ThemeResource DangerBrush}" VerticalAlignment="Center" />
           </StackPanel>
         </Border>
@@ -95,20 +95,20 @@
         <!-- Detached parts notice (warning, not failure) -->
 
         <!-- xaml-lint: allow card - status banner over the drawing; no Toolkit by README decision -->
-        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,28,0,0" Padding="14,8" CornerRadius="4"
+        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{StaticResource BannerMargin}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}"
                 Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1"
                 c:Motion.Reveal="True" Visibility="{Binding Status.HasDetached, Converter={StaticResource Vis}}" IsHitTestVisible="False">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <c:Icon Kind="warning" Foreground="{ThemeResource InkSecondaryBrush}" Width="14" Height="14" />
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
+            <c:Icon Kind="warning" Foreground="{ThemeResource InkSecondaryBrush}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" />
             <TextBlock Text="{Binding Status.DetachedText}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
           </StackPanel>
         </Border>
 
         <!-- Empty state -->
         <!-- A paper plate behind the text so the registration marks do not run through it. -->
-        <Border x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{ThemeResource CanvasBrush}" Padding="32,24"
+        <Border x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{ThemeResource CanvasBrush}" Padding="{StaticResource EmptyStateInset}"
                 c:Motion.Reveal="True" Visibility="{Binding Status.IsEmpty, Converter={StaticResource Vis}}">
-        <StackPanel Spacing="14" MaxWidth="440">
+        <StackPanel Spacing="{StaticResource Space14}" MaxWidth="{StaticResource EmptyStateMaxWidth}">
           <TextBlock Text="Fig. 00" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" />
           <TextBlock Text="Draw a structure and it answers." Style="{StaticResource DisplayText}" HorizontalAlignment="Center" />
           <TextBlock Style="{StaticResource SecondaryText}" TextAlignment="Center" TextWrapping="Wrap">
@@ -117,14 +117,14 @@
             <Run Text=" S " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" /><Run Text="for supports and" />
             <Run Text=" L " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" /><Run Text="for loads. Every change re-solves instantly." />
           </TextBlock>
-          <TextBlock Text="Or start from a sample" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" Margin="0,10,0,0" />
-          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+          <TextBlock Text="Or start from a sample" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" Margin="{StaticResource GapTop10}" />
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}" HorizontalAlignment="Center">
             <Button Style="{StaticResource OutlineButton}" Content="WARREN TRUSS" Command="{Binding SampleWarren}" AutomationProperties.Name="Load Warren truss sample" />
             <Button Style="{StaticResource OutlineButton}" Content="CANTILEVER" Command="{Binding SampleCantilever}" AutomationProperties.Name="Load cantilever sample" />
             <Button Style="{StaticResource OutlineButton}" Content="HOWE ROOF" Command="{Binding SampleRoof}" AutomationProperties.Name="Load Howe roof sample" />
           </StackPanel>
           <Button Style="{StaticResource LinkButton}" HorizontalAlignment="Center" Command="{Binding PasteDesign}" AutomationProperties.Name="Paste a design from a share code">
-            <StackPanel Orientation="Horizontal" Spacing="10">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
               <TextBlock Text="OR PASTE A SHARE CODE" VerticalAlignment="Center" />
               <Border Style="{StaticResource Keycap}">
                 <TextBlock Text="CTRL SHIFT V" Style="{StaticResource KeycapText}" />
@@ -138,10 +138,10 @@
 
         <!-- xaml-lint: allow card - popover chrome; no Toolkit by README decision -->
         <Border x:Name="FloatingBar" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed"
-                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="6" Padding="10,3,3,3">
-          <StackPanel Orientation="Horizontal" Spacing="2">
-            <TextBlock Text="{Binding Inspector.SelectionLabel}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <Rectangle Width="1" Height="16" Fill="{ThemeResource HairlineBrush}" Margin="0,0,4,0" />
+                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusPopover}" Padding="{StaticResource FloatingBarInset}">
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+            <TextBlock Text="{Binding Inspector.SelectionLabel}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" Margin="{StaticResource GapEnd8}" />
+            <Rectangle Width="1" Height="16" Fill="{ThemeResource HairlineBrush}" Margin="{StaticResource GapEnd4}" />
             <Button Style="{StaticResource IconButton}" Command="{Binding CycleSupport}" ToolTipService.ToolTip="Cycle support" Visibility="{Binding Inspector.SelectionHasNodes, Converter={StaticResource Vis}}" AutomationProperties.Name="Cycle support">
               <c:Icon Kind="support" Foreground="{ThemeResource AccentBrush}" />
             </Button>
@@ -164,14 +164,14 @@
 
         <!-- xaml-lint: allow card - drag ghost chip; no Toolkit by README decision -->
         <Border x:Name="DragGhost" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed" IsHitTestVisible="False"
-                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1" CornerRadius="4" Padding="6,3">
+                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusField}" Padding="{StaticResource Inset6x3}">
           <TextBlock x:Name="DragGhostText" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" />
         </Border>
 
         <!-- Toast -->
 
         <!-- xaml-lint: allow card - transient toast; no Toolkit by README decision -->
-        <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,64" Padding="14,8" CornerRadius="4" Opacity="0" IsHitTestVisible="False"
+        <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="{StaticResource ToastMargin}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}" Opacity="0" IsHitTestVisible="False"
                 Background="{ThemeResource InkBrush}">
           <Border.RenderTransform>
             <TranslateTransform x:Name="ToastTranslate" Y="6" />

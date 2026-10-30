@@ -4,7 +4,7 @@
              xmlns:c="using:Loadpath.Controls"
              x:Name="Strip"
              Height="{StaticResource TitleStripHeight}">
-  <Grid Background="{ThemeResource CanvasBrush}" Padding="16,0,16,0">
+  <Grid Background="{ThemeResource CanvasBrush}" Padding="{StaticResource StripInset}">
     <!-- The right cluster yields as the window narrows: the over-capacity pill, then the noise control's label, then search. -->
     <VisualStateManager.VisualStateGroups>
       <VisualStateGroup x:Name="WidthStates">
@@ -46,21 +46,21 @@
     </Grid.ColumnDefinitions>
 
     <!-- Perforation along the top edge of the sheet -->
-    <Rectangle Grid.ColumnSpan="3" Style="{StaticResource DashedRule}" VerticalAlignment="Top" Margin="-16,2,-16,0" />
+    <Rectangle Grid.ColumnSpan="3" Style="{StaticResource DashedRule}" VerticalAlignment="Top" Margin="{StaticResource StripRuleMargin}" />
 
     <!-- Left: wordmark, document, history, display mode -->
-    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-      <TextBlock Text="LOADPATH" FontFamily="{StaticResource MonoFontMedium}" FontSize="14" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
+    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space12}" VerticalAlignment="Center">
+      <TextBlock Text="LOADPATH" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextWordmark}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
       <TextBlock Text="/" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkTertiaryBrush}" VerticalAlignment="Center" />
-      <StackPanel x:Name="DocumentName" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-        <TextBlock Text="{Binding Status.DocumentName, Converter={StaticResource Upper}}" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center"
-                 MaxWidth="240" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{Binding Status.DocumentName}" />
-        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" c:Motion.Reveal="True" Visibility="{Binding Status.IsDirty, Converter={StaticResource Vis}}">
+      <StackPanel x:Name="DocumentName" Orientation="Horizontal" Spacing="{StaticResource Space10}" VerticalAlignment="Center">
+        <TextBlock Text="{Binding Status.DocumentName, Converter={StaticResource Upper}}" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextLabel}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center"
+                 MaxWidth="{StaticResource DocumentNameMaxWidth}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{Binding Status.DocumentName}" />
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space6}" VerticalAlignment="Center" c:Motion.Reveal="True" Visibility="{Binding Status.IsDirty, Converter={StaticResource Vis}}">
           <Ellipse Width="5" Height="5" Fill="{ThemeResource InkBrush}" VerticalAlignment="Center" />
-          <TextBlock Text="UNSAVED" Style="{StaticResource MonoCaption}" FontSize="11" VerticalAlignment="Center" />
+          <TextBlock Text="UNSAVED" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" VerticalAlignment="Center" />
         </StackPanel>
       </StackPanel>
-      <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="16,0,8,0">
+      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" VerticalAlignment="Center" Margin="{StaticResource HistoryClusterMargin}">
         <Button Style="{StaticResource IconButton}" Command="{Binding Undo}" ToolTipService.ToolTip="{Binding Status.UndoTooltip}" AutomationProperties.Name="Undo">
           <c:Icon Kind="undo" Foreground="{ThemeResource InkBrush}" />
         </Button>
@@ -81,29 +81,29 @@
     </StackPanel>
 
     <!-- Right: status, reduce noise, search, files -->
-    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Right" VerticalAlignment="Center">
+    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{StaticResource Space14}" HorizontalAlignment="Right" VerticalAlignment="Center">
       <!-- xaml-lint: allow card - status pill; no Toolkit by README decision -->
-      <Border x:Name="StatusPill" Height="32" CornerRadius="16" Padding="14,0" VerticalAlignment="Center"
+      <Border x:Name="StatusPill" Height="32" CornerRadius="{StaticResource RadiusRound}" Padding="{StaticResource InsetX14}" VerticalAlignment="Center"
               Background="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=DangerSoftBrush|SurfaceRaisedBrush}">
-        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <c:Icon Kind="warning" Width="14" Height="14" Foreground="{ThemeResource DangerBrush}"
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}" VerticalAlignment="Center">
+          <c:Icon Kind="warning" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Foreground="{ThemeResource DangerBrush}"
                   Visibility="{Binding Status.PillIsDanger, Converter={StaticResource Vis}}" />
           <Ellipse Width="6" Height="6" Fill="{Binding Status.StatusToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center"
                    Visibility="{Binding Status.PillIsDanger, Converter={StaticResource Vis}, ConverterParameter=invert}" />
-          <TextBlock Text="{Binding Status.PillText}" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" VerticalAlignment="Center"
+          <TextBlock Text="{Binding Status.PillText}" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextLabel}" VerticalAlignment="Center"
                      Foreground="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=DangerBrush|InkSecondaryBrush}" />
         </StackPanel>
       </Border>
 
       <!-- Reduce noise: the switch (F) and, split off, the layer chooser -->
       <!-- xaml-lint: allow card - split-button frame; no Toolkit by README decision -->
-      <Border BorderThickness="1" CornerRadius="2" VerticalAlignment="Center"
+      <Border BorderThickness="1" CornerRadius="{StaticResource RadiusHairline}" VerticalAlignment="Center"
               Background="{Binding ReduceNoise, Converter={StaticResource Pick}, ConverterParameter=AccentSoftBrush|SurfaceBrush}"
               BorderBrush="{Binding ReduceNoise, Converter={StaticResource Pick}, ConverterParameter=AccentBrush|HairlineStrongBrush}">
         <StackPanel Orientation="Horizontal">
           <ToggleButton Style="{StaticResource SwitchToggle}" IsChecked="{Binding ReduceNoise, Mode=TwoWay, Converter={StaticResource Checked}}"
                         ToolTipService.ToolTip="Reduce noise   F" AutomationProperties.Name="Reduce noise">
-            <StackPanel Orientation="Horizontal" Spacing="10">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
               <TextBlock x:Name="NoiseLabel" Text="REDUCE NOISE" VerticalAlignment="Center" />
               <Border Style="{StaticResource Keycap}">
                 <TextBlock Text="F" Style="{StaticResource KeycapText}" />
@@ -112,65 +112,65 @@
           </ToggleButton>
           <Rectangle Width="1" Fill="{Binding ReduceNoise, Converter={StaticResource Pick}, ConverterParameter=AccentBrush|HairlineStrongBrush}" />
           <Button Style="{StaticResource IconButton}" Width="36" Height="38" ToolTipService.ToolTip="Choose what stays" AutomationProperties.Name="Choose what stays when noise is reduced">
-            <c:Icon Kind="chevron-down" Width="14" Height="14" Foreground="{ThemeResource InkBrush}" />
+            <c:Icon Kind="chevron-down" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Foreground="{ThemeResource InkBrush}" />
             <Button.Flyout>
               <Flyout x:Name="NoiseFlyout" Placement="BottomEdgeAlignedRight" FlyoutPresenterStyle="{StaticResource SheetFlyoutPresenter}">
                 <StackPanel Width="318">
-                  <StackPanel Padding="16,14,16,4" Spacing="6">
+                  <StackPanel Padding="{StaticResource SheetHeadInset}" Spacing="{StaticResource Space6}">
                     <Grid>
-                      <TextBlock Text="REDUCE NOISE" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" Foreground="{ThemeResource AccentBrush}" />
-                      <TextBlock Text="{Binding NoiseSummary}" Style="{StaticResource MonoCaption}" FontSize="11" Foreground="{ThemeResource InkBrush}" HorizontalAlignment="Right" />
+                      <TextBlock Text="REDUCE NOISE" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextLabel}" Foreground="{ThemeResource AccentBrush}" />
+                      <TextBlock Text="{Binding NoiseSummary}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource InkBrush}" HorizontalAlignment="Right" />
                     </Grid>
                     <TextBlock Text="Pick what stays on screen when noise is reduced. The structure, your selection and the inspector inputs always stay."
                                Style="{StaticResource CaptionText}" TextWrapping="Wrap" TextTrimming="None" />
                   </StackPanel>
 
-                  <StackPanel Padding="16,8,16,10">
-                    <TextBlock Text="DRAWING" Style="{StaticResource MonoCaption}" FontSize="11" Margin="0,6,0,2" />
+                  <StackPanel Padding="{StaticResource SheetBodyInset}">
+                    <TextBlock Text="DRAWING" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Margin="{StaticResource SheetGroupFirstMargin}" />
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Grid" IsChecked="{Binding KeepGrid, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.Grid}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.Grid}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Dimensions" IsChecked="{Binding KeepDimensions, Mode=TwoWay, Converter={StaticResource Checked}}" />
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Supports" IsChecked="{Binding KeepSupports, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.Supports}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.Supports}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Loads" IsChecked="{Binding KeepLoads, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.Loads}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.Loads}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
 
-                    <TextBlock Text="RESULTS" Style="{StaticResource MonoCaption}" FontSize="11" Margin="0,12,0,2" />
+                    <TextBlock Text="RESULTS" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Margin="{StaticResource SheetGroupMargin}" />
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Over-capacity members" IsChecked="{Binding KeepOverCapacity, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.OverCapacity}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.OverCapacity}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Member forces" IsChecked="{Binding KeepMemberForces, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.MemberForces}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.MemberForces}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Reactions" IsChecked="{Binding KeepReactions, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.Reactions}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.Reactions}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Deflected shape" IsChecked="{Binding KeepDeflection, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding ExaggerationText}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding ExaggerationText}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
 
-                    <TextBlock Text="ANNOTATIONS" Style="{StaticResource MonoCaption}" FontSize="11" Margin="0,12,0,2" />
+                    <TextBlock Text="ANNOTATIONS" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Margin="{StaticResource SheetGroupMargin}" />
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Part names" IsChecked="{Binding KeepPartNames, Mode=TwoWay, Converter={StaticResource Checked}}" />
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Legend and figure tags" IsChecked="{Binding KeepLegend, Mode=TwoWay, Converter={StaticResource Checked}}" />
 
-                    <TextBlock Text="PANELS" Style="{StaticResource MonoCaption}" FontSize="11" Margin="0,12,0,2" />
+                    <TextBlock Text="PANELS" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Margin="{StaticResource SheetGroupMargin}" />
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Structure list" IsChecked="{Binding KeepStructureList, Mode=TwoWay, Converter={StaticResource Checked}}" />
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Result details in inspector" IsChecked="{Binding KeepResultDetails, Mode=TwoWay, Converter={StaticResource Checked}}" />
                   </StackPanel>
 
                   <Rectangle Style="{StaticResource DashedRule}" />
-                  <Grid Padding="16,12">
-                    <Button Style="{StaticResource LinkButton}" Content="RESET TO DEFAULT" Padding="0" Command="{Binding ResetNoiseLayers}" AutomationProperties.Name="Reset layers to default" />
+                  <Grid Padding="{StaticResource Inset16x12}">
+                    <Button Style="{StaticResource LinkButton}" Content="RESET TO DEFAULT" Padding="{StaticResource Inset0}" Command="{Binding ResetNoiseLayers}" AutomationProperties.Name="Reset layers to default" />
                     <Button Style="{StaticResource PrimaryButton}" Content="DONE" HorizontalAlignment="Right" Click="OnNoiseDone" AutomationProperties.Name="Done" />
                   </Grid>
                 </StackPanel>
@@ -194,10 +194,10 @@
         </Button.Flyout>
       </Button>
 
-      <Button x:Name="SearchButton" Style="{StaticResource QuietButton}" Height="38" Padding="6,0" Command="{Binding TogglePalette}"
+      <Button x:Name="SearchButton" Style="{StaticResource QuietButton}" Height="38" Padding="{StaticResource InsetX6}" Command="{Binding TogglePalette}"
               ToolTipService.ToolTip="Command palette   Ctrl+K" AutomationProperties.Name="Command palette">
-        <StackPanel Orientation="Horizontal" Spacing="10">
-          <c:Icon Kind="search" Width="14" Height="14" Foreground="{ThemeResource InkBrush}" />
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
+          <c:Icon Kind="search" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Foreground="{ThemeResource InkBrush}" />
           <Border Style="{StaticResource Keycap}">
             <TextBlock Text="CTRL K" Style="{StaticResource KeycapText}" />
           </Border>
@@ -207,12 +207,12 @@
         <Button.Flyout>
           <Flyout x:Name="PresetsFlyout" Placement="BottomEdgeAlignedRight" FlyoutPresenterStyle="{StaticResource SheetFlyoutPresenter}">
             <StackPanel Width="380">
-              <StackPanel Padding="16,14,16,10" Spacing="6">
-                <TextBlock Text="PRESETS" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" Foreground="{ThemeResource AccentBrush}" />
+              <StackPanel Padding="{StaticResource SheetHeadInsetLoose}" Spacing="{StaticResource Space6}">
+                <TextBlock Text="PRESETS" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextLabel}" Foreground="{ThemeResource AccentBrush}" />
                 <TextBlock Text="Pick a truss type. It replaces the drawing; Ctrl+Z brings yours back."
                            Style="{StaticResource CaptionText}" TextWrapping="Wrap" TextTrimming="None" />
               </StackPanel>
-              <Grid Padding="16,0,16,12" ColumnSpacing="10">
+              <Grid Padding="{StaticResource SheetFieldsInset}" ColumnSpacing="{StaticResource Space10}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <StackPanel>
                   <TextBlock Text="SPAN" Style="{StaticResource FieldLabel}" />
@@ -229,20 +229,20 @@
               </Grid>
               <Rectangle Style="{StaticResource DashedRule}" />
               <!-- Two tiles per row. -->
-              <ItemsRepeater ItemsSource="{Binding Presets}" Margin="12,10,12,14">
+              <ItemsRepeater ItemsSource="{Binding Presets}" Margin="{StaticResource PresetGridMargin}">
                 <ItemsRepeater.Layout>
-                  <UniformGridLayout MinItemWidth="172" MinItemHeight="110" MinColumnSpacing="8" MinRowSpacing="6" MaximumRowsOrColumns="2" />
+                  <UniformGridLayout MinItemWidth="172" MinItemHeight="110" MinColumnSpacing="{StaticResource Space8}" MinRowSpacing="{StaticResource Space6}" MaximumRowsOrColumns="2" />
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                   <DataTemplate>
-                    <Button Style="{StaticResource QuietButton}" Width="172" Height="110" Padding="8,8,8,6"
+                    <Button Style="{StaticResource QuietButton}" Width="172" Height="110" Padding="{StaticResource PresetTileInset}"
                             HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Click="OnPresetClick"
                             Command="{Binding DataContext.LoadPreset, ElementName=Strip}" CommandParameter="{Binding Id}"
                             AutomationProperties.Name="{Binding AutomationName}" ToolTipService.ToolTip="{Binding Description}">
-                      <StackPanel Spacing="4">
+                      <StackPanel Spacing="{StaticResource Space4}">
                         <c:Sketch Segments="{Binding Sketch}" Stroke="{ThemeResource AccentBrush}" Height="52" Width="156" HorizontalAlignment="Left" />
-                        <TextBlock Text="{Binding Title}" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" Foreground="{ThemeResource InkBrush}" />
-                        <TextBlock Text="{Binding Size}" Style="{StaticResource MonoCaption}" FontSize="10.5" LineHeight="14" />
+                        <TextBlock Text="{Binding Title}" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextLabel}" Foreground="{ThemeResource InkBrush}" />
+                        <TextBlock Text="{Binding Size}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" />
                       </StackPanel>
                     </Button>
                   </DataTemplate>

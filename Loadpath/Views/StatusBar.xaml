@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="using:Loadpath.Controls"
              Height="{StaticResource StatusBarHeight}">
-  <Grid Background="{ThemeResource CanvasBrush}" Padding="16,0,16,0" ColumnSpacing="20">
+  <Grid Background="{ThemeResource CanvasBrush}" Padding="{StaticResource StripInset}" ColumnSpacing="{StaticResource Space20}">
     <!-- Below 1080 px the cursor readout and hint yield so the noise status and max utilization stay whole. -->
     <VisualStateManager.VisualStateGroups>
       <VisualStateGroup x:Name="WidthStates">
@@ -27,11 +27,11 @@
       <ColumnDefinition Width="Auto" />
     </Grid.ColumnDefinitions>
 
-    <Rectangle Grid.ColumnSpan="4" Style="{StaticResource DashedRule}" VerticalAlignment="Top" Margin="-16,0" />
+    <Rectangle Grid.ColumnSpan="4" Style="{StaticResource DashedRule}" VerticalAlignment="Top" Margin="{StaticResource StatusRuleMargin}" />
 
-    <TextBlock x:Name="Cursor" Text="{Binding CursorText}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" MinWidth="120" VerticalAlignment="Center" />
+    <TextBlock x:Name="Cursor" Text="{Binding CursorText}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" MinWidth="{StaticResource CursorReadoutMinWidth}" VerticalAlignment="Center" />
 
-    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="18" VerticalAlignment="Center">
+    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space16}" VerticalAlignment="Center">
       <TextBlock Style="{StaticResource MonoCaption}" VerticalAlignment="Center">
         <Run Text="SNAP " /><Run Text="{Binding SnapText}" Foreground="{ThemeResource InkBrush}" />
       </TextBlock>
@@ -46,12 +46,12 @@
     <TextBlock x:Name="Hint" Grid.Column="2" Text="{Binding Hint}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
 
     <!-- Right: what Reduce noise is hiding, with the way back; otherwise the max utilization. -->
-    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center"
+    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="{StaticResource Space12}" VerticalAlignment="Center"
                 c:Motion.Reveal="True" Visibility="{Binding ReduceNoise, Converter={StaticResource Vis}}">
       <TextBlock Text="{Binding NoiseStatus}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
       <Button Style="{StaticResource OutlineButton}" Content="SHOW ALL" Command="{Binding ShowAll}" AutomationProperties.Name="Show all layers" />
     </StackPanel>
-    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
+    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="{StaticResource Space10}" VerticalAlignment="Center"
                 c:Motion.Reveal="True" Visibility="{Binding ReduceNoise, Converter={StaticResource Vis}, ConverterParameter=invert}">
       <TextBlock Text="MAX UTILIZATION" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
       <!-- xaml-lint: allow card - utilization pill, not a card; no Toolkit by README decision -->

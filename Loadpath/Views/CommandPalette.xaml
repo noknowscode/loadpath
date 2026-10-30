@@ -4,8 +4,8 @@
              xmlns:c="using:Loadpath.Controls">
   <Grid x:Name="Scrim" Background="{ThemeResource ScrimBrush}" PointerPressed="OnScrimPressed">
     <!-- xaml-lint: allow card - command palette popover chrome; no Toolkit by README decision -->
-    <Border x:Name="Panel" Width="520" MaxHeight="420" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,96,0,0"
-            Background="{ThemeResource SurfaceRaisedBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="6"
+    <Border x:Name="Panel" Width="520" MaxHeight="{StaticResource PaletteMaxHeight}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="{StaticResource PaletteMargin}"
+            Background="{ThemeResource SurfaceRaisedBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusPopover}"
             PointerPressed="OnPanelPressed">
       <Border.RenderTransform>
         <TranslateTransform x:Name="PanelTranslate" Y="0" />
@@ -16,36 +16,36 @@
           <RowDefinition Height="*" />
           <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Grid Padding="8,0" BorderBrush="{ThemeResource HairlineBrush}" BorderThickness="0,0,0,1" ColumnSpacing="4">
+        <Grid Padding="{StaticResource InsetX8}" BorderBrush="{ThemeResource HairlineBrush}" BorderThickness="0,0,0,1" ColumnSpacing="{StaticResource Space4}">
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-          <c:Icon Kind="search" Width="14" Height="14" Margin="4,0,0,0" />
+          <c:Icon Kind="search" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Margin="{StaticResource GapStart4}" />
           <TextBox x:Name="Query" Grid.Column="1" Style="{StaticResource SearchTextBox}" PlaceholderText="Type a command…"
                    Text="{Binding PaletteQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" KeyDown="OnQueryKeyDown" AutomationProperties.Name="Command search" />
         </Grid>
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="340">
-          <ItemsControl ItemsSource="{Binding PaletteItems}" Padding="4">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="{StaticResource PaletteListMaxHeight}">
+          <ItemsControl ItemsSource="{Binding PaletteItems}" Padding="{StaticResource Inset4}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <!-- xaml-lint: allow card - command palette popover chrome; no Toolkit by README decision -->
-                <Border Height="26" Padding="8,0" CornerRadius="4" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Id}" PointerPressed="OnItemPressed" PointerEntered="OnItemEntered">
-                  <Grid ColumnSpacing="10">
+                <Border Height="26" Padding="{StaticResource InsetX8}" CornerRadius="{StaticResource RadiusField}" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Id}" PointerPressed="OnItemPressed" PointerEntered="OnItemEntered">
+                  <Grid ColumnSpacing="{StaticResource Space10}">
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition Width="16" />
                       <ColumnDefinition Width="*" />
                       <ColumnDefinition Width="Auto" />
                       <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <c:Icon Kind="{Binding Icon}" Width="14" Height="14" Visibility="{Binding HasIcon, Converter={StaticResource Vis}}" />
+                    <c:Icon Kind="{Binding Icon}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Visibility="{Binding HasIcon, Converter={StaticResource Vis}}" />
                     <TextBlock Grid.Column="1" Text="{Binding Title}" Style="{StaticResource BodyText}" VerticalAlignment="Center" Opacity="{Binding IsDisabled, Converter={StaticResource Dim}}" />
                     <TextBlock Grid.Column="2" Text="{Binding Category}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="3" Text="{Binding Shortcut}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" MinWidth="56" TextAlignment="Right" />
+                    <TextBlock Grid.Column="3" Text="{Binding Shortcut}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" MinWidth="{StaticResource ShortcutMinWidth}" TextAlignment="Right" />
                   </Grid>
                 </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </ScrollViewer>
-        <Border Grid.Row="2" Padding="12,6" BorderBrush="{ThemeResource HairlineBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="2" Padding="{StaticResource Inset12x6}" BorderBrush="{ThemeResource HairlineBrush}" BorderThickness="0,1,0,0">
           <TextBlock Text="↑↓ navigate · Enter run · Esc close" Style="{StaticResource CaptionText}" />
         </Border>
       </Grid>
