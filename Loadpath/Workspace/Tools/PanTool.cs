@@ -9,7 +9,7 @@ public sealed class PanTool : Tool
     public override ToolKind Kind => ToolKind.Pan;
     public override CursorKind IdleCursor => CursorKind.Grab;
     public override bool IsBusy => _last is not null;
-    public override string Hint => "Drag to pan · Wheel zooms toward the cursor · F fits the structure";
+    public override string Hint => "Drag to pan · Wheel zooms toward the cursor · Ctrl+0 fits the structure";
 
     public override void UpdateHover(IToolContext ctx, PointerState p, HitResult hit) => ctx.SetCursor(CursorKind.Grab);
 
