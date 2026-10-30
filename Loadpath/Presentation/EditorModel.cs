@@ -44,6 +44,16 @@ public partial record EditorModel
         else _dispatcher.TryEnqueue(() => action());
     }
 
+    /// <summary>
+    /// A UI action that failed (a palette key, a pointer press) becomes a toast instead of an unhandled exception.
+    /// Internal so the MVUX generator does not turn it into a command.
+    /// </summary>
+    internal void ReportFailure(string action, Exception error)
+    {
+        Trace($"{action} failed: {error}");
+        Ui(() => _engine.Toast($"{action} failed: {error.Message}"));
+    }
+
     private static void Fire(ValueTask task)
     {
         if (task.IsCompletedSuccessfully) return;

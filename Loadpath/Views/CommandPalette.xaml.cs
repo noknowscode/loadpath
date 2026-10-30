@@ -43,17 +43,25 @@ public sealed partial class CommandPalette : UserControl
     }
 
     // Handled is set before the first await: routing reads it synchronously.
+    // These are event handlers, so they are async void; each one catches and reports, so a failure is a toast.
 
     // xaml-lint: allow codebehind - arrow/Enter/Esc routing inside the search box
     private async void OnQueryKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (Model is null) return;
-        switch (e.Key)
+        if (Model is not { } model) return;
+        try
         {
-            case VirtualKey.Down: e.Handled = true; await Model.MovePaletteHighlight(1, default); break;
-            case VirtualKey.Up: e.Handled = true; await Model.MovePaletteHighlight(-1, default); break;
-            case VirtualKey.Enter: e.Handled = true; await Model.RunPalette(null, default); break;
-            case VirtualKey.Escape: e.Handled = true; await Model.ClosePalette(default); break;
+            switch (e.Key)
+            {
+                case VirtualKey.Down: e.Handled = true; await model.MovePaletteHighlight(1, default); break;
+                case VirtualKey.Up: e.Handled = true; await model.MovePaletteHighlight(-1, default); break;
+                case VirtualKey.Enter: e.Handled = true; await model.RunPalette(null, default); break;
+                case VirtualKey.Escape: e.Handled = true; await model.ClosePalette(default); break;
+            }
+        }
+        catch (Exception ex)
+        {
+            model.ReportFailure("Command palette", ex);
         }
     }
 
@@ -61,19 +69,43 @@ public sealed partial class CommandPalette : UserControl
     private async void OnItemPressed(object sender, PointerRoutedEventArgs e)
     {
         e.Handled = true;
-        if (sender is FrameworkElement { Tag: string id } && Model is { } model) await model.RunPalette(id, default);
+        if (sender is not FrameworkElement { Tag: string id } || Model is not { } model) return;
+        try
+        {
+            await model.RunPalette(id, default);
+        }
+        catch (Exception ex)
+        {
+            model.ReportFailure("Command palette", ex);
+        }
     }
 
     // xaml-lint: allow codebehind - hover moves the keyboard highlight
     private async void OnItemEntered(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is FrameworkElement { Tag: string id } && Model is { } model) await model.HighlightPaletteItem(id, default);
+        if (sender is not FrameworkElement { Tag: string id } || Model is not { } model) return;
+        try
+        {
+            await model.HighlightPaletteItem(id, default);
+        }
+        catch (Exception ex)
+        {
+            model.ReportFailure("Command palette", ex);
+        }
     }
 
     // xaml-lint: allow codebehind - a press outside the panel closes it
     private async void OnScrimPressed(object sender, PointerRoutedEventArgs e)
     {
-        if (Model is { } model) await model.ClosePalette(default);
+        if (Model is not { } model) return;
+        try
+        {
+            await model.ClosePalette(default);
+        }
+        catch (Exception ex)
+        {
+            model.ReportFailure("Command palette", ex);
+        }
     }
 
     // xaml-lint: allow codebehind - a press inside the panel must not reach the scrim

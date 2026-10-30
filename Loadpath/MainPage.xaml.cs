@@ -263,25 +263,47 @@ public sealed partial class MainPage : Page
         if (XamlRoot is { } xr && IsTextInputFocused(xr))
         {
             // The palette shortcut works from anywhere, including a focused number field.
-            if (ctrl && key == VirtualKey.K && Palette.Visibility != Visibility.Visible) { e.Handled = true; await Model.TogglePalette(default); return; }
+            if (ctrl && key == VirtualKey.K && Palette.Visibility != Visibility.Visible) { e.Handled = true; await GuardAsync("Command palette", () => Model.TogglePalette(default).AsTask()); return; }
             if (key == VirtualKey.Escape && Palette.Visibility != Visibility.Visible) { KeySink.Focus(FocusState.Programmatic); e.Handled = true; }
             return;
         }
         // xaml-lint: allow codebehind - reads the palette's Visibility to route Esc; sets nothing
         if (Palette.Visibility == Visibility.Visible)
         {
-            if (key == VirtualKey.Escape) { e.Handled = true; await Model.ClosePalette(default); }
+            if (key == VirtualKey.Escape) { e.Handled = true; await GuardAsync("Command palette", () => Model.ClosePalette(default).AsTask()); }
             return;
         }
 
-        // Tools get first refusal (Esc cancels a chain or drag).
-        if (!ctrl && !alt && Engine.Interaction.KeyDown(key)) { e.Handled = true; return; }
+        try
+        {
+            // Tools get first refusal (Esc cancels a chain or drag).
+            if (!ctrl && !alt && Engine.Interaction.KeyDown(key)) { e.Handled = true; return; }
 
-        var command = Engine.Commands.Resolve(key, ctrl, shift, alt);
-        if (command is null) return;
-        // Tool switches wait for a gesture to end.
-        if (command.Id.StartsWith("tool.") && Engine.Interaction.IsBusy) return;
-        if (command.TryExecute()) e.Handled = true;
+            var command = Engine.Commands.Resolve(key, ctrl, shift, alt);
+            if (command is null) return;
+            // Tool switches wait for a gesture to end.
+            if (command.Id.StartsWith("tool.") && Engine.Interaction.IsBusy) return;
+            if (command.TryExecute()) e.Handled = true;
+        }
+        catch (Exception ex)
+        {
+            // An event handler is async void: a throwing shortcut must end as a toast, not take the app down.
+            e.Handled = true;
+            ShowToast($"{key} failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>Awaits UI work started from an event handler or a command; a failure becomes a toast.</summary>
+    private async Task GuardAsync(string action, Func<Task> work)
+    {
+        try
+        {
+            await work();
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"{action} failed: {ex.Message}");
+        }
     }
 
     // xaml-lint: allow codebehind - releases held keys (Space pan, Shift axis lock) in the interaction engine
@@ -495,12 +517,13 @@ public sealed partial class MainPage : Page
 
     private void RegisterFileCommands()
     {
-        Engine.Commands.Add(new AppCommand("file.new", "New structure", "File", "Ctrl+N", () => _ = NewAsync(), icon: "new"));
-        Engine.Commands.Add(new AppCommand("file.open", "Open…", "File", "Ctrl+O", () => _ = OpenAsync(), icon: "folder"));
-        Engine.Commands.Add(new AppCommand("file.save", "Save", "File", "Ctrl+S", () => _ = SaveAsync(false), icon: "save"));
-        Engine.Commands.Add(new AppCommand("file.saveAs", "Save as…", "File", "Ctrl+Shift+S", () => _ = SaveAsync(true), icon: "save"));
-        Engine.Commands.Add(new AppCommand("file.share", "Copy share code", "File", "Ctrl+Shift+C", () => _ = ShareAsync(), () => Engine.Document.Nodes.Count > 0, "duplicate"));
-        Engine.Commands.Add(new AppCommand("file.paste", "Paste design from share code", "File", "Ctrl+Shift+V", () => _ = PasteAsync(), icon: "folder"));
+        // Commands are synchronous; each file command runs as a guarded task so any failure ends as a toast.
+        Engine.Commands.Add(new AppCommand("file.new", "New structure", "File", "Ctrl+N", () => _ = GuardAsync("New", NewAsync), icon: "new"));
+        Engine.Commands.Add(new AppCommand("file.open", "Open…", "File", "Ctrl+O", () => _ = GuardAsync("Open", OpenAsync), icon: "folder"));
+        Engine.Commands.Add(new AppCommand("file.save", "Save", "File", "Ctrl+S", () => _ = GuardAsync("Save", () => SaveAsync(false)), icon: "save"));
+        Engine.Commands.Add(new AppCommand("file.saveAs", "Save as…", "File", "Ctrl+Shift+S", () => _ = GuardAsync("Save as", () => SaveAsync(true)), icon: "save"));
+        Engine.Commands.Add(new AppCommand("file.share", "Copy share code", "File", "Ctrl+Shift+C", () => _ = GuardAsync("Copy share code", ShareAsync), () => Engine.Document.Nodes.Count > 0, "duplicate"));
+        Engine.Commands.Add(new AppCommand("file.paste", "Paste design from share code", "File", "Ctrl+Shift+V", () => _ = GuardAsync("Paste", PasteAsync), icon: "folder"));
     }
 
     /// <summary>
@@ -639,9 +662,16 @@ public sealed partial class MainPage : Page
     private async void OnAutosaveTick(object? sender, object e)
     {
         _autosaveTimer?.Stop();
-        // Serialize on the UI thread (the document is UI-owned); write off it.
-        var json = DocumentSerializer.Serialize(Engine.Document);
-        try { await File.WriteAllTextAsync(_settings.AutosavePath, json); } catch { /* best effort */ }
+        try
+        {
+            // Serialize on the UI thread (the document is UI-owned); write off it.
+            var json = DocumentSerializer.Serialize(Engine.Document);
+            await File.WriteAllTextAsync(_settings.AutosavePath, json);
+        }
+        catch (Exception)
+        {
+            // Best effort: a failed autosave never interrupts editing; the next edit tries again.
+        }
     }
 
     private void PersistSettings()
