@@ -504,8 +504,9 @@ public sealed partial class MainPage : Page
     }
 
     /// <summary>
-    /// Copy the document as a one-line share code. Hosts without a working clipboard get the code written next to
-    /// the fallback save folder instead, and the toast says where.
+    /// Copy the document as a one-line share code. Hosts without a working clipboard get the code written to the
+    /// fallback folder instead (Documents/Loadpath, or the app's local folder on WebAssembly, Android and iOS), and the
+    /// toast says where. With neither, the toast says so.
     /// </summary>
     private async Task ShareAsync()
     {
@@ -516,15 +517,26 @@ public sealed partial class MainPage : Page
             var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
             package.SetText(code);
             Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+#if __DESKTOP__ || WINDOWS
+            // Desktop hosts keep the code on the clipboard after Loadpath closes. The browser and the mobile
+            // clipboards hold the text themselves, so there is nothing to flush there.
             Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+#endif
             ShowToast($"Share code copied ({size}). Paste it in Loadpath with Ctrl+Shift+V.");
+            return;
         }
         catch (Exception)
         {
-            var path = Path.Combine(_files.FallbackFolder, SafeName(Engine.Document.Name) + ShareFileSuffix);
-            await File.WriteAllTextAsync(path, code);
-            ShowToast($"No clipboard here. Share code saved to {path}");
+            // No clipboard on this host: fall through to the share file.
         }
+        if (_files.FallbackFolder is not { } folder)
+        {
+            ShowToast("No clipboard here, and no folder to save the share code to");
+            return;
+        }
+        var path = Path.Combine(folder, SafeName(Engine.Document.Name) + ShareFileSuffix);
+        await File.WriteAllTextAsync(path, code);
+        ShowToast($"No clipboard here. Share code saved to {path}");
     }
 
     private const string ShareFileSuffix = ".share.txt";
@@ -540,7 +552,7 @@ public sealed partial class MainPage : Page
         catch (Exception)
         {
             // No clipboard on this host: read the most recent share file written by ShareAsync.
-            var file = Directory.GetFiles(_files.FallbackFolder, "*" + ShareFileSuffix).OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault();
+            var file = _files.LatestInFallbackFolder("*" + ShareFileSuffix);
             if (file is not null) text = await File.ReadAllTextAsync(file);
         }
         if (!ShareCode.TryDecode(text, out var snapshot, out var error)) { ShowToast(error); return; }
