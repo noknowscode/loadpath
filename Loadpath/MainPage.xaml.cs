@@ -66,7 +66,9 @@ public sealed partial class MainPage : Page
 #if DEBUG
         if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } tracePath)
         {
+#if !ANDROID && !IOS
             Root.AddHandler(PointerWheelChangedEvent, new PointerEventHandler((_, e) => File.AppendAllText(tracePath, $"page wheel {e.GetCurrentPoint(Root).Properties.MouseWheelDelta} src={e.OriginalSource?.GetType().Name}\n")), true);
+#endif
             Root.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) => File.AppendAllText(tracePath, $"page press src={e.OriginalSource?.GetType().Name} pid={e.Pointer.PointerId}\n")), true);
             Root.GotFocus += (_, e) => File.AppendAllText(tracePath, $"focus -> {e.OriginalSource?.GetType().Name}\n");
         }
@@ -78,41 +80,61 @@ public sealed partial class MainPage : Page
     public EditorEngine Engine { get; }
     public EditorModel Model { get; }
 
-    // xaml-lint: allow codebehind - startup: autosave restore and the X11 launch-size re-assert (no XAML surface)
+    // xaml-lint: allow codebehind - startup: autosave restore and the launch-size re-assert (no XAML surface)
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         KeySink.Focus(FocusState.Programmatic);
         RestoreOrSeed();
+        SizeWindowAtLaunch();
+    }
+
+    /// <summary>
+    /// Desktop (X11, Win32, macOS) and WinAppSDK open at 1440 x 960. WebAssembly, Android and iOS fill the browser
+    /// or the screen, so there is nothing to size.
+    /// </summary>
+    private void SizeWindowAtLaunch()
+    {
+        if (App.MainWindow is not { } window || Environment.GetEnvironmentVariable("LOADPATH_NO_RESIZE") == "1") return;
+#if __DESKTOP__
         // The window is sized through PreferredLaunchViewSize at launch. The X11 host can still miss a configure
         // event and lay out at the old size, so the size is re-asserted until the layout agrees with the frame.
-        if (App.MainWindow is { } window && Environment.GetEnvironmentVariable("LOADPATH_NO_RESIZE") != "1")
+        var attempts = 0;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        timer.Tick += (_, _) =>
         {
-            var attempts = 0;
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-            timer.Tick += (_, _) =>
+            attempts++;
+            try
             {
-                attempts++;
-                try
+                var size = window.AppWindow.Size;
+                var layoutAgrees = Math.Abs(Root.ActualWidth - size.Width) < 4 && Math.Abs(Root.ActualHeight - size.Height) < 4;
+                if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2 && layoutAgrees) { timer.Stop(); return; }
+                if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2)
                 {
-                    var size = window.AppWindow.Size;
-                    var layoutAgrees = Math.Abs(Root.ActualWidth - size.Width) < 4 && Math.Abs(Root.ActualHeight - size.Height) < 4;
-                    if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2 && layoutAgrees) { timer.Stop(); return; }
-                    if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2)
-                    {
-                        // Frame is right but the layout is stale: nudge by a pixel so the host re-reads its size.
-                        window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = size.Width + (attempts % 2 == 0 ? 1 : -1), Height = size.Height });
-                    }
-                    else
-                    {
-                        window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = App.LaunchWidth, Height = App.LaunchHeight });
-                    }
+                    // Frame is right but the layout is stale: nudge by a pixel so the host re-reads its size.
+                    window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = size.Width + (attempts % 2 == 0 ? 1 : -1), Height = size.Height });
                 }
-                catch { timer.Stop(); }
-                if (attempts >= 10) timer.Stop();
-                timer.Interval = TimeSpan.FromMilliseconds(400);
-            };
-            timer.Start();
+                else
+                {
+                    window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = App.LaunchWidth, Height = App.LaunchHeight });
+                }
+            }
+            catch { timer.Stop(); }
+            if (attempts >= 10) timer.Stop();
+            timer.Interval = TimeSpan.FromMilliseconds(400);
+        };
+        timer.Start();
+#elif WINDOWS
+        // WinAppSDK has no launch-size preference: resize the AppWindow once, in physical pixels at this display's scale.
+        try
+        {
+            var scale = XamlRoot?.RasterizationScale ?? 1.0;
+            window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = (int)(App.LaunchWidth * scale), Height = (int)(App.LaunchHeight * scale) });
         }
+        catch (Exception)
+        {
+            // Cosmetic: the window keeps the size the system gave it.
+        }
+#endif
     }
 
     // ---- startup: autosave restore, DEBUG fixture hooks ----
@@ -265,8 +287,22 @@ public sealed partial class MainPage : Page
     // xaml-lint: allow codebehind - releases held keys (Space pan, Shift axis lock) in the interaction engine
     private void OnRootKeyUp(object sender, KeyRoutedEventArgs e) => Engine.Interaction.KeyUp(e.Key);
 
-    private static bool IsDown(VirtualKey key) =>
-        Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+    /// <summary>
+    /// Modifier state for shortcut routing. WinAppSDK answers from the OS; every Uno head (desktop, WebAssembly,
+    /// Android, iOS) answers from the key state Uno tracks as key events arrive, so a hardware keyboard on a tablet
+    /// or in a browser gets the same shortcuts. With no keyboard nothing is ever down, and touch never reaches here.
+    /// </summary>
+    private static bool IsDown(VirtualKey key)
+    {
+        try
+        {
+            return Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
 
     // ---- context menu ----
 

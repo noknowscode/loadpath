@@ -57,7 +57,10 @@ public sealed partial class WorkspaceView : SKCanvasElement
         PointerCanceled += OnPointerLost;
         PointerCaptureLost += OnPointerLost;
         PointerExited += (_, _) => _editor?.Interaction.PointerExited();
+#if !ANDROID && !IOS
+        // Mouse-wheel zoom. Android and iOS report no wheel delta (Uno0001); zoom there is Ctrl+= / Ctrl+- and Fit.
         PointerWheelChanged += OnPointerWheelChanged;
+#endif
         _ = LoadTypefacesAsync();
     }
 
@@ -250,7 +253,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
         if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } tr)
         {
             var pp = e.GetCurrentPoint(this).Properties;
-            File.AppendAllText(tr, $"press kind={pp.PointerUpdateKind} l={pp.IsLeftButtonPressed} m={pp.IsMiddleButtonPressed} r={pp.IsRightButtonPressed} x1={pp.IsXButton1Pressed} x2={pp.IsXButton2Pressed} wheel={pp.MouseWheelDelta}\n");
+            File.AppendAllText(tr, $"press kind={pp.PointerUpdateKind} l={pp.IsLeftButtonPressed} m={pp.IsMiddleButtonPressed} r={pp.IsRightButtonPressed} x1={pp.IsXButton1Pressed} x2={pp.IsXButton2Pressed}\n");
         }
 #endif
         if (s.IsRight)
@@ -302,6 +305,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
         _editor?.Interaction.PointerReleased(_lastState with { IsLeft = false, IsMiddle = false });
     }
 
+#if !ANDROID && !IOS
     private void OnPointerWheelChanged(object sender, PointerRoutedEventArgs e)
     {
         if (_editor is null) return;
@@ -325,12 +329,15 @@ public sealed partial class WorkspaceView : SKCanvasElement
         }
         e.Handled = true;
     }
+#endif
 
     /// <summary>The page focuses its key sink when the canvas is pressed, so shortcuts work after a click.</summary>
     public event EventHandler? FocusRequested;
 
     private void OnCursorChanged(object? sender, CursorKind cursor)
     {
+#if __DESKTOP__ || __WASM__ || WINDOWS
+        // Pointer heads only. Android and iOS are touch-first and draw no cursor, so there is nothing to set.
         var shape = cursor switch
         {
             CursorKind.Hand => InputSystemCursorShape.Hand,
@@ -341,6 +348,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
             _ => InputSystemCursorShape.Arrow,
         };
         try { ProtectedCursor = InputSystemCursor.Create(shape); } catch { /* cursor shapes are cosmetic */ }
+#endif
     }
 
     // ---- viewport animation (timer only while animating; no Rendering pump) ----
