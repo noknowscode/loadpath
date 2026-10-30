@@ -24,7 +24,7 @@ public sealed class NodeTool : Tool
         }
         else if (hit.Kind != HitKind.Node)
         {
-            var snap = ctx.SnapPoint(p.World, allowNodeSnap: false, disableSnap: p.Alt);
+            var snap = ctx.SnapPoint(p.World, allowNodeSnap: false, disableSnap: p.NoSnap);
             var s = ctx.Viewport.ToScreen(snap.Point);
             ctx.Overlay.GhostNode = new SKPoint((float)s.X, (float)s.Y);
             ctx.Overlay.Guides.AddRange(snap.Guides);
@@ -48,7 +48,7 @@ public sealed class NodeTool : Tool
             ctx.Selection.Set(ElementRef.Node(edit.NewNodeId));
             return;
         }
-        var snap = ctx.SnapPoint(p.World, allowNodeSnap: false, disableSnap: p.Alt);
+        var snap = ctx.SnapPoint(p.World, allowNodeSnap: false, disableSnap: p.NoSnap);
         var add = new AddNodeEdit(snap.Point);
         ctx.History.Do(add);
         ctx.Selection.Set(ElementRef.Node(add.NodeId));

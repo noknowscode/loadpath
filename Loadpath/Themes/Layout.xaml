@@ -1,0 +1,218 @@
+<!--
+  Layout tokens (hand-authored): the responsive layout, spacing scale, insets and sizes. Views and control styles
+  reference these keys instead of literal spacing, insets or widths; colours and type live in Tokens.xaml.
+  WinUI cannot StaticResource across sibling merged dictionaries, so every value here is a literal.
+
+  Naming: Space{n} is a gap (Spacing, RowSpacing, ColumnSpacing). Thickness forms:
+    Inset{n}        n on all sides            InsetX{n} / InsetY{n}   n left+right / top+bottom only
+    Inset{h}x{v}    h left+right, v top+bottom GapTop{n} / GapBottom{n} / GapStart{n} / GapEnd{n}   one side only
+  Semantic insets (sheet, inspector, outline, strip) follow, then sizes. Off-scale gaps were snapped to the scale when
+  the tokens arrived (5 -> 6, 18 -> 16); the type floor is 11 px (Tokens.xaml).
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:utu="using:Uno.Toolkit.UI">
+
+  <!--
+    The one responsive layout. The Toolkit reads "DefaultResponsiveLayout" from the application resources for every
+    {utu:Responsive} and ResponsiveView, so the breakpoints live here and nowhere else.
+
+    Why not the defaults (Normal 600, Wide 800, Widest 1080): the workbench is a canvas plus panels, not a column of
+    content. A docked 336 px inspector leaves the drawing sheet usable (frame, floating tool rail, dimension band, at
+    least ~760 px) only from 1100 px; the docked 240 px structure outline is the panel the canvas can best spare, so it
+    docks from 1240 px, the width it always docked at. With the defaults the inspector would dock at 800 and leave a
+    464 px sheet with the rail over a third of it.
+      Narrow   below 600   phone: bottom tool strip, inspector and outline in a bottom sheet, title overflow menu
+      Normal   600 - 1099  canvas full width, inspector (and outline tab) as a side sheet, floating tool rail
+      Wide     1100 - 1239 canvas + docked inspector, outline as the inspector's second tab
+      Widest   1240 and up the full workbench: outline, canvas, inspector
+  -->
+  <utu:ResponsiveLayout x:Key="DefaultResponsiveLayout" Narrowest="150" Narrow="300" Normal="600" Wide="1100" Widest="1240" />
+
+  <!-- Spacing scale (gaps) -->
+  <x:Double x:Key="Space2">2</x:Double>
+  <x:Double x:Key="Space4">4</x:Double>
+  <x:Double x:Key="Space6">6</x:Double>
+  <x:Double x:Key="Space8">8</x:Double>
+  <x:Double x:Key="Space10">10</x:Double>
+  <x:Double x:Key="Space12">12</x:Double>
+  <x:Double x:Key="Space14">14</x:Double>
+  <x:Double x:Key="Space16">16</x:Double>
+  <x:Double x:Key="Space20">20</x:Double>
+
+  <!-- Uniform and axis insets -->
+  <Thickness x:Key="Inset0">0</Thickness>
+  <Thickness x:Key="Inset4">4</Thickness>
+  <Thickness x:Key="InsetX2">2,0</Thickness>
+  <Thickness x:Key="InsetX6">6,0</Thickness>
+  <Thickness x:Key="InsetX8">8,0</Thickness>
+  <Thickness x:Key="InsetX12">12,0</Thickness>
+  <Thickness x:Key="InsetX14">14,0</Thickness>
+  <Thickness x:Key="InsetX18">18,0</Thickness>
+  <Thickness x:Key="Inset4x4">4,4</Thickness>
+  <Thickness x:Key="Inset6x3">6,3</Thickness>
+  <Thickness x:Key="Inset8x4">8,4</Thickness>
+  <Thickness x:Key="Inset12x6">12,6</Thickness>
+  <Thickness x:Key="Inset14x8">14,8</Thickness>
+  <Thickness x:Key="Inset16x4">16,4</Thickness>
+  <Thickness x:Key="Inset16x12">16,12</Thickness>
+
+  <!-- One-sided gaps -->
+  <Thickness x:Key="GapTop2">0,2,0,0</Thickness>
+  <Thickness x:Key="GapTop6">0,6,0,0</Thickness>
+  <Thickness x:Key="GapTop8">0,8,0,0</Thickness>
+  <Thickness x:Key="GapTop10">0,10,0,0</Thickness>
+  <Thickness x:Key="GapTop12">0,12,0,0</Thickness>
+  <Thickness x:Key="GapTop14">0,14,0,0</Thickness>
+  <Thickness x:Key="GapBottom4">0,0,0,4</Thickness>
+  <Thickness x:Key="GapBottom6">0,0,0,6</Thickness>
+  <Thickness x:Key="GapBottom8">0,0,0,8</Thickness>
+  <Thickness x:Key="GapBottom10">0,0,0,10</Thickness>
+  <Thickness x:Key="GapBottom14">0,0,0,14</Thickness>
+  <Thickness x:Key="GapBottom16">0,0,0,16</Thickness>
+  <Thickness x:Key="GapStart4">4,0,0,0</Thickness>
+  <Thickness x:Key="GapStart8">8,0,0,0</Thickness>
+  <Thickness x:Key="GapStart20">20,0,0,0</Thickness>
+  <Thickness x:Key="GapEnd4">0,0,4,0</Thickness>
+  <Thickness x:Key="GapEnd8">0,0,8,0</Thickness>
+  <Thickness x:Key="GapEnd10">0,0,10,0</Thickness>
+
+  <!-- Shell strips (title, status): 16 px sides on the sheet, 12 on a phone. -->
+  <Thickness x:Key="StripInset">16,0,16,0</Thickness>
+  <Thickness x:Key="StripInsetNarrow">12,0,8,0</Thickness>
+  <!-- The perforated rule runs edge to edge through the strip inset. -->
+  <Thickness x:Key="StripRuleMargin">-16,2,-16,0</Thickness>
+  <Thickness x:Key="StripRuleMarginNarrow">-12,2,-8,0</Thickness>
+  <Thickness x:Key="StatusRuleMargin">-16,0</Thickness>
+  <Thickness x:Key="StatusRuleMarginNarrow">-12,0,-8,0</Thickness>
+  <!-- Undo / redo sit apart from the document name and the display-mode segment. -->
+  <Thickness x:Key="HistoryClusterMargin">16,0,8,0</Thickness>
+  <Thickness x:Key="HistoryClusterMarginNarrow">4,0,0,0</Thickness>
+
+  <!--
+    Where Fit frames the structure on the sheet: clear of the floating tool rail (left), the banners (top), the height
+    dimension (right) and the band for the dimension chain, reactions and legend (bottom). A phone has no rail on the
+    sheet and keeps tighter margins so the structure is not drawn postage-stamp small.
+  -->
+  <Thickness x:Key="CanvasFitInsets">120,110,96,210</Thickness>
+  <Thickness x:Key="CanvasFitInsetsNarrow">24,64,84,190</Thickness>
+
+  <!-- Canvas overlays -->
+  <Thickness x:Key="RailMargin">40,24,0,0</Thickness>
+  <Thickness x:Key="BannerMargin">0,28,0,0</Thickness>
+  <Thickness x:Key="BannerMarginNarrow">12,16,12,0</Thickness>
+  <Thickness x:Key="ToastMargin">0,0,0,64</Thickness>
+  <Thickness x:Key="ToastMarginNarrow">16,0,16,24</Thickness>
+  <Thickness x:Key="EmptyStateInset">32,24</Thickness>
+  <Thickness x:Key="EmptyStateInsetNarrow">20,16</Thickness>
+  <Thickness x:Key="FloatingBarInset">10,3,3,3</Thickness>
+  <Thickness x:Key="StripPanelInset">4</Thickness>
+  <Thickness x:Key="StripRuleInset">4,8</Thickness>
+
+  <!-- Inspector, outline -->
+  <Thickness x:Key="InspectorHeaderInset">20,22,20,20</Thickness>
+  <Thickness x:Key="InspectorSectionInset">20,18,20,20</Thickness>
+  <Thickness x:Key="InspectorHintMargin">20,4,20,20</Thickness>
+  <Thickness x:Key="InspectorFooterMargin">20,10,20,12</Thickness>
+  <Thickness x:Key="InspectorTabsInset">12,10,12,0</Thickness>
+  <Thickness x:Key="OutlineHeaderMargin">16,22,16,12</Thickness>
+  <Thickness x:Key="OutlineGroupInset">12,0,16,0</Thickness>
+  <Thickness x:Key="OutlineRowInset">22,0,16,0</Thickness>
+  <!-- Bulk section rows bleed to the inspector's text edge. -->
+  <Thickness x:Key="BulkRowMargin">-9,0</Thickness>
+
+  <!-- Flyout sheets (presets, reduce noise) -->
+  <Thickness x:Key="SheetHeadInset">16,14,16,4</Thickness>
+  <Thickness x:Key="SheetHeadInsetLoose">16,14,16,10</Thickness>
+  <Thickness x:Key="SheetBodyInset">16,8,16,10</Thickness>
+  <Thickness x:Key="SheetFieldsInset">16,0,16,12</Thickness>
+  <Thickness x:Key="SheetGroupFirstMargin">0,6,0,2</Thickness>
+  <Thickness x:Key="SheetGroupMargin">0,12,0,2</Thickness>
+  <Thickness x:Key="PresetGridMargin">12,10,12,14</Thickness>
+  <Thickness x:Key="PresetTileInset">8,8,8,6</Thickness>
+  <!-- Command palette: below the title strip on the sheet, 12 px from the window edges on a phone. -->
+  <Thickness x:Key="PaletteMargin">0,96,0,0</Thickness>
+  <Thickness x:Key="PaletteMarginNarrow">12,64,12,12</Thickness>
+
+  <!-- Controls -->
+  <Thickness x:Key="FieldInset">10,3,10,3</Thickness>
+  <Thickness x:Key="FieldInsetWithUnit">10,3,32,3</Thickness>
+  <Thickness x:Key="PillInset">7,1</Thickness>
+  <Thickness x:Key="KeycapInset">5,1</Thickness>
+  <Thickness x:Key="FocusRingOutset">-2</Thickness>
+  <Thickness x:Key="FocusRingInset">1</Thickness>
+  <Thickness x:Key="ToolKeyLabelMargin">0,0,4,2</Thickness>
+  <Thickness x:Key="ToolGlyphMargin">-4,-4,0,0</Thickness>
+  <Thickness x:Key="KnobMargin">2,0,0,0</Thickness>
+  <Thickness x:Key="UnitSuffixMargin">0,0,10,0</Thickness>
+  <Thickness x:Key="Hairline">1</Thickness>
+  <Thickness x:Key="HairlineTop">0,1,0,0</Thickness>
+  <Thickness x:Key="HairlineBottom">0,0,0,1</Thickness>
+  <Thickness x:Key="HairlineStart">1,0,0,0</Thickness>
+  <Thickness x:Key="FocusStroke">1.5</Thickness>
+
+  <!-- Line heights -->
+  <x:Double x:Key="LineTight">13</x:Double>
+  <x:Double x:Key="LineMicro">14</x:Double>
+  <x:Double x:Key="LineLabel">15</x:Double>
+  <x:Double x:Key="LineCaption">16</x:Double>
+  <x:Double x:Key="LineBody">18</x:Double>
+  <x:Double x:Key="LineTitle">20</x:Double>
+  <x:Double x:Key="LineLoose">22</x:Double>
+  <x:Double x:Key="LineDisplay">28</x:Double>
+
+  <!-- Icons -->
+  <x:Double x:Key="IconSizeXs">5</x:Double>
+  <x:Double x:Key="IconSizeSm">12</x:Double>
+  <x:Double x:Key="IconSizeMd">14</x:Double>
+  <x:Double x:Key="IconSize">16</x:Double>
+  <x:Double x:Key="IconSizeLg">18</x:Double>
+  <x:Double x:Key="DotSize">6</x:Double>
+
+  <!-- Control heights: chrome 32, toolbar 38, fields and inspector actions 40, touch targets 44 (Narrow). -->
+  <x:Double x:Key="ControlHeightSm">32</x:Double>
+  <x:Double x:Key="ControlHeight">38</x:Double>
+  <x:Double x:Key="FieldHeight">40</x:Double>
+  <x:Double x:Key="TouchTarget">44</x:Double>
+  <x:Double x:Key="MenuItemHeight">28</x:Double>
+  <x:Double x:Key="RowHeight">32</x:Double>
+  <x:Double x:Key="RowHeightCompact">28</x:Double>
+  <x:Double x:Key="GroupRowHeight">36</x:Double>
+  <x:Double x:Key="PaletteRowHeight">28</x:Double>
+  <x:Double x:Key="ToolButtonSize">40</x:Double>
+  <x:Double x:Key="RuleShort">16</x:Double>
+  <x:Double x:Key="RuleTall">22</x:Double>
+  <x:Double x:Key="SplitChevronWidth">36</x:Double>
+  <x:Double x:Key="SwitchTrackWidth">30</x:Double>
+  <x:Double x:Key="SwitchTrackHeight">16</x:Double>
+  <x:Double x:Key="SwitchKnobSize">12</x:Double>
+  <x:Double x:Key="SwitchTrackRadius">8</x:Double>
+  <x:Double x:Key="UtilizationTrackHeight">4</x:Double>
+  <x:Double x:Key="PillHeight">32</x:Double>
+
+  <!-- Widths -->
+  <x:Double x:Key="EmptyStateMaxWidth">440</x:Double>
+  <x:Double x:Key="DocumentNameMaxWidth">240</x:Double>
+  <x:Double x:Key="CursorReadoutMinWidth">120</x:Double>
+  <x:Double x:Key="ShortcutMinWidth">56</x:Double>
+  <x:Double x:Key="MenuMinWidth">180</x:Double>
+  <x:Double x:Key="PaletteMaxWidth">520</x:Double>
+  <x:Double x:Key="PaletteMaxHeight">420</x:Double>
+  <x:Double x:Key="PaletteListMaxHeight">340</x:Double>
+  <x:Double x:Key="SheetMaxWidth">400</x:Double>
+  <x:Double x:Key="SheetMaxHeight">760</x:Double>
+  <x:Double x:Key="NoiseSheetWidth">318</x:Double>
+  <x:Double x:Key="PresetsSheetWidth">380</x:Double>
+  <!-- A flyout sheet keeps this much window on each side; narrower windows shrink the sheet (TitleStrip caps it). -->
+  <x:Double x:Key="SheetWindowGutter">12</x:Double>
+  <x:Double x:Key="PresetTileMinWidth">148</x:Double>
+  <x:Double x:Key="PresetTileHeight">110</x:Double>
+  <x:Double x:Key="SketchWidth">156</x:Double>
+  <x:Double x:Key="SketchHeight">52</x:Double>
+  <x:Double x:Key="ChipMinWidth">68</x:Double>
+  <x:Double x:Key="ChipMinHeight">24</x:Double>
+  <x:Double x:Key="ElementIdColumn">36</x:Double>
+  <x:Double x:Key="DisplacementBox">72</x:Double>
+  <!-- The bottom sheet on a phone: tall enough for a section of the inspector, short enough to keep the structure in view. -->
+  <x:Double x:Key="BottomSheetHeight">300</x:Double>
+</ResourceDictionary>

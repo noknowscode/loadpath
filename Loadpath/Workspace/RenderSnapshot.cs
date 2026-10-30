@@ -42,6 +42,8 @@ public sealed class RenderSnapshot
     public double Exaggeration { get; init; } = 1;
     /// <summary>Screen-space center of the structure; labels are pushed away from it.</summary>
     public SKPoint Center { get; init; }
+    /// <summary>The floating tool rail sits over the sheet's top-left corner (not on a phone, where it is a bottom strip).</summary>
+    public bool RailOverlay { get; init; } = true;
 
     public static readonly RenderSnapshot Empty = new();
 }

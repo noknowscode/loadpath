@@ -16,6 +16,19 @@ public readonly record struct HitResult(HitKind Kind, int Id)
     };
 }
 
+/// <summary>
+/// How far from an element, in screen pixels, a pointer still hits it. A mouse is precise to a pixel; a fingertip
+/// covers about 44 px, so touch gets a ~22 px radius around nodes and load handles and a 20 px band around members.
+/// </summary>
+public readonly record struct HitRadii(double NodePx, double LoadHandlePx, double MemberPx)
+{
+    public static readonly HitRadii Mouse = new(HitTester.NodeRadiusPx, HitTester.LoadHandleRadiusPx, HitTester.MemberTolerancePx);
+    public static readonly HitRadii Touch = new(22, 22, 20);
+
+    /// <summary>Touch radii for touch contacts; mouse (and pen, which is as precise) keep the tight ones.</summary>
+    public static HitRadii For(bool touch) => touch ? Touch : Mouse;
+}
+
 /// <summary>Pixel-tolerance hit testing against the document through a viewport.</summary>
 public static class HitTester
 {
@@ -39,6 +52,10 @@ public static class HitTester
     public static double LoadArrowLengthPx(double magnitudeKn) => 22 + Math.Sqrt(Math.Max(0, magnitudeKn)) * 9;
 
     public static HitResult Test(StructureDocument doc, Viewport.Viewport vp, Vec2 screen, bool includeLoadHandles = true)
+        => Test(doc, vp, screen, HitRadii.Mouse, includeLoadHandles);
+
+    /// <summary>Nearest node within its radius, then a load handle, then the nearest member within its band.</summary>
+    public static HitResult Test(StructureDocument doc, Viewport.Viewport vp, Vec2 screen, HitRadii radii, bool includeLoadHandles = true)
     {
         // Nodes first: they are on top.
         Node? bestNode = null;
@@ -46,7 +63,7 @@ public static class HitTester
         foreach (var n in doc.Nodes)
         {
             var d = vp.ToScreen(n.Position).DistanceTo(screen);
-            if (d <= NodeRadiusPx && d < bestD) { bestD = d; bestNode = n; }
+            if (d <= radii.NodePx && d < bestD) { bestD = d; bestNode = n; }
         }
         if (bestNode is not null) return new HitResult(HitKind.Node, bestNode.Id);
 
@@ -55,7 +72,7 @@ public static class HitTester
             foreach (var n in doc.Nodes)
             {
                 if (!n.HasLoad) continue;
-                if (LoadHandleScreen(n, vp).DistanceTo(screen) <= LoadHandleRadiusPx) return new HitResult(HitKind.LoadHandle, n.Id);
+                if (LoadHandleScreen(n, vp).DistanceTo(screen) <= radii.LoadHandlePx) return new HitResult(HitKind.LoadHandle, n.Id);
             }
         }
 
@@ -66,7 +83,7 @@ public static class HitTester
             var a = vp.ToScreen(doc.GetNode(m.StartNodeId).Position);
             var b = vp.ToScreen(doc.GetNode(m.EndNodeId).Position);
             var d = Vec2.DistanceToSegment(screen, a, b, out _);
-            if (d <= MemberTolerancePx && d < bestD) { bestD = d; bestMember = m; }
+            if (d <= radii.MemberPx && d < bestD) { bestD = d; bestMember = m; }
         }
         return bestMember is null ? HitResult.None : new HitResult(HitKind.Member, bestMember.Id);
     }

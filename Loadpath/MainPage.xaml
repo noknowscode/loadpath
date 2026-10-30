@@ -4,68 +4,44 @@
       xmlns:c="using:Loadpath.Controls"
       xmlns:v="using:Loadpath.Views"
       xmlns:w="using:Loadpath.Workspace"
-      Background="{StaticResource CanvasBrush}">
+      xmlns:utu="using:Uno.Toolkit.UI"
+      Background="{ThemeResource CanvasBrush}">
 
-  <Grid x:Name="Root" Background="{StaticResource CanvasBrush}">
-    <!--
-      Width breakpoints. The canvas keeps the room: the structure outline yields first, then the inspector,
-      then the floating tool palette. AdaptiveTrigger is the platform route; the project takes no Toolkit dependency.
-    -->
-    <VisualStateManager.VisualStateGroups>
-      <VisualStateGroup x:Name="WidthStates">
-        <VisualState x:Name="Wide">
-          <VisualState.StateTriggers>
-            <AdaptiveTrigger MinWindowWidth="1240" />
-          </VisualState.StateTriggers>
-        </VisualState>
-        <VisualState x:Name="Medium">
-          <VisualState.StateTriggers>
-            <AdaptiveTrigger MinWindowWidth="1100" />
-          </VisualState.StateTriggers>
-          <VisualState.Setters>
-            <Setter Target="StructureHost.Visibility" Value="Collapsed" />
-          </VisualState.Setters>
-        </VisualState>
-        <VisualState x:Name="Narrow">
-          <VisualState.StateTriggers>
-            <AdaptiveTrigger MinWindowWidth="640" />
-          </VisualState.StateTriggers>
-          <VisualState.Setters>
-            <Setter Target="StructureHost.Visibility" Value="Collapsed" />
-            <Setter Target="InspectorShell.Visibility" Value="Collapsed" />
-          </VisualState.Setters>
-        </VisualState>
-        <VisualState x:Name="Compact">
-          <VisualState.StateTriggers>
-            <AdaptiveTrigger MinWindowWidth="0" />
-          </VisualState.StateTriggers>
-          <VisualState.Setters>
-            <Setter Target="StructureHost.Visibility" Value="Collapsed" />
-            <Setter Target="InspectorShell.Visibility" Value="Collapsed" />
-            <Setter Target="Rail.Visibility" Value="Collapsed" />
-          </VisualState.Setters>
-        </VisualState>
-      </VisualStateGroup>
-    </VisualStateManager.VisualStateGroups>
-
+  <!--
+    The workbench in four layouts (breakpoints: DefaultResponsiveLayout in Themes/Layout.xaml):
+      Widest  outline | canvas (floating tool rail) | inspector
+      Wide    canvas | inspector, whose second tab is the outline
+      Normal  canvas full width; the inspector (and outline tab) as a side sheet over its right edge
+      Narrow  canvas over a bottom tool strip; the inspector (and outline tab) as a bottom sheet
+    Each panel is one element moved by utu:Responsive (Grid.Column, alignment, size), so its state (scroll position,
+    a field being edited) survives a resize. Whether the inspector shows is InspectorShown: the docked toggle in the
+    docked layouts, the sheet in the others; the title strip's inspector button and Ctrl+\ flip whichever applies.
+  -->
+  <Grid x:Name="Root" Background="{ThemeResource CanvasBrush}">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <v:TitleStrip />
+    <!-- Tells the page which layout is active (docked or sheet inspector, tab reset): the same breakpoints, no second copy. -->
+    <Border x:Name="LayoutProbe" Visibility="Collapsed" Tag="{utu:Responsive Narrow=Narrow, Normal=Normal, Wide=Wide, Widest=Widest}" />
 
-    <Grid Grid.Row="1">
+    <v:TitleStrip x:Name="Title" />
+
+    <Grid x:Name="Work" Grid.Row="1">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
 
-      <!-- Structure outline -->
-      <Border x:Name="StructureHost">
-        <!-- Width yields via the VisualState above; Reduce noise can hide the list too (inner binding, so neither overrides the other). -->
+      <!-- Structure outline, docked at Widest. Reduce noise can hide it too (inner binding, so neither overrides the other). -->
+      <Border x:Name="StructureHost" Visibility="{utu:Responsive Narrow=Collapsed, Widest=Visible}">
         <Border Width="{StaticResource StructureWidth}" c:Motion.Reveal="True" Visibility="{Binding ShowStructureList, Converter={StaticResource Vis}}">
           <v:OutlinePanel x:Name="Outline" />
         </Border>
@@ -73,59 +49,63 @@
 
       <!-- Workspace host: the blueprint sheet below, XAML overlay above. -->
       <Grid Grid.Column="1" x:Name="WorkspaceHost">
-        <w:WorkspaceView x:Name="Workspace" AutomationProperties.Name="Structure workspace" />
+        <w:WorkspaceView x:Name="Workspace" AutomationProperties.Name="Structure workspace"
+                         FitInsets="{utu:Responsive Narrow={StaticResource CanvasFitInsetsNarrow}, Normal={StaticResource CanvasFitInsets}}"
+                         RailOverlay="{utu:Responsive Narrow=False, Normal=True}" />
         <c:KeySink x:Name="KeySink" />
-
-        <!-- Floating tool palette, inside the drawing frame -->
-        <v:ToolRail x:Name="Rail" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="40,24,0,0" />
 
         <!-- Mechanism / unsupported banner -->
 
-        <!-- xaml-lint: allow card - status banner over the drawing; no Toolkit by README decision -->
-        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,28,0,0" Padding="14,8" CornerRadius="4"
-                Background="{StaticResource DangerSoftBrush}" BorderBrush="{StaticResource DangerBorderBrush}" BorderThickness="1"
+        <!-- xaml-lint: allow card - status banner over the drawing -->
+        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{utu:Responsive Narrow={StaticResource BannerMarginNarrow}, Normal={StaticResource BannerMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}"
+                Background="{ThemeResource DangerSoftBrush}" BorderBrush="{ThemeResource DangerBorderBrush}" BorderThickness="{StaticResource Hairline}"
                 c:Motion.Reveal="True" Visibility="{Binding Status.IsMechanism, Converter={StaticResource Vis}}" IsHitTestVisible="False">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <c:Icon Kind="warning" Foreground="{StaticResource DangerBrush}" Width="14" Height="14" />
-            <TextBlock Text="{Binding Status.MechanismText}" Style="{StaticResource BodyText}" Foreground="{StaticResource DangerBrush}" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
+            <c:Icon Kind="warning" Foreground="{ThemeResource DangerBrush}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" />
+            <TextBlock Text="{Binding Status.MechanismText}" Style="{StaticResource BodyText}" Foreground="{ThemeResource DangerBrush}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None" />
           </StackPanel>
         </Border>
 
         <!-- Detached parts notice (warning, not failure) -->
 
-        <!-- xaml-lint: allow card - status banner over the drawing; no Toolkit by README decision -->
-        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,28,0,0" Padding="14,8" CornerRadius="4"
-                Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineStrongBrush}" BorderThickness="1"
+        <!-- xaml-lint: allow card - status banner over the drawing -->
+        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{utu:Responsive Narrow={StaticResource BannerMarginNarrow}, Normal={StaticResource BannerMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}"
+                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="{StaticResource Hairline}"
                 c:Motion.Reveal="True" Visibility="{Binding Status.HasDetached, Converter={StaticResource Vis}}" IsHitTestVisible="False">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <c:Icon Kind="warning" Foreground="{StaticResource InkSecondaryBrush}" Width="14" Height="14" />
-            <TextBlock Text="{Binding Status.DetachedText}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
+            <c:Icon Kind="warning" Foreground="{ThemeResource InkSecondaryBrush}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" />
+            <TextBlock Text="{Binding Status.DetachedText}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None" />
           </StackPanel>
         </Border>
 
         <!-- Empty state -->
         <!-- A paper plate behind the text so the registration marks do not run through it. -->
-        <Border x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{StaticResource CanvasBrush}" Padding="32,24"
+        <Border x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{ThemeResource CanvasBrush}" Padding="{utu:Responsive Narrow={StaticResource EmptyStateInsetNarrow}, Normal={StaticResource EmptyStateInset}}"
                 c:Motion.Reveal="True" Visibility="{Binding Status.IsEmpty, Converter={StaticResource Vis}}">
-        <StackPanel Spacing="14" MaxWidth="440">
+        <StackPanel Spacing="{StaticResource Space14}" MaxWidth="{StaticResource EmptyStateMaxWidth}">
           <TextBlock Text="Fig. 00" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" />
-          <TextBlock Text="Draw a structure and it answers." Style="{StaticResource DisplayText}" HorizontalAlignment="Center" />
-          <TextBlock Style="{StaticResource SecondaryText}" TextAlignment="Center" TextWrapping="Wrap">
-            <Run Text="Press" /><Run Text=" N " FontFamily="{StaticResource MonoFontMedium}" Foreground="{StaticResource InkBrush}" /><Run Text="and click to place nodes," />
-            <Run Text=" M " FontFamily="{StaticResource MonoFontMedium}" Foreground="{StaticResource InkBrush}" /><Run Text="to connect them," />
-            <Run Text=" S " FontFamily="{StaticResource MonoFontMedium}" Foreground="{StaticResource InkBrush}" /><Run Text="for supports and" />
-            <Run Text=" L " FontFamily="{StaticResource MonoFontMedium}" Foreground="{StaticResource InkBrush}" /><Run Text="for loads. Every change re-solves instantly." />
+          <TextBlock Text="Draw a structure and it answers." Style="{StaticResource DisplayText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="None" />
+          <!-- Keyboard instructions from Normal up; on a phone the same steps through the tool strip. -->
+          <TextBlock Style="{StaticResource SecondaryText}" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="None"
+                     Visibility="{utu:Responsive Narrow=Visible, Normal=Collapsed}"
+                     Text="Pick the node tool below and tap to place nodes, the member tool to connect them, then add supports and loads. Every change re-solves instantly. Two fingers pan and zoom; press and hold for more." />
+          <TextBlock Style="{StaticResource SecondaryText}" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="None"
+                     Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}">
+            <Run Text="Press" /><Run Text=" N " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" /><Run Text="and click to place nodes," />
+            <Run Text=" M " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" /><Run Text="to connect them," />
+            <Run Text=" S " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" /><Run Text="for supports and" />
+            <Run Text=" L " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" /><Run Text="for loads. Every change re-solves instantly." />
           </TextBlock>
-          <TextBlock Text="Or start from a sample" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" Margin="0,10,0,0" />
-          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+          <TextBlock Text="Or start from a sample" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" Margin="{StaticResource GapTop10}" />
+          <StackPanel Orientation="{utu:Responsive Narrow=Vertical, Normal=Horizontal}" Spacing="{StaticResource Space8}" HorizontalAlignment="Center">
             <Button Style="{StaticResource OutlineButton}" Content="WARREN TRUSS" Command="{Binding SampleWarren}" AutomationProperties.Name="Load Warren truss sample" />
             <Button Style="{StaticResource OutlineButton}" Content="CANTILEVER" Command="{Binding SampleCantilever}" AutomationProperties.Name="Load cantilever sample" />
             <Button Style="{StaticResource OutlineButton}" Content="HOWE ROOF" Command="{Binding SampleRoof}" AutomationProperties.Name="Load Howe roof sample" />
           </StackPanel>
           <Button Style="{StaticResource LinkButton}" HorizontalAlignment="Center" Command="{Binding PasteDesign}" AutomationProperties.Name="Paste a design from a share code">
-            <StackPanel Orientation="Horizontal" Spacing="10">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
               <TextBlock Text="OR PASTE A SHARE CODE" VerticalAlignment="Center" />
-              <Border Style="{StaticResource Keycap}">
+              <Border Style="{StaticResource Keycap}" Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}">
                 <TextBlock Text="CTRL SHIFT V" Style="{StaticResource KeycapText}" />
               </Border>
             </StackPanel>
@@ -133,58 +113,111 @@
         </StackPanel>
         </Border>
 
-        <!-- Floating selection bar, positioned by code above the selection -->
+        <!-- Floating selection bar, positioned by code above the selection. On a phone its targets grow to 44 px. -->
 
-        <!-- xaml-lint: allow card - popover chrome; no Toolkit by README decision -->
+        <!-- xaml-lint: allow card - popover chrome -->
         <Border x:Name="FloatingBar" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed"
-                Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="6" Padding="10,3,3,3">
-          <StackPanel Orientation="Horizontal" Spacing="2">
-            <TextBlock Text="{Binding Inspector.SelectionLabel}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <Rectangle Width="1" Height="16" Fill="{StaticResource HairlineBrush}" Margin="0,0,4,0" />
-            <Button Style="{StaticResource IconButton}" Command="{Binding CycleSupport}" ToolTipService.ToolTip="Cycle support" Visibility="{Binding Inspector.SelectionHasNodes, Converter={StaticResource Vis}}" AutomationProperties.Name="Cycle support">
-              <c:Icon Kind="support" Foreground="{StaticResource AccentBrush}" />
+                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusPopover}" Padding="{StaticResource FloatingBarInset}">
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+            <TextBlock Text="{Binding Inspector.SelectionLabel}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" Margin="{StaticResource GapEnd8}" />
+            <Rectangle Width="1" Height="{StaticResource RuleShort}" Fill="{ThemeResource HairlineBrush}" Margin="{StaticResource GapEnd4}" />
+            <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding CycleSupport}" ToolTipService.ToolTip="Cycle support" Visibility="{Binding Inspector.SelectionHasNodes, Converter={StaticResource Vis}}" AutomationProperties.Name="Cycle support">
+              <c:Icon Kind="support" Foreground="{ThemeResource AccentBrush}" />
             </Button>
-            <Button Style="{StaticResource IconButton}" Command="{Binding AddLoad}" ToolTipService.ToolTip="Add 10 kN load" Visibility="{Binding Inspector.SelectionHasNodes, Converter={StaticResource Vis}}" AutomationProperties.Name="Add load">
-              <c:Icon Kind="load" Foreground="{StaticResource AccentBrush}" />
+            <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding AddLoad}" ToolTipService.ToolTip="Add 10 kN load" Visibility="{Binding Inspector.SelectionHasNodes, Converter={StaticResource Vis}}" AutomationProperties.Name="Add load">
+              <c:Icon Kind="load" Foreground="{ThemeResource AccentBrush}" />
             </Button>
-            <Button Style="{StaticResource IconButton}" Command="{Binding SplitMember}" ToolTipService.ToolTip="Split member" Visibility="{Binding Inspector.IsMember, Converter={StaticResource Vis}}" AutomationProperties.Name="Split member">
-              <c:Icon Kind="node" Foreground="{StaticResource AccentBrush}" />
+            <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding SplitMember}" ToolTipService.ToolTip="Split member" Visibility="{Binding Inspector.IsMember, Converter={StaticResource Vis}}" AutomationProperties.Name="Split member">
+              <c:Icon Kind="node" Foreground="{ThemeResource AccentBrush}" />
             </Button>
-            <Button Style="{StaticResource IconButton}" Command="{Binding DuplicateSelection}" ToolTipService.ToolTip="Duplicate   Ctrl+D" AutomationProperties.Name="Duplicate">
-              <c:Icon Kind="duplicate" Foreground="{StaticResource AccentBrush}" />
+            <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding DuplicateSelection}" ToolTipService.ToolTip="Duplicate   Ctrl+D" AutomationProperties.Name="Duplicate">
+              <c:Icon Kind="duplicate" Foreground="{ThemeResource AccentBrush}" />
             </Button>
-            <Button Style="{StaticResource IconButton}" Command="{Binding DeleteSelection}" ToolTipService.ToolTip="Delete   Del" AutomationProperties.Name="Delete">
-              <c:Icon Kind="delete" Foreground="{StaticResource DangerBrush}" />
+            <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding DeleteSelection}" ToolTipService.ToolTip="Delete   Del" AutomationProperties.Name="Delete">
+              <c:Icon Kind="delete" Foreground="{ThemeResource DangerBrush}" />
             </Button>
+            <Rectangle Width="1" Height="{StaticResource RuleShort}" Fill="{ThemeResource HairlineBrush}" Margin="{StaticResource InsetX2}" />
+            <!-- The touch stand-in for Shift: while on, taps add to the selection or take an element out of it. -->
+            <ToggleButton Style="{utu:Responsive Narrow={StaticResource TouchIconToggle}, Normal={StaticResource IconToggle}}" IsChecked="{Binding MultiSelect, Mode=TwoWay, Converter={StaticResource Checked}}"
+                          ToolTipService.ToolTip="Multi-select: taps add to the selection   (or hold Shift)" AutomationProperties.Name="Multi-select">
+              <c:Icon Kind="select-add" Foreground="{ThemeResource AccentBrush}" />
+            </ToggleButton>
           </StackPanel>
         </Border>
 
         <!-- Section drag ghost -->
 
-        <!-- xaml-lint: allow card - drag ghost chip; no Toolkit by README decision -->
+        <!-- xaml-lint: allow card - drag ghost chip -->
         <Border x:Name="DragGhost" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed" IsHitTestVisible="False"
-                Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" CornerRadius="4" Padding="6,3">
-          <TextBlock x:Name="DragGhostText" Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkBrush}" />
+                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource AccentBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusField}" Padding="{StaticResource Inset6x3}">
+          <TextBlock x:Name="DragGhostText" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" />
         </Border>
 
         <!-- Toast -->
 
-        <!-- xaml-lint: allow card - transient toast; no Toolkit by README decision -->
-        <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,64" Padding="14,8" CornerRadius="4" Opacity="0" IsHitTestVisible="False"
-                Background="{StaticResource InkBrush}">
+        <!-- xaml-lint: allow card - transient toast -->
+        <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="{utu:Responsive Narrow={StaticResource ToastMarginNarrow}, Normal={StaticResource ToastMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}" Opacity="0" IsHitTestVisible="False"
+                Background="{ThemeResource InkBrush}">
           <Border.RenderTransform>
             <TranslateTransform x:Name="ToastTranslate" Y="6" />
           </Border.RenderTransform>
-          <TextBlock x:Name="ToastText" Style="{StaticResource BodyText}" Foreground="{StaticResource CanvasBrush}" />
+          <TextBlock x:Name="ToastText" Style="{StaticResource BodyText}" Foreground="{ThemeResource CanvasBrush}" TextWrapping="Wrap" TextTrimming="None" />
         </Border>
       </Grid>
 
-      <!-- Inspector column: the shell yields to width (VisualState above), the host follows the user's toggle (Ctrl+\). -->
-      <Border Grid.Column="2" x:Name="InspectorShell">
-        <Border x:Name="InspectorHost" Width="{StaticResource InspectorWidth}" c:Motion.Reveal="True" Visibility="{Binding InspectorVisible, Converter={StaticResource Vis}}">
-          <v:InspectorPanel x:Name="Inspector" />
+      <!-- Tools: a floating palette over the sheet from Normal up, a strip under the drawing on a phone. -->
+      <v:ToolRail x:Name="Rail" Grid.Column="1"
+                  Grid.Row="{utu:Responsive Narrow=1, Normal=0}"
+                  HorizontalAlignment="{utu:Responsive Narrow=Stretch, Normal=Left}"
+                  VerticalAlignment="{utu:Responsive Narrow=Stretch, Normal=Top}"
+                  Margin="{utu:Responsive Narrow={StaticResource Inset0}, Normal={StaticResource RailMargin}}" />
+
+      <!--
+        Inspector host: a docked column from Wide up, a side sheet over the canvas at Normal, a bottom sheet on a phone.
+        Its first row is the tab strip (INSPECTOR | STRUCTURE) wherever the outline is not docked beside the canvas.
+      -->
+      <Grid x:Name="InspectorHost"
+            Grid.Column="{utu:Responsive Narrow=1, Wide=2}"
+            HorizontalAlignment="{utu:Responsive Narrow=Stretch, Normal=Right, Wide=Stretch}"
+            VerticalAlignment="{utu:Responsive Narrow=Bottom, Normal=Stretch}"
+            Width="{utu:Responsive Narrow=NaN, Normal={StaticResource InspectorWidth}}"
+            Height="{utu:Responsive Narrow={StaticResource BottomSheetHeight}, Normal=NaN}"
+            Background="{ThemeResource CanvasBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}"
+            BorderThickness="{utu:Responsive Narrow={StaticResource HairlineTop}, Normal={StaticResource HairlineStart}, Wide={StaticResource Inset0}}"
+            c:Motion.Reveal="True" Visibility="{Binding InspectorShown, Converter={StaticResource Vis}}">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Padding="{StaticResource InspectorTabsInset}" ColumnSpacing="{StaticResource Space8}" Visibility="{utu:Responsive Narrow=Visible, Widest=Collapsed}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <!-- xaml-lint: allow card - segmented control frame -->
+          <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal">
+              <ToggleButton Style="{StaticResource SegmentToggle}" Height="{utu:Responsive Narrow={StaticResource TouchTarget}, Normal={StaticResource ControlHeight}}"
+                            Content="INSPECTOR" IsChecked="{Binding InspectorTabSelected, Mode=TwoWay, Converter={StaticResource Checked}}" Command="{Binding ShowInspectorTab}" AutomationProperties.Name="Inspector tab" />
+              <Rectangle Width="1" Fill="{ThemeResource HairlineStrongBrush}" />
+              <ToggleButton Style="{StaticResource SegmentToggle}" Height="{utu:Responsive Narrow={StaticResource TouchTarget}, Normal={StaticResource ControlHeight}}"
+                            Content="STRUCTURE" IsChecked="{Binding OutlineTabSelected, Mode=TwoWay, Converter={StaticResource Checked}}" Command="{Binding ShowOutlineTab}" AutomationProperties.Name="Structure outline tab" />
+            </StackPanel>
+          </Border>
+          <!-- Sheets close here (docked, the inspector button in the title strip and Ctrl+\ hide it). -->
+          <Button Grid.Column="1" Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}"
+                  Visibility="{utu:Responsive Narrow=Visible, Wide=Collapsed}" Command="{Binding ToggleInspector}"
+                  ToolTipService.ToolTip="Close   Ctrl+\" AutomationProperties.Name="Close inspector">
+            <c:Icon Kind="close" Foreground="{ThemeResource InkBrush}" />
+          </Button>
+        </Grid>
+
+        <v:InspectorPanel x:Name="Inspector" Grid.Row="1" Visibility="{Binding InspectorTabSelected, Converter={StaticResource Vis}}" />
+        <Border Grid.Row="1" Visibility="{utu:Responsive Narrow=Visible, Widest=Collapsed}">
+          <v:OutlinePanel x:Name="OutlineTab" c:Motion.Reveal="True" Visibility="{Binding OutlineTabSelected, Converter={StaticResource Vis}}" />
         </Border>
-      </Border>
+      </Grid>
     </Grid>
 
     <v:StatusBar Grid.Row="2" />

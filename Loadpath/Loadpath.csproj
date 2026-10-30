@@ -1,6 +1,12 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net10.0-desktop</TargetFrameworks>
+    <!-- Five heads. Uno.Sdk skips the ones the build OS can't build (iOS off macOS, Windows off Windows). -->
+    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041;net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
+    <!--
+      App-only override for single-head builds (CI, RID-specific publish): -p:LoadpathTargetFrameworks=net10.0-desktop.
+      A global -p:TargetFrameworks would also reach Loadpath.Core, a plain net10.0 library.
+    -->
+    <TargetFrameworks Condition="'$(LoadpathTargetFrameworks)' != ''">$(LoadpathTargetFrameworks)</TargetFrameworks>
 
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
@@ -15,12 +21,33 @@
     <!--
       SkiaRenderer: the workspace is an SKCanvasElement.
       MVUX: the presentation model (Uno.Extensions.Reactive).
-      No Material, Toolkit, or Extensions hosting: the visual system is custom and the app has three services.
+      Toolkit: utu:Responsive and ResponsiveView for the width layouts. Only the helpers and controls are used;
+      ToolkitResources is not merged, so Fluent (XamlControlsResources) plus the app's own tokens and control
+      styles stay the only control theme. No Material, no Extensions hosting: the app has three services.
     -->
     <UnoFeatures>
       SkiaRenderer;
       MVUX;
+      Toolkit;
     </UnoFeatures>
+    <!--
+      Uno.Sdk 7.0.0-dev.115 bundles Hot Design 2.0.0-dev.31 and App MCP 2.0.0-dev.18, whose clients still reference
+      Uno.UI.Lottie, an assembly Uno 7 no longer ships: every Debug launch crashed in GlobalStaticResources. Both stay off
+      (Debug only; Release never had them) until a dev build drops the reference. Delete these three lines then.
+    -->
+    <UnoDisableHotDesign>true</UnoDisableHotDesign>
+    <UnoDisableMCPSupport>true</UnoDisableMCPSupport>
+    <DefineConstants>$(DefineConstants);NO_UNO_STUDIO</DefineConstants>
+  </PropertyGroup>
+
+  <!--
+    WinAppSDK: SKCanvasElement (the workspace) needs an x64 or ARM64 build, never AnyCPU.
+    Uno 7's WinUI libraries need WinRT.Runtime 2.3.1; the default 19041 projection brings 2.2.0 (CS1705).
+  -->
+  <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+    <Platforms>x64;ARM64</Platforms>
+    <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
+    <WindowsSdkPackageVersion>10.0.19041.87</WindowsSdkPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>

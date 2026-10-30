@@ -1,0 +1,5 @@
+<linker>
+  <!-- The app and its model library: MVUX proxies, bindings and System.Text.Json reach their members by reflection. -->
+  <assembly fullname="Loadpath" />
+  <assembly fullname="Loadpath.Core" />
+</linker>

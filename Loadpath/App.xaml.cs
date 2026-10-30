@@ -13,10 +13,14 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+#if __DESKTOP__
         // Size the window at creation; resizing after the fact races the Skia host's surface.
+        // Desktop only: WebAssembly, Android and iOS fill the browser or the screen, and WinAppSDK sizes its
+        // AppWindow once the page knows the display scale (MainPage.OnLoaded).
         Windows.UI.ViewManagement.ApplicationView.PreferredLaunchViewSize = new Windows.Foundation.Size(LaunchWidth, LaunchHeight);
+#endif
         MainWindow = new Window();
-#if DEBUG
+#if DEBUG && !NO_UNO_STUDIO
         // Headless verification runs opt out: UseStudio() keeps the window hidden when no DevServer is reachable.
         if (Environment.GetEnvironmentVariable("APP_NO_HOTDESIGN") != "1")
         {

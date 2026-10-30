@@ -3,33 +3,33 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="using:Loadpath.Controls">
   <UserControl.Resources>
-    <!-- Node row: id, coordinates, then support badge and load flush right. -->
+    <!-- Node row: id, coordinates, then support badge and load flush right. A button: Tab reaches it, Enter selects. -->
     <DataTemplate x:Key="NodeRow">
-      <Border Height="32" Padding="22,0,16,0" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Key}"
-              PointerPressed="OnRowPressed" PointerEntered="OnRowEntered" PointerExited="OnRowExited">
-        <Grid ColumnSpacing="10">
+      <Button Style="{StaticResource RowButton}" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Key}"
+              AutomationProperties.Name="{Binding AutomationName}" Click="OnRowClick" PointerEntered="OnRowEntered" PointerExited="OnRowExited">
+        <Grid ColumnSpacing="{StaticResource Space10}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="26" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
-          <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" />
-          <!-- xaml-lint: allow card - support badge, not a card; no Toolkit by README decision -->
+          <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
+          <!-- xaml-lint: allow card - support badge, not a card -->
           <Border Grid.Column="2" Style="{StaticResource PillBorder}" HorizontalAlignment="Right" c:Motion.Reveal="True" Visibility="{Binding HasBadge, Converter={StaticResource Vis}}">
-            <TextBlock Text="{Binding Badge}" Style="{StaticResource MonoCaption}" FontSize="10" LineHeight="14" Foreground="{StaticResource InkBrush}" />
+            <TextBlock Text="{Binding Badge}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" Foreground="{ThemeResource InkBrush}" />
           </Border>
-          <TextBlock Grid.Column="3" Text="{Binding Value}" Style="{StaticResource MonoCaption}" FontSize="11" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" TextAlignment="Right" />
+          <TextBlock Grid.Column="3" Text="{Binding Value}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" TextAlignment="Right" />
         </Grid>
-      </Border>
+      </Button>
     </DataTemplate>
 
     <!-- Member row: id, endpoints, force, and a red pill when over capacity. -->
     <DataTemplate x:Key="MemberRow">
-      <Border Height="32" Padding="22,0,16,0" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Key}"
-              PointerPressed="OnRowPressed" PointerEntered="OnRowEntered" PointerExited="OnRowExited">
-        <Grid ColumnSpacing="8">
+      <Button Style="{StaticResource RowButton}" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Key}"
+              AutomationProperties.Name="{Binding AutomationName}" Click="OnRowClick" PointerEntered="OnRowEntered" PointerExited="OnRowExited">
+        <Grid ColumnSpacing="{StaticResource Space8}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="26" />
             <ColumnDefinition Width="60" />
@@ -37,15 +37,15 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
           </Grid.ColumnDefinitions>
-          <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
           <TextBlock Grid.Column="2" Text="{Binding Value}" Style="{StaticResource MonoCaption}" Foreground="{Binding ValueToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center" />
-          <!-- xaml-lint: allow card - utilization pill, not a card; no Toolkit by README decision -->
-          <Border Grid.Column="3" Style="{StaticResource DangerPill}" BorderThickness="0" c:Motion.Reveal="True" Visibility="{Binding HasPill, Converter={StaticResource Vis}}">
-            <TextBlock Text="{Binding PillText}" Style="{StaticResource MonoCaption}" FontSize="10" LineHeight="14" Foreground="{StaticResource DangerBrush}" />
+          <!-- xaml-lint: allow card - utilization pill, not a card -->
+          <Border Grid.Column="3" Style="{StaticResource DangerPill}" BorderThickness="{StaticResource Inset0}" c:Motion.Reveal="True" Visibility="{Binding HasPill, Converter={StaticResource Vis}}">
+            <TextBlock Text="{Binding PillText}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" Foreground="{ThemeResource DangerBrush}" />
           </Border>
         </Grid>
-      </Border>
+      </Button>
     </DataTemplate>
   </UserControl.Resources>
 
@@ -54,40 +54,40 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
-    <TextBlock Text="STRUCTURE" Style="{StaticResource MonoCaption}" FontSize="11" Foreground="{StaticResource InkSecondaryBrush}" Margin="16,22,16,12" />
+    <TextBlock Text="STRUCTURE" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource InkSecondaryBrush}" Margin="{StaticResource OutlineHeaderMargin}" />
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled">
-      <StackPanel Padding="0,0,0,16">
-        <TextBlock Text="No elements yet. Press N to place a node." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="16,4" Visibility="{Binding OutlineIsEmpty, Converter={StaticResource Vis}}" />
+      <StackPanel Padding="{StaticResource GapBottom16}">
+        <TextBlock Text="No elements yet. Press N to place a node." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource Inset16x4}" Visibility="{Binding OutlineIsEmpty, Converter={StaticResource Vis}}" />
 
-        <Button Style="{StaticResource QuietButton}" Command="{Binding ToggleNodes}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,0,16,0" Height="36"
+        <Button Style="{StaticResource QuietButton}" Command="{Binding ToggleNodes}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="{StaticResource OutlineGroupInset}" Height="{StaticResource GroupRowHeight}"
                 Visibility="{Binding OutlineIsEmpty, Converter={StaticResource Vis}, ConverterParameter=invert}" AutomationProperties.Name="Toggle nodes">
-          <Grid ColumnSpacing="8">
+          <Grid ColumnSpacing="{StaticResource Space8}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Grid Width="14">
-              <c:Icon Kind="chevron-down" Width="12" Height="12" Foreground="{StaticResource InkSecondaryBrush}" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}}" />
-              <c:Icon Kind="chevron-right" Width="12" Height="12" Foreground="{StaticResource InkSecondaryBrush}" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}, ConverterParameter=invert}" />
+            <Grid Width="{StaticResource IconSizeMd}">
+              <c:Icon Kind="chevron-down" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource InkSecondaryBrush}" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}}" />
+              <c:Icon Kind="chevron-right" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource InkSecondaryBrush}" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}, ConverterParameter=invert}" />
             </Grid>
             <TextBlock Grid.Column="1" Text="01" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="2" Text="NODES" Style="{StaticResource SectionLabel}" FontSize="12" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="NODES" Style="{StaticResource SectionLabel}" FontSize="{StaticResource TextLabel}" VerticalAlignment="Center" />
             <TextBlock Grid.Column="3" Text="{Binding NodesHeader}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
           </Grid>
         </Button>
         <ItemsRepeater ElementPrepared="OnRowPrepared" ItemsSource="{Binding OutlineNodes}" ItemTemplate="{StaticResource NodeRow}" c:Motion.Reveal="True" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}}" />
 
-        <Button Style="{StaticResource QuietButton}" Command="{Binding ToggleMembers}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,0,16,0" Height="36" Margin="0,12,0,0"
+        <Button Style="{StaticResource QuietButton}" Command="{Binding ToggleMembers}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="{StaticResource OutlineGroupInset}" Height="{StaticResource GroupRowHeight}" Margin="{StaticResource GapTop12}"
                 Visibility="{Binding OutlineIsEmpty, Converter={StaticResource Vis}, ConverterParameter=invert}" AutomationProperties.Name="Toggle members">
-          <Grid ColumnSpacing="8">
+          <Grid ColumnSpacing="{StaticResource Space8}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Grid Width="14">
-              <c:Icon Kind="chevron-down" Width="12" Height="12" Foreground="{StaticResource InkSecondaryBrush}" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}}" />
-              <c:Icon Kind="chevron-right" Width="12" Height="12" Foreground="{StaticResource InkSecondaryBrush}" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}, ConverterParameter=invert}" />
+            <Grid Width="{StaticResource IconSizeMd}">
+              <c:Icon Kind="chevron-down" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource InkSecondaryBrush}" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}}" />
+              <c:Icon Kind="chevron-right" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource InkSecondaryBrush}" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}, ConverterParameter=invert}" />
             </Grid>
             <TextBlock Grid.Column="1" Text="02" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="2" Text="MEMBERS" Style="{StaticResource SectionLabel}" FontSize="12" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="MEMBERS" Style="{StaticResource SectionLabel}" FontSize="{StaticResource TextLabel}" VerticalAlignment="Center" />
             <TextBlock Grid.Column="3" Text="{Binding MembersHeader}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
           </Grid>
         </Button>

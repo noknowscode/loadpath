@@ -1,18 +1,38 @@
 <UserControl x:Class="Loadpath.Views.ToolRail"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="using:Loadpath.Controls">
-  <!-- Floating tool palette over the drawing. -->
-  <!-- xaml-lint: allow card - floating tool palette; the project uses no Toolkit (README decision) -->
-  <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusPopover}" Padding="4">
-    <StackPanel Spacing="2">
-      <c:ToolButton IconKind="select" KeyLabel="V" IsActive="{Binding IsSelectActive}" Command="{Binding SelectTool}" ToolTipService.ToolTip="Select   V" AutomationProperties.Name="Select tool" />
-      <c:ToolButton IconKind="node" KeyLabel="N" IsActive="{Binding IsNodeActive}" Command="{Binding NodeTool}" ToolTipService.ToolTip="Node   N" AutomationProperties.Name="Node tool" />
-      <c:ToolButton IconKind="member" KeyLabel="M" IsActive="{Binding IsMemberActive}" Command="{Binding MemberTool}" ToolTipService.ToolTip="Member   M" AutomationProperties.Name="Member tool" />
-      <c:ToolButton IconKind="load" KeyLabel="L" IsActive="{Binding IsLoadActive}" Command="{Binding LoadTool}" ToolTipService.ToolTip="Load   L" AutomationProperties.Name="Load tool" />
-      <c:ToolButton IconKind="support" KeyLabel="S" IsActive="{Binding IsSupportActive}" Command="{Binding SupportTool}" ToolTipService.ToolTip="Support   S" AutomationProperties.Name="Support tool" />
-      <Rectangle Height="1" Fill="{StaticResource HairlineBrush}" Margin="4,4" />
-      <c:ToolButton IconKind="pan" KeyLabel="H" IsActive="{Binding IsPanActive}" Command="{Binding PanTool}" ToolTipService.ToolTip="Pan   H  (or hold Space)" AutomationProperties.Name="Pan tool" />
-    </StackPanel>
+             xmlns:c="using:Loadpath.Controls"
+             xmlns:utu="using:Uno.Toolkit.UI">
+  <!--
+    The tools. From Normal up a floating palette over the drawing's top-left corner; on a phone a strip under the
+    drawing with 44 px targets (it scrolls sideways on the narrowest phones rather than clipping).
+    The last tool is the touch stand-in for Alt: free placement, no snapping.
+  -->
+  <!-- xaml-lint: allow card - floating tool palette / bottom tool strip -->
+  <Border Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}"
+          BorderThickness="{utu:Responsive Narrow={StaticResource HairlineTop}, Normal={StaticResource Hairline}}"
+          CornerRadius="{utu:Responsive Narrow={StaticResource RadiusNone}, Normal={StaticResource RadiusPopover}}"
+          Padding="{StaticResource StripPanelInset}">
+    <ScrollViewer HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+      <StackPanel Orientation="{utu:Responsive Narrow=Horizontal, Normal=Vertical}" Spacing="{StaticResource Space2}" HorizontalAlignment="Center">
+        <c:ToolButton Style="{utu:Responsive Narrow={StaticResource TouchToolButton}, Normal={StaticResource ToolButtonStyle}}"
+                      IconKind="select" KeyLabel="V" IsActive="{Binding IsSelectActive}" Command="{Binding SelectTool}" ToolTipService.ToolTip="Select   V" AutomationProperties.Name="Select tool" />
+        <c:ToolButton Style="{utu:Responsive Narrow={StaticResource TouchToolButton}, Normal={StaticResource ToolButtonStyle}}"
+                      IconKind="node" KeyLabel="N" IsActive="{Binding IsNodeActive}" Command="{Binding NodeTool}" ToolTipService.ToolTip="Node   N" AutomationProperties.Name="Node tool" />
+        <c:ToolButton Style="{utu:Responsive Narrow={StaticResource TouchToolButton}, Normal={StaticResource ToolButtonStyle}}"
+                      IconKind="member" KeyLabel="M" IsActive="{Binding IsMemberActive}" Command="{Binding MemberTool}" ToolTipService.ToolTip="Member   M" AutomationProperties.Name="Member tool" />
+        <c:ToolButton Style="{utu:Responsive Narrow={StaticResource TouchToolButton}, Normal={StaticResource ToolButtonStyle}}"
+                      IconKind="load" KeyLabel="L" IsActive="{Binding IsLoadActive}" Command="{Binding LoadTool}" ToolTipService.ToolTip="Load   L" AutomationProperties.Name="Load tool" />
+        <c:ToolButton Style="{utu:Responsive Narrow={StaticResource TouchToolButton}, Normal={StaticResource ToolButtonStyle}}"
+                      IconKind="support" KeyLabel="S" IsActive="{Binding IsSupportActive}" Command="{Binding SupportTool}" ToolTipService.ToolTip="Support   S" AutomationProperties.Name="Support tool" />
+        <Rectangle Style="{StaticResource RailRule}" Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}" />
+        <Rectangle Style="{StaticResource StripRule}" Visibility="{utu:Responsive Narrow=Visible, Normal=Collapsed}" />
+        <c:ToolButton Style="{utu:Responsive Narrow={StaticResource TouchToolButton}, Normal={StaticResource ToolButtonStyle}}"
+                      IconKind="pan" KeyLabel="H" IsActive="{Binding IsPanActive}" Command="{Binding PanTool}" ToolTipService.ToolTip="Pan   H  (or hold Space, or drag with two fingers)" AutomationProperties.Name="Pan tool" />
+        <c:ToolButton Style="{utu:Responsive Narrow={StaticResource TouchToolButton}, Normal={StaticResource ToolButtonStyle}}"
+                      IconKind="snap-off" KeyLabel="ALT" IsActive="{Binding FreePlacement}" Command="{Binding ToggleFreePlacement}"
+                      ToolTipService.ToolTip="Free placement: no grid, guide or node snapping   (or hold Alt)" AutomationProperties.Name="Free placement, no snapping" />
+      </StackPanel>
+    </ScrollViewer>
   </Border>
 </UserControl>

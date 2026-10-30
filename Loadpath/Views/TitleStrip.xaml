@@ -2,43 +2,20 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="using:Loadpath.Controls"
+             xmlns:utu="using:Uno.Toolkit.UI"
              x:Name="Strip"
              Height="{StaticResource TitleStripHeight}">
-  <Grid Background="{StaticResource CanvasBrush}" Padding="16,0,16,0">
-    <!-- The right cluster yields as the window narrows: the over-capacity pill, then the noise control's label, then search. -->
-    <VisualStateManager.VisualStateGroups>
-      <VisualStateGroup x:Name="WidthStates">
-        <VisualState x:Name="Wide">
-          <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="1240" /></VisualState.StateTriggers>
-        </VisualState>
-        <VisualState x:Name="Medium">
-          <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="1000" /></VisualState.StateTriggers>
-          <VisualState.Setters>
-            <Setter Target="StatusPill.Visibility" Value="Collapsed" />
-          </VisualState.Setters>
-        </VisualState>
-        <VisualState x:Name="Narrow">
-          <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="720" /></VisualState.StateTriggers>
-          <VisualState.Setters>
-            <Setter Target="StatusPill.Visibility" Value="Collapsed" />
-            <Setter Target="NoiseLabel.Visibility" Value="Collapsed" />
-            <Setter Target="DocumentName.Visibility" Value="Collapsed" />
-          </VisualState.Setters>
-        </VisualState>
-        <VisualState x:Name="Compact">
-          <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
-          <VisualState.Setters>
-            <Setter Target="StatusPill.Visibility" Value="Collapsed" />
-            <Setter Target="NoiseLabel.Visibility" Value="Collapsed" />
-            <Setter Target="DocumentName.Visibility" Value="Collapsed" />
-            <Setter Target="SearchButton.Visibility" Value="Collapsed" />
-            <Setter Target="PresetsButton.Visibility" Value="Collapsed" />
-            <Setter Target="ShareButton.Visibility" Value="Collapsed" />
-          </VisualState.Setters>
-        </VisualState>
-      </VisualStateGroup>
-    </VisualStateManager.VisualStateGroups>
-
+  <!--
+    The title strip per layout (DefaultResponsiveLayout, Themes/Layout.xaml). Each layout fits at its narrowest width:
+      Widest  wordmark / document, history, FORCES|UTILIZATION · REDUCE NOISE [F] ▾ | search CTRL K, PRESETS, SHARE, OPEN, SAVE, inspector, ⋯
+      Wide    the same without the noise label, the search keycap and SHARE (in ⋯)
+      Normal  wordmark, history, FORCES|UTILIZATION · SAVE, inspector, ⋯ (search, presets, share, open, noise in ⋯)
+      Narrow  wordmark, history · inspector, ⋯ (also save and the display mode in ⋯), 44 px targets
+    The ⋯ menu always holds the theme. The status pill moved to the status bar, where it fits from Wide up. The document
+    name takes the room that is left (TitleStrip.FitDocumentName) and trims with an ellipsis, so a long or unsaved name
+    never pushes the commands off the strip.
+  -->
+  <Grid Background="{ThemeResource CanvasBrush}" Padding="{utu:Responsive Narrow={StaticResource StripInsetNarrow}, Normal={StaticResource StripInset}}">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="Auto" />
       <ColumnDefinition Width="*" />
@@ -46,161 +23,154 @@
     </Grid.ColumnDefinitions>
 
     <!-- Perforation along the top edge of the sheet -->
-    <Rectangle Grid.ColumnSpan="3" Style="{StaticResource DashedRule}" VerticalAlignment="Top" Margin="-16,2,-16,0" />
+    <Rectangle Grid.ColumnSpan="3" Style="{StaticResource DashedRule}" VerticalAlignment="Top"
+               Margin="{utu:Responsive Narrow={StaticResource StripRuleMarginNarrow}, Normal={StaticResource StripRuleMargin}}" />
 
     <!-- Left: wordmark, document, history, display mode -->
-    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-      <TextBlock Text="LOADPATH" FontFamily="{StaticResource MonoFontMedium}" FontSize="14" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" />
-      <TextBlock Text="/" Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkTertiaryBrush}" VerticalAlignment="Center" />
-      <StackPanel x:Name="DocumentName" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-        <TextBlock Text="{Binding Status.DocumentName, Converter={StaticResource Upper}}" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"
-                 MaxWidth="240" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{Binding Status.DocumentName}" />
-        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" c:Motion.Reveal="True" Visibility="{Binding Status.IsDirty, Converter={StaticResource Vis}}">
-          <Ellipse Width="5" Height="5" Fill="{StaticResource InkBrush}" VerticalAlignment="Center" />
-          <TextBlock Text="UNSAVED" Style="{StaticResource MonoCaption}" FontSize="11" VerticalAlignment="Center" />
+    <StackPanel x:Name="LeftCluster" Orientation="Horizontal" Spacing="{StaticResource Space12}" VerticalAlignment="Center">
+      <TextBlock Text="LOADPATH" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextWordmark}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
+      <TextBlock Text="/" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkTertiaryBrush}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}" />
+      <StackPanel x:Name="DocumentName" Orientation="Horizontal" Spacing="{StaticResource Space10}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}">
+        <TextBlock x:Name="DocumentNameText" Text="{Binding Status.DocumentName, Converter={StaticResource Upper}}" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextLabel}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center"
+                 MaxWidth="{StaticResource DocumentNameMaxWidth}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{Binding Status.DocumentName}" />
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space6}" VerticalAlignment="Center" c:Motion.Reveal="True" Visibility="{Binding Status.IsDirty, Converter={StaticResource Vis}}">
+          <Ellipse Width="{StaticResource IconSizeXs}" Height="{StaticResource IconSizeXs}" Fill="{ThemeResource InkBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="UNSAVED" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" VerticalAlignment="Center" />
         </StackPanel>
       </StackPanel>
-      <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="16,0,8,0">
-        <Button Style="{StaticResource IconButton}" Command="{Binding Undo}" ToolTipService.ToolTip="{Binding Status.UndoTooltip}" AutomationProperties.Name="Undo">
-          <c:Icon Kind="undo" Foreground="{StaticResource InkBrush}" />
+      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" VerticalAlignment="Center"
+                  Margin="{utu:Responsive Narrow={StaticResource HistoryClusterMarginNarrow}, Normal={StaticResource HistoryClusterMargin}}">
+        <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding Undo}" ToolTipService.ToolTip="{Binding Status.UndoTooltip}" AutomationProperties.Name="Undo">
+          <c:Icon Kind="undo" Foreground="{ThemeResource InkBrush}" />
         </Button>
-        <Button Style="{StaticResource IconButton}" Command="{Binding Redo}" ToolTipService.ToolTip="{Binding Status.RedoTooltip}" AutomationProperties.Name="Redo">
-          <c:Icon Kind="redo" Foreground="{StaticResource InkBrush}" />
+        <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding Redo}" ToolTipService.ToolTip="{Binding Status.RedoTooltip}" AutomationProperties.Name="Redo">
+          <c:Icon Kind="redo" Foreground="{ThemeResource InkBrush}" />
         </Button>
       </StackPanel>
-      <!-- xaml-lint: allow card - segmented control frame; no Toolkit by README decision -->
-      <Border Style="{StaticResource SegmentGroup}" VerticalAlignment="Center">
+      <!-- xaml-lint: allow card - segmented control frame -->
+      <Border Style="{StaticResource SegmentGroup}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}">
         <StackPanel Orientation="Horizontal">
           <ToggleButton Style="{StaticResource SegmentToggle}" Content="FORCES" IsChecked="{Binding IsForces}" Command="{Binding ShowForces}"
                         ToolTipService.ToolTip="Show axial forces   1" AutomationProperties.Name="Show forces" />
-          <Rectangle Width="1" Fill="{StaticResource HairlineStrongBrush}" />
+          <Rectangle Width="1" Fill="{ThemeResource HairlineStrongBrush}" />
           <ToggleButton Style="{StaticResource SegmentToggle}" Content="UTILIZATION" IsChecked="{Binding IsUtilization}" Command="{Binding ShowUtilization}"
                         ToolTipService.ToolTip="Show utilization   2" AutomationProperties.Name="Show utilization" />
         </StackPanel>
       </Border>
     </StackPanel>
 
-    <!-- Right: status, reduce noise, search, files -->
-    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Right" VerticalAlignment="Center">
-      <!-- xaml-lint: allow card - status pill; no Toolkit by README decision -->
-      <Border x:Name="StatusPill" Height="32" CornerRadius="16" Padding="14,0" VerticalAlignment="Center"
-              Background="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=DangerSoftBrush|SurfaceRaisedBrush}">
-        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <c:Icon Kind="warning" Width="14" Height="14" Foreground="{StaticResource DangerBrush}"
-                  Visibility="{Binding Status.PillIsDanger, Converter={StaticResource Vis}}" />
-          <Ellipse Width="6" Height="6" Fill="{Binding Status.StatusToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center"
-                   Visibility="{Binding Status.PillIsDanger, Converter={StaticResource Vis}, ConverterParameter=invert}" />
-          <TextBlock Text="{Binding Status.PillText}" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" VerticalAlignment="Center"
-                     Foreground="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=DangerBrush|InkSecondaryBrush}" />
-        </StackPanel>
-      </Border>
-
+    <!-- Right: reduce noise, search, files, inspector, more -->
+    <StackPanel x:Name="RightCluster" Grid.Column="2" Orientation="Horizontal" Spacing="{utu:Responsive Narrow={StaticResource Space4}, Normal={StaticResource Space12}}" HorizontalAlignment="Right" VerticalAlignment="Center">
       <!-- Reduce noise: the switch (F) and, split off, the layer chooser -->
-      <!-- xaml-lint: allow card - split-button frame; no Toolkit by README decision -->
-      <Border BorderThickness="1" CornerRadius="2" VerticalAlignment="Center"
+      <!-- xaml-lint: allow card - split-button frame -->
+      <Border BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusHairline}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}"
               Background="{Binding ReduceNoise, Converter={StaticResource Pick}, ConverterParameter=AccentSoftBrush|SurfaceBrush}"
               BorderBrush="{Binding ReduceNoise, Converter={StaticResource Pick}, ConverterParameter=AccentBrush|HairlineStrongBrush}">
         <StackPanel Orientation="Horizontal">
           <ToggleButton Style="{StaticResource SwitchToggle}" IsChecked="{Binding ReduceNoise, Mode=TwoWay, Converter={StaticResource Checked}}"
                         ToolTipService.ToolTip="Reduce noise   F" AutomationProperties.Name="Reduce noise">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <TextBlock x:Name="NoiseLabel" Text="REDUCE NOISE" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
+              <TextBlock x:Name="NoiseLabel" Text="REDUCE NOISE" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Widest=Visible}" />
               <Border Style="{StaticResource Keycap}">
                 <TextBlock Text="F" Style="{StaticResource KeycapText}" />
               </Border>
             </StackPanel>
           </ToggleButton>
           <Rectangle Width="1" Fill="{Binding ReduceNoise, Converter={StaticResource Pick}, ConverterParameter=AccentBrush|HairlineStrongBrush}" />
-          <Button Style="{StaticResource IconButton}" Width="36" Height="38" ToolTipService.ToolTip="Choose what stays" AutomationProperties.Name="Choose what stays when noise is reduced">
-            <c:Icon Kind="chevron-down" Width="14" Height="14" Foreground="{StaticResource InkBrush}" />
+          <Button x:Name="NoiseButton" Style="{StaticResource IconButton}" Width="{StaticResource SplitChevronWidth}" Height="{StaticResource ControlHeight}" ToolTipService.ToolTip="Choose what stays" AutomationProperties.Name="Choose what stays when noise is reduced">
+            <c:Icon Kind="chevron-down" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Foreground="{ThemeResource InkBrush}" />
             <Button.Flyout>
-              <Flyout x:Name="NoiseFlyout" Placement="BottomEdgeAlignedRight" FlyoutPresenterStyle="{StaticResource SheetFlyoutPresenter}">
-                <StackPanel Width="318">
-                  <StackPanel Padding="16,14,16,4" Spacing="6">
+              <Flyout x:Name="NoiseFlyout" Placement="BottomEdgeAlignedRight" FlyoutPresenterStyle="{StaticResource SheetFlyoutPresenter}" Opening="OnSheetOpening">
+                <ScrollViewer x:Name="NoiseSheet" Width="{StaticResource NoiseSheetWidth}" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled">
+                <StackPanel>
+                  <StackPanel Padding="{StaticResource SheetHeadInset}" Spacing="{StaticResource Space6}">
                     <Grid>
-                      <TextBlock Text="REDUCE NOISE" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" Foreground="{StaticResource AccentBrush}" />
-                      <TextBlock Text="{Binding NoiseSummary}" Style="{StaticResource MonoCaption}" FontSize="11" Foreground="{StaticResource InkBrush}" HorizontalAlignment="Right" />
+                      <TextBlock Text="REDUCE NOISE" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextLabel}" Foreground="{ThemeResource AccentBrush}" />
+                      <TextBlock Text="{Binding NoiseSummary}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource InkBrush}" HorizontalAlignment="Right" />
                     </Grid>
                     <TextBlock Text="Pick what stays on screen when noise is reduced. The structure, your selection and the inspector inputs always stay."
                                Style="{StaticResource CaptionText}" TextWrapping="Wrap" TextTrimming="None" />
                   </StackPanel>
 
-                  <StackPanel Padding="16,8,16,10">
-                    <TextBlock Text="DRAWING" Style="{StaticResource MonoCaption}" FontSize="11" Margin="0,6,0,2" />
+                  <StackPanel Padding="{StaticResource SheetBodyInset}">
+                    <TextBlock Text="DRAWING" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Margin="{StaticResource SheetGroupFirstMargin}" />
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Grid" IsChecked="{Binding KeepGrid, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.Grid}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.Grid}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Dimensions" IsChecked="{Binding KeepDimensions, Mode=TwoWay, Converter={StaticResource Checked}}" />
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Supports" IsChecked="{Binding KeepSupports, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.Supports}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.Supports}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Loads" IsChecked="{Binding KeepLoads, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.Loads}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.Loads}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
 
-                    <TextBlock Text="RESULTS" Style="{StaticResource MonoCaption}" FontSize="11" Margin="0,12,0,2" />
+                    <TextBlock Text="RESULTS" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Margin="{StaticResource SheetGroupMargin}" />
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Over-capacity members" IsChecked="{Binding KeepOverCapacity, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.OverCapacity}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.OverCapacity}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Member forces" IsChecked="{Binding KeepMemberForces, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.MemberForces}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.MemberForces}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Reactions" IsChecked="{Binding KeepReactions, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding Counts.Reactions}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Counts.Reactions}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <Grid>
                       <CheckBox Style="{StaticResource LayerCheckBox}" Content="Deflected shape" IsChecked="{Binding KeepDeflection, Mode=TwoWay, Converter={StaticResource Checked}}" />
-                      <TextBlock Text="{Binding ExaggerationText}" Style="{StaticResource MonoCaption}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding ExaggerationText}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
 
-                    <TextBlock Text="ANNOTATIONS" Style="{StaticResource MonoCaption}" FontSize="11" Margin="0,12,0,2" />
+                    <TextBlock Text="ANNOTATIONS" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Margin="{StaticResource SheetGroupMargin}" />
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Part names" IsChecked="{Binding KeepPartNames, Mode=TwoWay, Converter={StaticResource Checked}}" />
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Legend and figure tags" IsChecked="{Binding KeepLegend, Mode=TwoWay, Converter={StaticResource Checked}}" />
 
-                    <TextBlock Text="PANELS" Style="{StaticResource MonoCaption}" FontSize="11" Margin="0,12,0,2" />
+                    <TextBlock Text="PANELS" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Margin="{StaticResource SheetGroupMargin}" />
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Structure list" IsChecked="{Binding KeepStructureList, Mode=TwoWay, Converter={StaticResource Checked}}" />
                     <CheckBox Style="{StaticResource LayerCheckBox}" Content="Result details in inspector" IsChecked="{Binding KeepResultDetails, Mode=TwoWay, Converter={StaticResource Checked}}" />
                   </StackPanel>
 
                   <Rectangle Style="{StaticResource DashedRule}" />
-                  <Grid Padding="16,12">
-                    <Button Style="{StaticResource LinkButton}" Content="RESET TO DEFAULT" Padding="0" Command="{Binding ResetNoiseLayers}" AutomationProperties.Name="Reset layers to default" />
+                  <Grid Padding="{StaticResource Inset16x12}">
+                    <Button Style="{StaticResource LinkButton}" Content="RESET TO DEFAULT" Padding="{StaticResource Inset0}" Command="{Binding ResetNoiseLayers}" AutomationProperties.Name="Reset layers to default" />
                     <Button Style="{StaticResource PrimaryButton}" Content="DONE" HorizontalAlignment="Right" Click="OnNoiseDone" AutomationProperties.Name="Done" />
                   </Grid>
                 </StackPanel>
+                </ScrollViewer>
               </Flyout>
             </Button.Flyout>
           </Button>
         </StackPanel>
       </Border>
 
-      <Rectangle Width="1" Height="22" Fill="{StaticResource HairlineStrongBrush}" VerticalAlignment="Center" />
+      <Rectangle Width="1" Height="{StaticResource RuleTall}" Fill="{ThemeResource HairlineStrongBrush}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}" />
 
-      <Button x:Name="SearchButton" Style="{StaticResource QuietButton}" Height="38" Padding="6,0" Command="{Binding TogglePalette}"
-              ToolTipService.ToolTip="Command palette   Ctrl+K" AutomationProperties.Name="Command palette">
-        <StackPanel Orientation="Horizontal" Spacing="10">
-          <c:Icon Kind="search" Width="14" Height="14" Foreground="{StaticResource InkBrush}" />
-          <Border Style="{StaticResource Keycap}">
+      <Button x:Name="SearchButton" Style="{StaticResource QuietButton}" Height="{StaticResource ControlHeight}" Padding="{StaticResource InsetX6}" Command="{Binding TogglePalette}"
+              Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}" ToolTipService.ToolTip="Command palette   Ctrl+K" AutomationProperties.Name="Command palette">
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
+          <c:Icon Kind="search" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Foreground="{ThemeResource InkBrush}" />
+          <Border Style="{StaticResource Keycap}" Visibility="{utu:Responsive Narrow=Collapsed, Widest=Visible}">
             <TextBlock Text="CTRL K" Style="{StaticResource KeycapText}" />
           </Border>
         </StackPanel>
       </Button>
-      <Button x:Name="PresetsButton" Style="{StaticResource LinkButton}" Content="PRESETS" ToolTipService.ToolTip="Start from a truss type" AutomationProperties.Name="Truss presets">
+      <Button x:Name="PresetsButton" Style="{StaticResource LinkButton}" Content="PRESETS" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}"
+              ToolTipService.ToolTip="Start from a truss type" AutomationProperties.Name="Truss presets">
         <Button.Flyout>
-          <Flyout x:Name="PresetsFlyout" Placement="BottomEdgeAlignedRight" FlyoutPresenterStyle="{StaticResource SheetFlyoutPresenter}">
-            <StackPanel Width="380">
-              <StackPanel Padding="16,14,16,10" Spacing="6">
-                <TextBlock Text="PRESETS" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" Foreground="{StaticResource AccentBrush}" />
+          <Flyout x:Name="PresetsFlyout" Placement="BottomEdgeAlignedRight" FlyoutPresenterStyle="{StaticResource SheetFlyoutPresenter}" Opening="OnSheetOpening">
+            <ScrollViewer x:Name="PresetsSheet" Width="{StaticResource PresetsSheetWidth}" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled">
+            <StackPanel>
+              <StackPanel Padding="{StaticResource SheetHeadInsetLoose}" Spacing="{StaticResource Space6}">
+                <TextBlock Text="PRESETS" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextLabel}" Foreground="{ThemeResource AccentBrush}" />
                 <TextBlock Text="Pick a truss type. It replaces the drawing; Ctrl+Z brings yours back."
                            Style="{StaticResource CaptionText}" TextWrapping="Wrap" TextTrimming="None" />
               </StackPanel>
-              <Grid Padding="16,0,16,12" ColumnSpacing="10">
+              <Grid Padding="{StaticResource SheetFieldsInset}" ColumnSpacing="{StaticResource Space10}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <StackPanel>
                   <TextBlock Text="SPAN" Style="{StaticResource FieldLabel}" />
@@ -217,33 +187,78 @@
               </Grid>
               <Rectangle Style="{StaticResource DashedRule}" />
               <!-- Two tiles per row. -->
-              <ItemsRepeater ItemsSource="{Binding Presets}" Margin="12,10,12,14">
+              <ItemsRepeater ItemsSource="{Binding Presets}" Margin="{StaticResource PresetGridMargin}">
                 <ItemsRepeater.Layout>
-                  <UniformGridLayout MinItemWidth="172" MinItemHeight="110" MinColumnSpacing="8" MinRowSpacing="6" MaximumRowsOrColumns="2" />
+                  <UniformGridLayout MinItemWidth="{StaticResource PresetTileMinWidth}" MinItemHeight="{StaticResource PresetTileHeight}" MinColumnSpacing="{StaticResource Space8}" MinRowSpacing="{StaticResource Space6}" MaximumRowsOrColumns="2" ItemsStretch="Fill" />
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                   <DataTemplate>
-                    <Button Style="{StaticResource QuietButton}" Width="172" Height="110" Padding="8,8,8,6"
+                    <Button Style="{StaticResource QuietButton}" HorizontalAlignment="Stretch" Height="{StaticResource PresetTileHeight}" Padding="{StaticResource PresetTileInset}"
                             HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Click="OnPresetClick"
                             Command="{Binding DataContext.LoadPreset, ElementName=Strip}" CommandParameter="{Binding Id}"
                             AutomationProperties.Name="{Binding AutomationName}" ToolTipService.ToolTip="{Binding Description}">
-                      <StackPanel Spacing="4">
-                        <c:Sketch Segments="{Binding Sketch}" Stroke="{StaticResource AccentBrush}" Height="52" Width="156" HorizontalAlignment="Left" />
-                        <TextBlock Text="{Binding Title}" FontFamily="{StaticResource MonoFontMedium}" FontSize="12" Foreground="{StaticResource InkBrush}" />
-                        <TextBlock Text="{Binding Size}" Style="{StaticResource MonoCaption}" FontSize="10.5" LineHeight="14" />
+                      <StackPanel Spacing="{StaticResource Space4}">
+                        <!-- The thumbnail is drawn for a 156 x 52 box; it scales down when two tiles share a phone-width sheet. -->
+                        <Viewbox Height="{StaticResource SketchHeight}" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
+                          <c:Sketch Segments="{Binding Sketch}" Stroke="{ThemeResource AccentBrush}" Height="{StaticResource SketchHeight}" Width="{StaticResource SketchWidth}" />
+                        </Viewbox>
+                        <TextBlock Text="{Binding Title}" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextLabel}" Foreground="{ThemeResource InkBrush}" />
+                        <TextBlock Text="{Binding Size}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" />
                       </StackPanel>
                     </Button>
                   </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
               </ItemsRepeater>
             </StackPanel>
+            </ScrollViewer>
           </Flyout>
         </Button.Flyout>
       </Button>
-      <Button x:Name="ShareButton" Style="{StaticResource LinkButton}" Content="SHARE" Command="{Binding ShareDesign}"
+      <Button x:Name="ShareButton" Style="{StaticResource LinkButton}" Content="SHARE" Command="{Binding ShareDesign}" Visibility="{utu:Responsive Narrow=Collapsed, Widest=Visible}"
               ToolTipService.ToolTip="Copy a share code   Ctrl+Shift+C" AutomationProperties.Name="Copy share code" />
-      <Button Style="{StaticResource LinkButton}" Content="OPEN" Command="{Binding OpenFile}" ToolTipService.ToolTip="Open   Ctrl+O" AutomationProperties.Name="Open" />
-      <Button Style="{StaticResource PrimaryButton}" Content="SAVE" Command="{Binding SaveFile}" ToolTipService.ToolTip="Save   Ctrl+S" AutomationProperties.Name="Save" />
+      <Button Style="{StaticResource LinkButton}" Content="OPEN" Command="{Binding OpenFile}" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}"
+              ToolTipService.ToolTip="Open   Ctrl+O" AutomationProperties.Name="Open" />
+      <Button Style="{StaticResource PrimaryButton}" Content="SAVE" Command="{Binding SaveFile}" Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}"
+              ToolTipService.ToolTip="Save   Ctrl+S" AutomationProperties.Name="Save" />
+
+      <!-- The inspector: docked column (1100 px and up) or sheet (below); Ctrl+\ does the same. -->
+      <ToggleButton Style="{utu:Responsive Narrow={StaticResource TouchIconToggle}, Normal={StaticResource IconToggle}}"
+                    IsChecked="{Binding InspectorShown, Mode=TwoWay, Converter={StaticResource Checked}}" Command="{Binding ToggleInspector}"
+                    ToolTipService.ToolTip="Inspector   Ctrl+\" AutomationProperties.Name="Show inspector">
+        <c:Icon Kind="panel" Foreground="{ThemeResource InkBrush}" />
+      </ToggleButton>
+
+      <!-- More: what the layout has no room for, and the theme. -->
+      <Button x:Name="OverflowButton" Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}"
+              ToolTipService.ToolTip="More" AutomationProperties.Name="More commands and theme">
+        <c:Icon Kind="more" Foreground="{ThemeResource InkBrush}" />
+        <Button.Flyout>
+          <MenuFlyout x:Name="OverflowMenu" Placement="BottomEdgeAlignedRight" Closed="OnOverflowClosed">
+            <MenuFlyoutItem Style="{StaticResource TouchMenuItem}" Text="Command palette" KeyboardAcceleratorTextOverride="Ctrl+K" Command="{Binding TogglePalette}"
+                            Visibility="{utu:Responsive Narrow=Visible, Wide=Collapsed}" />
+            <MenuFlyoutItem Style="{StaticResource TouchMenuItem}" Text="Presets…" Click="OnOverflowPresets" Visibility="{utu:Responsive Narrow=Visible, Wide=Collapsed}" />
+            <MenuFlyoutItem Style="{StaticResource TouchMenuItem}" Text="Copy share code" KeyboardAcceleratorTextOverride="Ctrl+Shift+C" Command="{Binding ShareDesign}"
+                            Visibility="{utu:Responsive Narrow=Visible, Widest=Collapsed}" />
+            <MenuFlyoutItem Style="{StaticResource TouchMenuItem}" Text="Open…" KeyboardAcceleratorTextOverride="Ctrl+O" Command="{Binding OpenFile}"
+                            Visibility="{utu:Responsive Narrow=Visible, Wide=Collapsed}" />
+            <MenuFlyoutItem Style="{StaticResource TouchMenuItem}" Text="Save" KeyboardAcceleratorTextOverride="Ctrl+S" Command="{Binding SaveFile}"
+                            Visibility="{utu:Responsive Narrow=Visible, Normal=Collapsed}" />
+            <MenuFlyoutSeparator Visibility="{utu:Responsive Narrow=Visible, Widest=Collapsed}" />
+            <ToggleMenuFlyoutItem Style="{StaticResource TouchToggleMenuItem}" Text="Reduce noise" KeyboardAcceleratorTextOverride="F"
+                                  IsChecked="{Binding ReduceNoise, Mode=TwoWay}" Visibility="{utu:Responsive Narrow=Visible, Wide=Collapsed}" />
+            <MenuFlyoutItem Style="{StaticResource TouchMenuItem}" Text="Choose what stays…" Click="OnOverflowNoise" Visibility="{utu:Responsive Narrow=Visible, Wide=Collapsed}" />
+            <MenuFlyoutSeparator Visibility="{utu:Responsive Narrow=Visible, Normal=Collapsed}" />
+            <RadioMenuFlyoutItem Style="{StaticResource TouchRadioMenuItem}" Text="Show forces" GroupName="Display" KeyboardAcceleratorTextOverride="1"
+                                 IsChecked="{Binding IsForces, Mode=TwoWay}" Command="{Binding ShowForces}" Visibility="{utu:Responsive Narrow=Visible, Normal=Collapsed}" />
+            <RadioMenuFlyoutItem Style="{StaticResource TouchRadioMenuItem}" Text="Show utilization" GroupName="Display" KeyboardAcceleratorTextOverride="2"
+                                 IsChecked="{Binding IsUtilization, Mode=TwoWay}" Command="{Binding ShowUtilization}" Visibility="{utu:Responsive Narrow=Visible, Normal=Collapsed}" />
+            <MenuFlyoutSeparator Visibility="{utu:Responsive Narrow=Visible, Wide=Collapsed}" />
+            <RadioMenuFlyoutItem Style="{StaticResource TouchRadioMenuItem}" Text="Theme: follow system" GroupName="Theme" IsChecked="{Binding IsThemeSystem, Mode=TwoWay}" Command="{Binding ThemeSystem}" />
+            <RadioMenuFlyoutItem Style="{StaticResource TouchRadioMenuItem}" Text="Theme: light sheet" GroupName="Theme" IsChecked="{Binding IsThemeLight, Mode=TwoWay}" Command="{Binding ThemeLight}" />
+            <RadioMenuFlyoutItem Style="{StaticResource TouchRadioMenuItem}" Text="Theme: dark table" GroupName="Theme" IsChecked="{Binding IsThemeDark, Mode=TwoWay}" Command="{Binding ThemeDark}" />
+          </MenuFlyout>
+        </Button.Flyout>
+      </Button>
     </StackPanel>
   </Grid>
 </UserControl>

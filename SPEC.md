@@ -315,7 +315,7 @@ Loadpath/                        (solution root)
     Geometry/     Vec2, HitTester, SnapEngine, Bounds
     Serialization/ DocumentSerializer (JSON v1)
     Samples/      SampleStructures (Warren, Cantilever, Roof)
-  Loadpath/                      Uno single-project app, net10.0-desktop
+  Loadpath/                      Uno single-project app: android, ios, windows (WinAppSDK), browserwasm, desktop
     App.xaml(.cs), MainPage.xaml(.cs)
     Presentation/ EditorViewModel, InspectorViewModel (+ Node/Member/Mixed/Summary), OutlineViewModel, StatusViewModel, PaletteViewModel, ViewOptions
     Commands/     AppCommand, CommandRegistry, ShortcutMap
@@ -350,21 +350,23 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 
 ### Services and dependencies
 
-- `Uno.Sdk 6.7.30` (pinned via `global.json`, same as ReticleLab), `net10.0-desktop` only.
-- UnoFeatures: `SkiaRenderer` (brings `Uno.WinUI.Graphics2DSK` for `SKCanvasElement`). No Material, no Toolkit, no Extensions hosting: the app has three services and constructs them in `App`.
+- `Uno.Sdk 7.0.0-dev.115` (pinned via `global.json`), five heads: `net10.0-android`, `net10.0-ios`, `net10.0-windows10.0.19041`, `net10.0-browserwasm`, `net10.0-desktop`. `-p:LoadpathTargetFrameworks=<tfm>` builds one head without the other workloads.
+- UnoFeatures: `SkiaRenderer` (brings `Uno.WinUI.Graphics2DSK` for `SKCanvasElement`), `MVUX`, and `Toolkit` for `utu:Responsive` / `ResponsiveView` (no `ToolkitResources`: Fluent and the app's own styles remain the only control theme). No Material, no Extensions hosting: the app has three services and constructs them in `App`.
 - `CommunityToolkit.Mvvm` for `ObservableObject`/`RelayCommand`.
 - `System.Text.Json` (in-box) for documents and settings.
 - Fonts: Inter static TTFs (OFL), JetBrains Mono static TTFs (OFL, copied from the repo's Meridian assets).
 
 ### Platform constraints
 
-- Desktop Skia only. `SKCanvasElement.IsSupportedOnCurrentPlatform()` is checked; a text fallback shows otherwise.
+- Every head draws the workspace with `SKCanvasElement` (Skia on the Uno heads, the x64/ARM64 WinAppSDK build on Windows). The canvas fonts load from `ms-appx:///Assets/Fonts`, which every head can read.
+- Window sizing is per head: desktop sets `PreferredLaunchViewSize` and re-asserts the X11 size; WinAppSDK resizes its `AppWindow` once at the display scale; WebAssembly, Android and iOS fill the browser or screen.
+- Editing works by mouse and keyboard and by touch: one finger edits like the left button (its press held back until drag, tap or long press), two fingers pinch-zoom and pan, a long press opens the context menu, fingers hit-test with 22 px radii, and toggles stand in for Shift (multi-select) and Alt (free placement).
 - `UIElement.Opacity` does not affect `SKCanvasElement`; alpha is baked into paints.
 - No `CompositionTarget.Rendering` subscription held; timers only while animating.
 - `CharacterSpacing` is a no-op on Skia; tracking is not relied on.
 - Composition blur is unavailable; entrances use opacity + translate only.
 - `UseStudio()` is gated behind `APP_NO_HOTDESIGN != "1"` so headless runs show a window.
-- File pickers are called on the UI thread; a Documents-folder fallback path exists if the picker is unavailable on the host.
+- File pickers are called on the UI thread and files are read and written through `StorageFile` streams (a picked file has no usable path on WebAssembly or Android). When the picker is unavailable the app falls back to Documents/Loadpath on desktop and Windows and to the app's local folder elsewhere.
 
 ### Testing and validation
 
@@ -380,8 +382,8 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 - **Typography**: Inter 11/12/13/15 for UI, JetBrains Mono for all numbers. Section labels uppercase 11 Medium.
 - **Spacing**: 4 px base; 12 panel padding; 28 rows; 26 fields; 16 between sections.
 - **Component hierarchy**: MainPage → TitleStrip, ToolRail, WorkspaceHost (WorkspaceView + overlay Canvas: FloatingBar, MechanismBanner, EmptyState, ToastHost), InspectorColumn (InspectorHost → SummaryInspector | NodeInspector | MemberInspector | MixedInspector; OutlinePanel), StatusBar, CommandPalette (overlay).
-- **Theme usage**: single dark theme. Tokens in a plain root dictionary merged in App.xaml. `RequestedTheme="Dark"`. No Material.
-- **Responsive/adaptive**: below 1100 px width the inspector column collapses to an edge toggle; below 800 px the tool rail becomes a horizontal strip under the title. The canvas always fills the rest.
+- **Theme usage**: Light (blueprint sheet) and Dark (drafting table) ThemeDictionaries in Tokens.xaml, `{ThemeResource}` in views, follows the system by default with a System / Light / Dark choice saved in settings. No Material.
+- **Responsive/adaptive**: one Toolkit `DefaultResponsiveLayout` (Normal 600, Wide 1100, Widest 1240). Widest: outline, canvas, inspector. Wide: canvas and docked inspector with the outline as a tab. Normal: inspector as a side sheet. Narrow: bottom tool strip, inspector as a bottom sheet, title overflow menu. The canvas always fills the rest.
 
 ## Interaction Brief
 
@@ -435,7 +437,7 @@ Three additions that make a design leave the app, start faster, and say clearly 
 - **Presets flyout**: same `SheetFlyoutPresenter` as Reduce noise. Header row of three mono number fields (SPAN m, PANELS, DEPTH m), then a two-column grid of preset tiles: a line thumbnail of the generated geometry (blueprint ink on paper) above a mono caption and a one-line description.
 - **Typography/spacing**: existing tokens only. Mono 11–12 for captions, Inter for descriptions, 8/12/16 spacing.
 - **Component hierarchy**: TitleStrip → `PRESETS` link button (flyout) · `SHARE` link button · `OPEN` · `SAVE`. Inspector summary → "Failures" section listing rows (M id, mode, utilization) under the max-utilization bar.
-- **Responsive behavior**: `SHARE` and `PRESETS` collapse with the search button below 720 px; both stay reachable through the palette.
+- **Responsive behavior**: `SHARE` moves into the title's `⋯` menu below 1240 px, `PRESETS` and search below 1100 px; both stay reachable through the palette and the menu.
 
 ### Interaction Brief
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Loadpath.Presentation;
 
 namespace Loadpath.Services;
@@ -6,7 +7,8 @@ namespace Loadpath.Services;
 /// <summary>View options, last file and the autosave, as JSON in the app's local folder.</summary>
 public sealed class SettingsService
 {
-    private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
+    /// <summary>Source-generated: trimmed heads (WebAssembly) turn reflection-based System.Text.Json off.</summary>
+    private static readonly SettingsJsonContext Json = new(new JsonSerializerOptions { WriteIndented = true });
 
     public sealed class Model
     {
@@ -21,6 +23,8 @@ public sealed class SettingsService
         public bool InspectorVisible { get; set; } = true;
         public bool ReduceNoise { get; set; }
         public int NoiseKeep { get; set; } = (int)ViewOptions.DefaultKeep;
+        /// <summary>"System", "Light" or "Dark". Missing in older settings files, which then follow the system.</summary>
+        public string Theme { get; set; } = nameof(ThemeChoice.System);
         public string? LastFilePath { get; set; }
         public List<string> RecentFiles { get; set; } = new();
     }
@@ -44,7 +48,7 @@ public sealed class SettingsService
     {
         try
         {
-            if (File.Exists(SettingsPath)) return JsonSerializer.Deserialize<Model>(File.ReadAllText(SettingsPath), Options) ?? new Model();
+            if (File.Exists(SettingsPath)) return JsonSerializer.Deserialize(File.ReadAllText(SettingsPath), Json.Model) ?? new Model();
         }
         catch { /* corrupt settings are not fatal */ }
         return new Model();
@@ -52,7 +56,7 @@ public sealed class SettingsService
 
     public void Save(Model model)
     {
-        try { File.WriteAllText(SettingsPath, JsonSerializer.Serialize(model, Options)); } catch { /* best effort */ }
+        try { File.WriteAllText(SettingsPath, JsonSerializer.Serialize(model, Json.Model)); } catch { /* best effort */ }
     }
 
     public void Apply(Model m, ViewOptions o)
@@ -68,6 +72,7 @@ public sealed class SettingsService
         o.InspectorVisible = m.InspectorVisible;
         o.ReduceNoise = m.ReduceNoise;
         o.Keep = (NoiseLayer)m.NoiseKeep;
+        o.Theme = Enum.TryParse<ThemeChoice>(m.Theme, out var theme) ? theme : ThemeChoice.System;
     }
 
     public void Capture(ViewOptions o, Model m)
@@ -83,5 +88,11 @@ public sealed class SettingsService
         m.InspectorVisible = o.InspectorVisible;
         m.ReduceNoise = o.ReduceNoise;
         m.NoiseKeep = (int)o.Keep;
+        m.Theme = o.Theme.ToString();
     }
+}
+
+[JsonSerializable(typeof(SettingsService.Model))]
+internal sealed partial class SettingsJsonContext : JsonSerializerContext
+{
 }

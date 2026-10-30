@@ -30,8 +30,15 @@ public sealed partial class MainPage : Page
         Engine = new EditorEngine();
         _settingsModel = Environment.GetEnvironmentVariable("LOADPATH_RESET") == "1" ? new SettingsService.Model() : _settings.Load();
         _settings.Apply(_settingsModel, Engine.Options);
+#if DEBUG
+        ApplyThemeFixture();
+#endif
         RegisterFileCommands();
+        // Before the views are built, so the canvas and the converter brushes start in the right theme.
+        ApplyTheme();
         InitializeComponent();
+        // Converter-made brushes and the canvas follow the window's theme, including live system changes under System.
+        ActualThemeChanged += (_, _) => ThemeBrushes.Apply(ActualTheme);
 
         // MVUX: the generated view model is the binding surface; the engine stays reachable for pointer-level code.
         var viewModel = new EditorViewModel(Engine);
@@ -39,6 +46,7 @@ public sealed partial class MainPage : Page
         DataContext = viewModel;
         Workspace.Editor = Engine;
         Outline.Engine = Engine;
+        OutlineTab.Engine = Engine;
         Palette.Model = Model;
         Model.IsPaletteOpen.ForEach(async (open, ct) =>
         {
@@ -50,7 +58,13 @@ public sealed partial class MainPage : Page
         Engine.SelectionChanged += (_, _) => { UpdateFloatingBar(glide: true); EnsureKeyboardTarget(); };
         Engine.ViewportChanged += (_, _) => UpdateFloatingBar();
         Engine.AnalysisChanged += (_, _) => { UpdateFloatingBar(); ScheduleAutosave(); };
-        Engine.OptionsChanged += (_, _) => PersistSettings();
+        Engine.OptionsChanged += (_, name) =>
+        {
+            if (name == nameof(ViewOptions.Theme)) ApplyTheme();
+            if (name == nameof(ViewOptions.InspectorSheetOpen) && Engine.Options.InspectorSheetOpen) DispatcherQueue.TryEnqueue(RevealSelectionBesideSheet);
+            if (name is nameof(ViewOptions.InspectorSheetOpen) or nameof(ViewOptions.InspectorDocked)) { UpdateCoveredCanvas(); UpdateFloatingBar(); }
+            PersistSettings();
+        };
         Engine.Interaction.ToolChanged += (_, _) => UpdateFloatingBar();
         // The bar's label and buttons are bound, so its width settles after the binding; re-anchor when it does.
         FloatingBar.SizeChanged += (_, _) => UpdateFloatingBar();
@@ -66,53 +80,159 @@ public sealed partial class MainPage : Page
 #if DEBUG
         if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } tracePath)
         {
+#if !ANDROID && !IOS
             Root.AddHandler(PointerWheelChangedEvent, new PointerEventHandler((_, e) => File.AppendAllText(tracePath, $"page wheel {e.GetCurrentPoint(Root).Properties.MouseWheelDelta} src={e.OriginalSource?.GetType().Name}\n")), true);
+#endif
             Root.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) => File.AppendAllText(tracePath, $"page press src={e.OriginalSource?.GetType().Name} pid={e.Pointer.PointerId}\n")), true);
             Root.GotFocus += (_, e) => File.AppendAllText(tracePath, $"focus -> {e.OriginalSource?.GetType().Name}\n");
         }
 #endif
         Root.AddHandler(KeyUpEvent, new KeyEventHandler(OnRootKeyUp), true);
         Loaded += OnLoaded;
+        LayoutProbe.RegisterPropertyChangedCallback(TagProperty, (_, _) => OnLayoutChanged());
+        OnLayoutChanged();
+    }
+
+    // ---- layout ----
+
+    /// <summary>
+    /// The responsive layout (LayoutProbe.Tag, from the one DefaultResponsiveLayout) decides whether the inspector is a
+    /// docked column or a sheet; Ctrl+\ and the inspector button act on whichever it is. At Widest the outline docks
+    /// beside the canvas, so the inspector host goes back to its inspector tab.
+    /// </summary>
+    private void OnLayoutChanged()
+    {
+        var layout = LayoutProbe.Tag as string ?? "Widest";
+        Engine.Options.InspectorDocked = layout is "Wide" or "Widest";
+        UpdateCoveredCanvas();
+        // Resized into a sheet layout with the sheet open: the sheet now covers part of the drawing.
+        if (Engine.Options.InspectorSheetOpen && !Engine.Options.InspectorDocked) DispatcherQueue.TryEnqueue(RevealSelectionBesideSheet);
+        if (layout == "Widest") _ = GuardAsync("Inspector tab", () => Model.SelectTabAsync(outline: false).AsTask());
+#if DEBUG
+        Console.Error.WriteLine($"VERIFY layout={layout} width={XamlRoot?.Size.Width ?? 0:0}");
+#endif
     }
 
     public EditorEngine Engine { get; }
     public EditorModel Model { get; }
 
-    // xaml-lint: allow codebehind - startup: autosave restore and the X11 launch-size re-assert (no XAML surface)
+    // xaml-lint: allow codebehind - startup: autosave restore and the launch-size re-assert (no XAML surface)
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         KeySink.Focus(FocusState.Programmatic);
         RestoreOrSeed();
+        SizeWindowAtLaunch();
+        GuardCloseWithUnsavedChanges();
+    }
+
+    // ---- closing with unsaved changes ----
+
+#if __DESKTOP__ || WINDOWS
+    private bool _closeConfirmed;
+#endif
+
+    /// <summary>
+    /// Desktop and WinAppSDK ask before a window with unsaved changes closes (Save, Discard, Cancel). WebAssembly cancels
+    /// the close, so the browser asks to confirm leaving the page. Android and iOS have no close to intercept; the
+    /// autosave keeps the work.
+    /// </summary>
+    private void GuardCloseWithUnsavedChanges()
+    {
+#if __DESKTOP__ || WINDOWS || __WASM__
+        if (App.MainWindow is { } window) window.AppWindow.Closing += OnWindowClosing;
+#endif
+    }
+
+#if __DESKTOP__ || WINDOWS || __WASM__
+    // xaml-lint: allow codebehind - the close prompt needs the window's closing event and a dialog
+    private void OnWindowClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
+    {
+        if (!Engine.IsDirty) return;
+#if __WASM__
+        // The browser asks on its own (leave this page?); a dialog cannot outlive the unloading page.
+        args.Cancel = true;
+#else
+        if (_closeConfirmed) return;
+        args.Cancel = true;
+        _ = GuardAsync("Close", async () =>
+        {
+            if (!await ConfirmDiscardAsync(closing: true)) return;
+            _closeConfirmed = true;
+            App.MainWindow?.Close();
+        });
+#endif
+    }
+#endif
+
+    /// <summary>
+    /// Desktop (X11, Win32, macOS) and WinAppSDK open at 1440 x 960. WebAssembly, Android and iOS fill the browser
+    /// or the screen, so there is nothing to size.
+    /// </summary>
+    private void SizeWindowAtLaunch()
+    {
+        if (App.MainWindow is not { } window || Environment.GetEnvironmentVariable("LOADPATH_NO_RESIZE") == "1") return;
+#if __DESKTOP__
         // The window is sized through PreferredLaunchViewSize at launch. The X11 host can still miss a configure
         // event and lay out at the old size, so the size is re-asserted until the layout agrees with the frame.
-        if (App.MainWindow is { } window && Environment.GetEnvironmentVariable("LOADPATH_NO_RESIZE") != "1")
+        var attempts = 0;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        timer.Tick += (_, _) =>
         {
-            var attempts = 0;
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-            timer.Tick += (_, _) =>
+            attempts++;
+            try
             {
-                attempts++;
-                try
+                var size = window.AppWindow.Size;
+                var layoutAgrees = Math.Abs(Root.ActualWidth - size.Width) < 4 && Math.Abs(Root.ActualHeight - size.Height) < 4;
+                if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2 && layoutAgrees) { timer.Stop(); return; }
+                if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2)
                 {
-                    var size = window.AppWindow.Size;
-                    var layoutAgrees = Math.Abs(Root.ActualWidth - size.Width) < 4 && Math.Abs(Root.ActualHeight - size.Height) < 4;
-                    if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2 && layoutAgrees) { timer.Stop(); return; }
-                    if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2)
-                    {
-                        // Frame is right but the layout is stale: nudge by a pixel so the host re-reads its size.
-                        window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = size.Width + (attempts % 2 == 0 ? 1 : -1), Height = size.Height });
-                    }
-                    else
-                    {
-                        window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = App.LaunchWidth, Height = App.LaunchHeight });
-                    }
+                    // Frame is right but the layout is stale: nudge by a pixel so the host re-reads its size.
+                    window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = size.Width + (attempts % 2 == 0 ? 1 : -1), Height = size.Height });
                 }
-                catch { timer.Stop(); }
-                if (attempts >= 10) timer.Stop();
-                timer.Interval = TimeSpan.FromMilliseconds(400);
-            };
-            timer.Start();
+                else
+                {
+                    window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = App.LaunchWidth, Height = App.LaunchHeight });
+                }
+            }
+            catch { timer.Stop(); }
+            if (attempts >= 10) timer.Stop();
+            timer.Interval = TimeSpan.FromMilliseconds(400);
+        };
+        timer.Start();
+#elif WINDOWS
+        // WinAppSDK has no launch-size preference: resize the AppWindow once, in physical pixels at this display's scale.
+        try
+        {
+            var scale = XamlRoot?.RasterizationScale ?? 1.0;
+            window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = (int)(App.LaunchWidth * scale), Height = (int)(App.LaunchHeight * scale) });
         }
+        catch (Exception)
+        {
+            // Cosmetic: the window keeps the size the system gave it.
+        }
+#endif
+    }
+
+    // ---- theme ----
+
+    /// <summary>
+    /// The theme lives on the window content (the root frame), so every page element, flyout and dialog resolves its
+    /// {ThemeResource} brushes from one place. System leaves it unset and the app follows the platform, live.
+    /// </summary>
+    private void ApplyTheme()
+    {
+        var requested = Engine.Options.Theme switch
+        {
+            ThemeChoice.Light => ElementTheme.Light,
+            ThemeChoice.Dark => ElementTheme.Dark,
+            _ => ElementTheme.Default,
+        };
+        var root = App.MainWindow?.Content as FrameworkElement ?? this;
+        root.RequestedTheme = requested;
+        // Before the page is in the tree ActualTheme is not known yet: resolve it the way the root will.
+        var actual = requested != ElementTheme.Default ? requested
+            : Application.Current.RequestedTheme == ApplicationTheme.Dark ? ElementTheme.Dark : ElementTheme.Light;
+        ThemeBrushes.Apply(IsLoaded && ActualTheme != ElementTheme.Default ? ActualTheme : actual);
     }
 
     // ---- startup: autosave restore, DEBUG fixture hooks ----
@@ -158,6 +278,16 @@ public sealed partial class MainPage : Page
     }
 
 #if DEBUG
+    /// <summary><c>LOADPATH_THEME=light|dark|system</c>: start in a theme without touching the saved choice first.</summary>
+    private void ApplyThemeFixture()
+    {
+        if (Environment.GetEnvironmentVariable("LOADPATH_THEME") is { Length: > 0 } theme && Enum.TryParse<ThemeChoice>(theme, true, out var t))
+        {
+            Engine.Options.Theme = t;
+            Console.Error.WriteLine($"VERIFY theme={t}");
+        }
+    }
+
     /// <summary>Env-driven start states so headless captures are deterministic without a pointer.</summary>
     private void ApplyFixtureHooks()
     {
@@ -185,6 +315,10 @@ public sealed partial class MainPage : Page
                 }
             }
         }
+        if (Environment.GetEnvironmentVariable("LOADPATH_SHEET") == "1") Engine.Options.InspectorSheetOpen = true;
+        if (Environment.GetEnvironmentVariable("LOADPATH_TAB") == "outline") _ = Model.SelectTabAsync(outline: true);
+        if (Environment.GetEnvironmentVariable("LOADPATH_MULTI") == "1") Engine.Options.MultiSelect = true;
+        if (Environment.GetEnvironmentVariable("LOADPATH_FREE") == "1") Engine.Options.FreePlacement = true;
         var tool = Environment.GetEnvironmentVariable("LOADPATH_TOOL");
         if (!string.IsNullOrEmpty(tool) && Enum.TryParse<ToolKind>(tool, true, out var kind)) Engine.Interaction.SetTool(kind);
         if (Environment.GetEnvironmentVariable("LOADPATH_PALETTE") == "1") _ = Model.TogglePalette(default);
@@ -241,44 +375,83 @@ public sealed partial class MainPage : Page
         if (XamlRoot is { } xr && IsTextInputFocused(xr))
         {
             // The palette shortcut works from anywhere, including a focused number field.
-            if (ctrl && key == VirtualKey.K && Palette.Visibility != Visibility.Visible) { e.Handled = true; await Model.TogglePalette(default); return; }
+            if (ctrl && key == VirtualKey.K && Palette.Visibility != Visibility.Visible) { e.Handled = true; await GuardAsync("Command palette", () => Model.TogglePalette(default).AsTask()); return; }
             if (key == VirtualKey.Escape && Palette.Visibility != Visibility.Visible) { KeySink.Focus(FocusState.Programmatic); e.Handled = true; }
             return;
         }
         // xaml-lint: allow codebehind - reads the palette's Visibility to route Esc; sets nothing
         if (Palette.Visibility == Visibility.Visible)
         {
-            if (key == VirtualKey.Escape) { e.Handled = true; await Model.ClosePalette(default); }
+            if (key == VirtualKey.Escape) { e.Handled = true; await GuardAsync("Command palette", () => Model.ClosePalette(default).AsTask()); }
             return;
         }
 
-        // Tools get first refusal (Esc cancels a chain or drag).
-        if (!ctrl && !alt && Engine.Interaction.KeyDown(key)) { e.Handled = true; return; }
+        try
+        {
+            // Tools get first refusal (Esc cancels a chain or drag).
+            if (!ctrl && !alt && Engine.Interaction.KeyDown(key)) { e.Handled = true; return; }
 
-        var command = Engine.Commands.Resolve(key, ctrl, shift, alt);
-        if (command is null) return;
-        // Tool switches wait for a gesture to end.
-        if (command.Id.StartsWith("tool.") && Engine.Interaction.IsBusy) return;
-        if (command.TryExecute()) e.Handled = true;
+            var command = Engine.Commands.Resolve(key, ctrl, shift, alt);
+            if (command is null) return;
+            // Tool switches wait for a gesture to end.
+            if (command.Id.StartsWith("tool.") && Engine.Interaction.IsBusy) return;
+            if (command.TryExecute()) e.Handled = true;
+        }
+        catch (Exception ex)
+        {
+            // An event handler is async void: a throwing shortcut must end as a toast, not take the app down.
+            e.Handled = true;
+            ShowToast($"{key} failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>Awaits UI work started from an event handler or a command; a failure becomes a toast.</summary>
+    private async Task GuardAsync(string action, Func<Task> work)
+    {
+        try
+        {
+            await work();
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"{action} failed: {ex.Message}");
+        }
     }
 
     // xaml-lint: allow codebehind - releases held keys (Space pan, Shift axis lock) in the interaction engine
     private void OnRootKeyUp(object sender, KeyRoutedEventArgs e) => Engine.Interaction.KeyUp(e.Key);
 
-    private static bool IsDown(VirtualKey key) =>
-        Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+    /// <summary>
+    /// Modifier state for shortcut routing. WinAppSDK answers from the OS; every Uno head (desktop, WebAssembly,
+    /// Android, iOS) answers from the key state Uno tracks as key events arrive, so a hardware keyboard on a tablet
+    /// or in a browser gets the same shortcuts. With no keyboard nothing is ever down, and touch never reaches here.
+    /// </summary>
+    private static bool IsDown(VirtualKey key)
+    {
+        try
+        {
+            return Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
 
     // ---- context menu ----
 
     // xaml-lint: allow codebehind - the menu depends on the canvas hit test at the pointer
-    private void OnContextMenuRequested(object? sender, (Point Position, HitResult Hit) args)
+    private void OnContextMenuRequested(object? sender, Workspace.ContextMenuRequest args)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+        // A long press gets fingertip rows; the theme comes from the canvas the menu opens on.
+        var touchStyle = args.Touch && Application.Current.Resources.TryGetValue("TouchMenuItem", out var ts) ? ts as Style : null;
         void Add(string id, string? title = null)
         {
             var c = Engine.Commands.Find(id);
             if (c is null) return;
             var item = new MenuFlyoutItem { Text = title ?? c.Title, IsEnabled = c.CanExecute, KeyboardAcceleratorTextOverride = c.ShortcutDisplay.Split('|')[0] };
+            if (touchStyle is not null) item.Style = touchStyle;
             item.Click += (_, _) => { if (!c.TryExecute()) Engine.Toast($"{c.Title} is not available"); };
             menu.Items.Add(item);
         }
@@ -303,6 +476,7 @@ public sealed partial class MainPage : Page
                 {
                     var c = Engine.Commands[$"section.{s.Id}"];
                     var item = new MenuFlyoutItem { Text = s.Name };
+                    if (touchStyle is not null) item.Style = touchStyle;
                     item.Click += (_, _) => c.TryExecute();
                     sub.Items.Add(item);
                 }
@@ -314,6 +488,7 @@ public sealed partial class MainPage : Page
                 break;
             default:
                 var addNode = new MenuFlyoutItem { Text = "Add node here", KeyboardAcceleratorTextOverride = "N" };
+                if (touchStyle is not null) addNode.Style = touchStyle;
                 var world = Engine.Interaction.SnapPoint(Engine.Viewport.ToWorld(new Vec2(args.Position.X, args.Position.Y)), false).Point;
                 addNode.Click += (_, _) => { var add = new AddNodeEdit(world); Engine.History.Do(add); Engine.Selection.Set(ElementRef.Node(add.NodeId)); };
                 menu.Items.Add(addNode);
@@ -327,6 +502,55 @@ public sealed partial class MainPage : Page
                 break;
         }
         menu.ShowAt(Workspace, args.Position);
+    }
+
+    /// <summary>
+    /// A sheet covers part of the drawing (the right 336 px, or the bottom of a phone screen). When it opens over the
+    /// selection, the view pans so the selection sits in the middle of the part still showing.
+    /// </summary>
+    private void RevealSelectionBesideSheet()
+    {
+        if (Engine.Options.InspectorDocked || !Engine.Options.InspectorSheetOpen || Engine.Selection.IsEmpty) return;
+        var bounds = Bounds.Empty;
+        foreach (var id in Engine.SelectedNodeIdsIncludingMemberEnds())
+        {
+            if (Engine.Document.FindNode(id) is { } n) bounds = bounds.Include(Engine.Viewport.ToScreen(n.Position));
+        }
+        if (bounds.IsEmpty) return;
+        // Bring the selection just inside the uncovered part (clear of the floating rail too), moving the view as little as possible.
+        var free = UncoveredCanvas();
+        var fit = Workspace.FitInsets;
+        double left = free.Left + (Workspace.RailOverlay ? fit.Left : 0), top = free.Top + fit.Top / 2;
+        double right = free.Right - 24, bottom = free.Bottom - 24;
+        double Shift(double min, double max, double lo, double hi) =>
+            max - min > hi - lo ? lo + (hi - lo) / 2 - (min + max) / 2 : min < lo ? lo - min : max > hi ? hi - max : 0;
+        var dx = Shift(bounds.Min.X, bounds.Max.X, left, right);
+        var dy = Shift(bounds.Min.Y, bounds.Max.Y, top, bottom);
+        if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) return;
+        Engine.Interaction.NotifyNavigated();
+        Engine.Viewport.PanBy(new Vec2(dx, dy));
+    }
+
+    /// <summary>What an open sheet covers of the canvas: the side sheet's width (Normal) or the bottom sheet's height (Narrow).</summary>
+    private Thickness CoveredCanvas()
+    {
+        if (Engine.Options.InspectorDocked || !Engine.Options.InspectorSheetOpen) return default;
+        // The sheet's size is a layout token; the layout (from the one responsive layout) says which edge it covers.
+        static double Token(string key) => Application.Current.Resources.TryGetValue(key, out var v) && v is double d ? d : 0;
+        return LayoutProbe.Tag as string == "Narrow" ? new Thickness(0, 0, 0, Token("BottomSheetHeight")) : new Thickness(0, 0, Token("InspectorWidth"), 0);
+    }
+
+    /// <summary>
+    /// A phone's bottom sheet leaves the full width, so a fitted structure re-fits above it. Beside a side sheet the
+    /// view stays put (refitting into what is left would draw it postage-stamp small); the selection is panned clear instead.
+    /// </summary>
+    private void UpdateCoveredCanvas() => Workspace.CoveredInsets = new Thickness(0, 0, 0, CoveredCanvas().Bottom);
+
+    /// <summary>The part of the canvas no sheet covers.</summary>
+    private Rect UncoveredCanvas()
+    {
+        var c = CoveredCanvas();
+        return new Rect(0, 0, Math.Max(0, WorkspaceHost.ActualWidth - c.Right), Math.Max(0, WorkspaceHost.ActualHeight - c.Bottom));
     }
 
     // ---- floating selection bar ----
@@ -353,9 +577,13 @@ public sealed partial class MainPage : Page
         var w = FloatingBar.ActualWidth > 0 ? FloatingBar.ActualWidth : 150;
         // Up and to the right of the selection, clear of its load arrow; flip left when it would leave the sheet.
         var x = bounds.Max.X + 24;
+        // The bar stays on the part of the canvas no sheet covers.
+        var area = UncoveredCanvas();
         // xaml-lint: allow responsive - clamps the popover inside the canvas; not a layout breakpoint
-        if (x + w > WorkspaceHost.ActualWidth - 8) x = bounds.Min.X - 24 - w;
-        x = Math.Clamp(x, 32, Math.Max(32, WorkspaceHost.ActualWidth - w - 8));
+        if (x + w > area.Right - 8) x = bounds.Min.X - 24 - w;
+        // Keep 32 px off the sheet's left edge when there is room; a phone-wide bar may use the 8 px gutter instead.
+        var minX = Math.Min(32, Math.Max(8, area.Right - w - 8));
+        x = Math.Clamp(x, minX, Math.Max(minX, area.Right - w - 8));
         var y = bounds.Min.Y - 80;
         if (y < 32) y = bounds.Max.Y + 28;
         var target = new Thickness(x, y, 0, 0);
@@ -459,17 +687,19 @@ public sealed partial class MainPage : Page
 
     private void RegisterFileCommands()
     {
-        Engine.Commands.Add(new AppCommand("file.new", "New structure", "File", "Ctrl+N", () => _ = NewAsync(), icon: "new"));
-        Engine.Commands.Add(new AppCommand("file.open", "Open…", "File", "Ctrl+O", () => _ = OpenAsync(), icon: "folder"));
-        Engine.Commands.Add(new AppCommand("file.save", "Save", "File", "Ctrl+S", () => _ = SaveAsync(false), icon: "save"));
-        Engine.Commands.Add(new AppCommand("file.saveAs", "Save as…", "File", "Ctrl+Shift+S", () => _ = SaveAsync(true), icon: "save"));
-        Engine.Commands.Add(new AppCommand("file.share", "Copy share code", "File", "Ctrl+Shift+C", () => _ = ShareAsync(), () => Engine.Document.Nodes.Count > 0, "duplicate"));
-        Engine.Commands.Add(new AppCommand("file.paste", "Paste design from share code", "File", "Ctrl+Shift+V", () => _ = PasteAsync(), icon: "folder"));
+        // Commands are synchronous; each file command runs as a guarded task so any failure ends as a toast.
+        Engine.Commands.Add(new AppCommand("file.new", "New structure", "File", "Ctrl+N", () => _ = GuardAsync("New", NewAsync), icon: "new"));
+        Engine.Commands.Add(new AppCommand("file.open", "Open…", "File", "Ctrl+O", () => _ = GuardAsync("Open", OpenAsync), icon: "folder"));
+        Engine.Commands.Add(new AppCommand("file.save", "Save", "File", "Ctrl+S", () => _ = GuardAsync("Save", () => SaveAsync(false)), icon: "save"));
+        Engine.Commands.Add(new AppCommand("file.saveAs", "Save as…", "File", "Ctrl+Shift+S", () => _ = GuardAsync("Save as", () => SaveAsync(true)), icon: "save"));
+        Engine.Commands.Add(new AppCommand("file.share", "Copy share code", "File", "Ctrl+Shift+C", () => _ = GuardAsync("Copy share code", ShareAsync), () => Engine.Document.Nodes.Count > 0, "duplicate"));
+        Engine.Commands.Add(new AppCommand("file.paste", "Paste design from share code", "File", "Ctrl+Shift+V", () => _ = GuardAsync("Paste", PasteAsync), icon: "folder"));
     }
 
     /// <summary>
-    /// Copy the document as a one-line share code. Hosts without a working clipboard get the code written next to
-    /// the fallback save folder instead, and the toast says where.
+    /// Copy the document as a one-line share code. Hosts without a working clipboard get the code written to the
+    /// fallback folder instead (Documents/Loadpath, or the app's local folder on WebAssembly, Android and iOS), and the
+    /// toast says where. With neither, the toast says so.
     /// </summary>
     private async Task ShareAsync()
     {
@@ -480,15 +710,26 @@ public sealed partial class MainPage : Page
             var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
             package.SetText(code);
             Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+#if __DESKTOP__ || WINDOWS
+            // Desktop hosts keep the code on the clipboard after Loadpath closes. The browser and the mobile
+            // clipboards hold the text themselves, so there is nothing to flush there.
             Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+#endif
             ShowToast($"Share code copied ({size}). Paste it in Loadpath with Ctrl+Shift+V.");
+            return;
         }
         catch (Exception)
         {
-            var path = Path.Combine(_files.FallbackFolder, SafeName(Engine.Document.Name) + ShareFileSuffix);
-            await File.WriteAllTextAsync(path, code);
-            ShowToast($"No clipboard here. Share code saved to {path}");
+            // No clipboard on this host: fall through to the share file.
         }
+        if (_files.FallbackFolder is not { } folder)
+        {
+            ShowToast("No clipboard here, and no folder to save the share code to");
+            return;
+        }
+        var path = Path.Combine(folder, SafeName(Engine.Document.Name) + ShareFileSuffix);
+        await File.WriteAllTextAsync(path, code);
+        ShowToast($"No clipboard here. Share code saved to {path}");
     }
 
     private const string ShareFileSuffix = ".share.txt";
@@ -504,7 +745,7 @@ public sealed partial class MainPage : Page
         catch (Exception)
         {
             // No clipboard on this host: read the most recent share file written by ShareAsync.
-            var file = Directory.GetFiles(_files.FallbackFolder, "*" + ShareFileSuffix).OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault();
+            var file = _files.LatestInFallbackFolder("*" + ShareFileSuffix);
             if (file is not null) text = await File.ReadAllTextAsync(file);
         }
         if (!ShareCode.TryDecode(text, out var snapshot, out var error)) { ShowToast(error); return; }
@@ -562,7 +803,8 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private async Task<bool> ConfirmDiscardAsync()
+    /// <param name="closing">The window is closing: Discard also drops the autosave, so the next launch does not bring the discarded edits back.</param>
+    private async Task<bool> ConfirmDiscardAsync(bool closing = false)
     {
         var dialog = new ContentDialog
         {
@@ -572,10 +814,18 @@ public sealed partial class MainPage : Page
             SecondaryButtonText = "Discard",
             CloseButtonText = "Cancel",
             XamlRoot = XamlRoot,
+            // A dialog opens in the popup layer, outside the page: hand it the page's theme.
+            RequestedTheme = ActualTheme,
         };
         var result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary) { await SaveAsync(false); return !Engine.IsDirty; }
-        return result == ContentDialogResult.Secondary;
+        if (result != ContentDialogResult.Secondary) return false;
+        if (closing)
+        {
+            _autosaveTimer?.Stop();
+            try { File.Delete(_settings.AutosavePath); } catch (Exception) { /* nothing to drop */ }
+        }
+        return true;
     }
 
     private void ScheduleAutosave()
@@ -591,9 +841,16 @@ public sealed partial class MainPage : Page
     private async void OnAutosaveTick(object? sender, object e)
     {
         _autosaveTimer?.Stop();
-        // Serialize on the UI thread (the document is UI-owned); write off it.
-        var json = DocumentSerializer.Serialize(Engine.Document);
-        try { await File.WriteAllTextAsync(_settings.AutosavePath, json); } catch { /* best effort */ }
+        try
+        {
+            // Serialize on the UI thread (the document is UI-owned); write off it.
+            var json = DocumentSerializer.Serialize(Engine.Document);
+            await File.WriteAllTextAsync(_settings.AutosavePath, json);
+        }
+        catch (Exception)
+        {
+            // Best effort: a failed autosave never interrupts editing; the next edit tries again.
+        }
     }
 
     private void PersistSettings()

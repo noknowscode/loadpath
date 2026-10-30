@@ -28,14 +28,26 @@ public sealed partial class OutlinePanel : UserControl
         if (args.Element is FrameworkElement { Tag: string key } row && _entered.Add(key)) Motion.Enter(row);
     }
 
-    // xaml-lint: allow codebehind - Shift/Ctrl-aware selection by element key (modifier state lives on the pointer event)
-    private void OnRowPressed(object sender, PointerRoutedEventArgs e)
+    // xaml-lint: allow codebehind - Shift/Ctrl-aware selection by element key; click covers pointer, Enter and Space
+    private void OnRowClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string key } && Engine is not null)
         {
-            var extend = e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Shift) || e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Control);
+            var extend = IsDown(Windows.System.VirtualKey.Shift) || IsDown(Windows.System.VirtualKey.Control) || Engine.Options.MultiSelect;
             Engine.SelectByKey(key, extend);
-            e.Handled = true;
+        }
+    }
+
+    /// <summary>Modifier state from the key events Uno tracks (every head) or the OS (WinAppSDK); false without a keyboard.</summary>
+    private static bool IsDown(Windows.System.VirtualKey key)
+    {
+        try
+        {
+            return Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+        }
+        catch (Exception)
+        {
+            return false;
         }
     }
 
