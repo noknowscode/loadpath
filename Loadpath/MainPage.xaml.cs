@@ -62,7 +62,7 @@ public sealed partial class MainPage : Page
         {
             if (name == nameof(ViewOptions.Theme)) ApplyTheme();
             if (name == nameof(ViewOptions.InspectorSheetOpen) && Engine.Options.InspectorSheetOpen) DispatcherQueue.TryEnqueue(RevealSelectionBesideSheet);
-            if (name is nameof(ViewOptions.InspectorSheetOpen) or nameof(ViewOptions.InspectorDocked)) UpdateFloatingBar();
+            if (name is nameof(ViewOptions.InspectorSheetOpen) or nameof(ViewOptions.InspectorDocked)) { UpdateCoveredCanvas(); UpdateFloatingBar(); }
             PersistSettings();
         };
         Engine.Interaction.ToolChanged += (_, _) => UpdateFloatingBar();
@@ -104,6 +104,9 @@ public sealed partial class MainPage : Page
     {
         var layout = LayoutProbe.Tag as string ?? "Widest";
         Engine.Options.InspectorDocked = layout is "Wide" or "Widest";
+        UpdateCoveredCanvas();
+        // Resized into a sheet layout with the sheet open: the sheet now covers part of the drawing.
+        if (Engine.Options.InspectorSheetOpen && !Engine.Options.InspectorDocked) DispatcherQueue.TryEnqueue(RevealSelectionBesideSheet);
         if (layout == "Widest") _ = GuardAsync("Inspector tab", () => Model.SelectTabAsync(outline: false).AsTask());
 #if DEBUG
         Console.Error.WriteLine($"VERIFY layout={layout} width={XamlRoot?.Size.Width ?? 0:0}");
@@ -514,22 +517,40 @@ public sealed partial class MainPage : Page
             if (Engine.Document.FindNode(id) is { } n) bounds = bounds.Include(Engine.Viewport.ToScreen(n.Position));
         }
         if (bounds.IsEmpty) return;
-        var center = bounds.Center;
+        // Bring the selection just inside the uncovered part (clear of the floating rail too), moving the view as little as possible.
         var free = UncoveredCanvas();
-        if (free.Contains(new Point(center.X, center.Y)) && bounds.Max.Y < free.Bottom && bounds.Max.X < free.Right) return;
-        Engine.Viewport.PanBy(new Vec2(free.Left + free.Width / 2 - center.X, free.Top + free.Height / 2 - center.Y));
+        var fit = Workspace.FitInsets;
+        double left = free.Left + (Workspace.RailOverlay ? fit.Left : 0), top = free.Top + fit.Top / 2;
+        double right = free.Right - 24, bottom = free.Bottom - 24;
+        double Shift(double min, double max, double lo, double hi) =>
+            max - min > hi - lo ? lo + (hi - lo) / 2 - (min + max) / 2 : min < lo ? lo - min : max > hi ? hi - max : 0;
+        var dx = Shift(bounds.Min.X, bounds.Max.X, left, right);
+        var dy = Shift(bounds.Min.Y, bounds.Max.Y, top, bottom);
+        if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) return;
+        Engine.Interaction.NotifyNavigated();
+        Engine.Viewport.PanBy(new Vec2(dx, dy));
     }
 
-    /// <summary>The part of the canvas no sheet covers: all of it, less the side sheet's width or the bottom sheet's height.</summary>
-    private Rect UncoveredCanvas()
+    /// <summary>What an open sheet covers of the canvas: the side sheet's width (Normal) or the bottom sheet's height (Narrow).</summary>
+    private Thickness CoveredCanvas()
     {
-        var free = new Rect(0, 0, WorkspaceHost.ActualWidth, WorkspaceHost.ActualHeight);
-        if (Engine.Options.InspectorDocked || !Engine.Options.InspectorSheetOpen) return free;
+        if (Engine.Options.InspectorDocked || !Engine.Options.InspectorSheetOpen) return default;
         // The sheet's size is a layout token; the layout (from the one responsive layout) says which edge it covers.
         static double Token(string key) => Application.Current.Resources.TryGetValue(key, out var v) && v is double d ? d : 0;
-        if (LayoutProbe.Tag as string == "Narrow") free.Height = Math.Max(0, free.Height - Token("BottomSheetHeight"));
-        else free.Width = Math.Max(0, free.Width - Token("InspectorWidth"));
-        return free;
+        return LayoutProbe.Tag as string == "Narrow" ? new Thickness(0, 0, 0, Token("BottomSheetHeight")) : new Thickness(0, 0, Token("InspectorWidth"), 0);
+    }
+
+    /// <summary>
+    /// A phone's bottom sheet leaves the full width, so a fitted structure re-fits above it. Beside a side sheet the
+    /// view stays put (refitting into what is left would draw it postage-stamp small); the selection is panned clear instead.
+    /// </summary>
+    private void UpdateCoveredCanvas() => Workspace.CoveredInsets = new Thickness(0, 0, 0, CoveredCanvas().Bottom);
+
+    /// <summary>The part of the canvas no sheet covers.</summary>
+    private Rect UncoveredCanvas()
+    {
+        var c = CoveredCanvas();
+        return new Rect(0, 0, Math.Max(0, WorkspaceHost.ActualWidth - c.Right), Math.Max(0, WorkspaceHost.ActualHeight - c.Bottom));
     }
 
     // ---- floating selection bar ----

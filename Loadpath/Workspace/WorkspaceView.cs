@@ -36,6 +36,15 @@ public sealed partial class WorkspaceView : SKCanvasElement
     /// </summary>
     public Thickness FitInsets { get => (Thickness)GetValue(FitInsetsProperty); set => SetValue(FitInsetsProperty, value); }
 
+    public static readonly DependencyProperty CoveredInsetsProperty = DependencyProperty.Register(
+        nameof(CoveredInsets), typeof(Thickness), typeof(WorkspaceView), new PropertyMetadata(default(Thickness), (d, _) => ((WorkspaceView)d).OnLayoutTokensChanged()));
+
+    /// <summary>
+    /// How much of the canvas an open inspector sheet covers. Fit frames the structure in what is left: above a phone's
+    /// bottom sheet, with the dimension band (hidden by the sheet anyway) given up.
+    /// </summary>
+    public Thickness CoveredInsets { get => (Thickness)GetValue(CoveredInsetsProperty); set => SetValue(CoveredInsetsProperty, value); }
+
     /// <summary>True while the tool rail floats over the sheet's top-left corner, so labels steer around it.</summary>
     public bool RailOverlay { get => (bool)GetValue(RailOverlayProperty); set => SetValue(RailOverlayProperty, value); }
 
@@ -551,7 +560,10 @@ public sealed partial class WorkspaceView : SKCanvasElement
         var vp = _editor!.Viewport;
         if (world.IsEmpty || vp.ScreenWidth <= 0 || vp.ScreenHeight <= 0) return vp.ComputeFit(world);
         var insets = FitInsets;
-        double left = insets.Left, top = insets.Top, right = insets.Right, bottom = insets.Bottom;
+        var covered = CoveredInsets;
+        double left = insets.Left, top = insets.Top, right = insets.Right + covered.Right, bottom = insets.Bottom;
+        // Under a bottom sheet the dimension band is hidden anyway: keep the structure as far above the sheet as below the title.
+        if (covered.Bottom > 0) bottom = covered.Bottom + insets.Top;
         var areaW = Math.Max(120, vp.ScreenWidth - left - right);
         var areaH = Math.Max(120, vp.ScreenHeight - top - bottom);
         var w = Math.Max(world.Width, 1.0);

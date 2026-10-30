@@ -203,6 +203,9 @@ public sealed class WorkspaceInteraction : IToolContext
 
     public event EventHandler? UserNavigated;
 
+    /// <summary>The view was moved on the user's behalf (a sheet opened over the selection): stop keeping it fitted.</summary>
+    public void NotifyNavigated() => UserNavigated?.Invoke(this, EventArgs.Empty);
+
     public void ZoomStep(int direction, Vec2? anchor = null)
     {
         UserNavigated?.Invoke(this, EventArgs.Empty);
