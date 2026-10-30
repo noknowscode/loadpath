@@ -2,7 +2,7 @@
 
 A desktop workbench for 2D trusses that solves as you draw. Place nodes, connect them, pin some to the ground, hang loads, and every member shows the force it carries, its utilization, and the deflected shape. Drag a node and the whole load path re-solves on every pointer move.
 
-Built with Uno Platform (`Uno.Sdk 7.0.0-dev.115`, Skia renderer, SkiaSharp 4) for five heads: desktop (Windows, macOS and Linux through Skia), Windows App SDK, WebAssembly, Android and iOS. Editing is keyboard-and-mouse first; touch editing for phones is planned. The product and interaction design are in [`SPEC.md`](SPEC.md); this file covers what shipped, how it is built, and how it was validated.
+Built with Uno Platform (`Uno.Sdk 7.0.0-dev.115`, Skia renderer, SkiaSharp 4) for five heads: desktop (Windows, macOS and Linux through Skia), Windows App SDK, WebAssembly, Android and iOS. It follows the system theme (a light blueprint sheet or a dark drafting table), lays itself out for phones, tablets and desktops, and edits by mouse and keyboard or by touch. The product and interaction design are in [`SPEC.md`](SPEC.md); this file covers what shipped, how it is built, and how it was validated.
 
 ![Warren truss with a member selected](docs/shot1.png)
 
@@ -60,8 +60,9 @@ Loadpath.Core/      net10.0 class library, no UI dependency
   Analysis/         TrussSolver (direct stiffness), LinearSolver, AnalysisResult, SectionSizer (upsize failing members, lighten the rest)
   Editing/          IEdit, EditHistory (undo/redo, coalescing, transactions), edits
   Selection/        SelectionSet
-  Viewport/         Viewport (world ↔ screen, zoom-at-point, fit)
-  Geometry/         Vec2, Bounds, HitTester, SnapEngine, GridSteps
+  Viewport/         Viewport (world ↔ screen, zoom-at-point, fit), PinchGesture
+  Geometry/         Vec2, Bounds, HitTester (mouse and touch radii), SnapEngine, GridSteps
+  Input/            TouchTracker (tap, drag, long press, pinch arbitration)
   Serialization/    DocumentSerializer (JSON v1), ShareCode (LP1. text codes)
   Samples/          Warren, cantilever, Howe roof; TrussPresets (parametric Pratt, Howe, Warren, K, Fink, scissor)
 Loadpath/           Uno single-project app
@@ -71,7 +72,7 @@ Loadpath/           Uno single-project app
   Views/            TitleStrip, ToolRail, InspectorPanel, OutlinePanel, StatusBar, CommandPalette
   Controls/         Icon, ToolButton, NumberField, UtilizationBar, KeySink, IconLibrary, Converters
   Services/         FileService, SettingsService
-  Themes/           Tokens, MotionTokens, Icons, Controls
+  Themes/           Tokens (Light and Dark), Layout (spacing, sizes, the responsive layout), MotionTokens, Icons, Controls
 Loadpath.Tests/     xunit: solver against method-of-joints values, mechanism detection, history, geometry, serializer
 ```
 
@@ -81,10 +82,17 @@ Loadpath.Tests/     xunit: solver against method-of-joints values, mechanism det
 
 **Decision: Fluent plus the app's own tokens; Uno Toolkit for responsive layout only.** The visual system is custom (blueprint drafting sheet, Inter for UI, JetBrains Mono for every number, hairlines instead of shadows), so the app carries its own tokens and control styles on top of Fluent (`XamlControlsResources`) instead of restyling a theme. No Material. The Toolkit (`UnoFeatures` `Toolkit`) is referenced for `utu:Responsive` and `ResponsiveView`; `ToolkitResources` is not merged, so it adds no control styles. This reverses the earlier "no Toolkit" decision.
 
+**Decision: two themes, one identity.** Every colour role exists for Light (the blueprint sheet: paper `#F7F8FB`, near-black ink, blueprint-blue structure) and Dark (a drafting table at night: blue-slate paper `#10141B`, chalk ink, the structure in a lighter blueprint blue `#8FA0FF`). Views use `{ThemeResource}`; the canvas palette and the brush-key converters read the same tokens for the window's theme and re-read them on `ActualThemeChanged`. The app follows the system by default; the `⋯` menu (and three palette commands) pin Light or Dark, and the choice is saved with the view settings. Text passes 4.5:1 in both themes (InkTertiary moved from 3.0:1 to 5.5:1 on light). Dark is keyed `Default`, so Windows High Contrast falls back to it instead of failing to resolve.
+
+**Decision: one responsive layout for the workbench.** `Themes/Layout.xaml` defines the app's only `utu:ResponsiveLayout` as `DefaultResponsiveLayout` (Normal 600, Wide 1100, Widest 1240): a docked 336 px inspector needs 1100 px to leave the sheet usable, and the docked outline docks from 1240 px as it always did. Widest shows outline, canvas and inspector; Wide docks the inspector with the outline as its second tab; Normal makes the inspector a side sheet over the canvas; Narrow (phones) turns the tools into a 44 px strip under the drawing, the inspector into a bottom sheet and moves secondary commands into the title's `⋯` menu. `Ctrl+\` and the title's inspector button toggle whichever the layout has. Tradeoff: Loadpath's breakpoints differ from the Toolkit defaults the other samples use.
+
+**Decision: touch edits through the same tools.** A finger behaves like the left mouse button, but its press is held back until it moves (drag), lifts (tap) or rests (long press, the context menu), so a second finger can turn the touch into a pinch-zoom and pan before any tool acts. Fingers hit-test with 22 px radii (mouse keeps 6 to 9 px). A multi-select toggle in the floating bar stands in for Shift, the free-placement tool for Alt.
+
 **Decision: detached parts are tolerated.** The solver finds connected components; a component with no support is excluded and reported instead of making the whole solve singular. A structure that is genuinely a mechanism still reports as one.
 
 ## Validation
 
+- Themes, layouts and touch: Release desktop, Android and WebAssembly builds have 0 warnings and 0 errors; 102 tests pass (11 new: touch hit radii, the touch tracker's tap / drag / long press / pinch arbitration, the pinch anchor and clamp). Under Xvfb the Warren sample with a member selected was captured at 360, 599, 600, 800, 1080, 1099, 1100, 1240 and 1920 px wide, Light and Dark, with the inspector sheet closed, open and on its outline tab, each in one launch live-resized through the widths. With `LOADPATH_TOUCH=1` the mouse drove the touch path: a tap 18 px from a node selects it, a long press opens the node menu with 44 px rows, a one-finger drag moves a node, the multi-select toggle adds a second node. The overflow menu, the theme switch, the presets and layer sheets capped to a 360 px window, `Ctrl+\` on a phone, and the close prompt (Cancel keeps the window, Discard closes it) were driven with `xdotool`. Pinch and two-finger pan are covered by unit tests only: `xdotool` has a single pointer. The published WebAssembly build starts in Chromium at 390 x 844 and 1440 x 900 and loads the Warren sample. The WinAppSDK and iOS heads cannot build on Linux and are left to CI.
 - Share, presets and failures (Stage 5 of `SPEC.md`): share codes round-trip every sample exactly, decode from inside surrounding text and from raw JSON, and refuse empty, foreign, truncated and corrupt input with a readable reason. Every preset at four parameter sets (defaults, small, odd panel count, 16 panels) solves with no detached parts, spans exactly the requested width, and balances its applied load with its reactions; defaults stay below full utilization; Pratt diagonals are in tension and Howe diagonals in compression. A slender strut fails by buckling, an overloaded tie by yield, and failures sort worst first. Section sizing brings an overloaded Pratt within capacity, changes only failing members in a determinate truss, picks the lightest working section per material, converges on a redundant K truss without leaving a touched or pushed member above 95 %, leaves a passing structure alone and reports loads beyond the library. Lighten saves mass without raising any member past its limit, keeps material and zero-force members, refuses while something fails, converges on a redundant truss, and is idempotent. The undo history's save point is clean after undo or redo back to it, dirty after branching away or extending the saved drag, and survives a history clear. An overloaded timber Fink upsizes in timber and an oversized one lightens in timber. 91 test cases in total.
 - Runtime (Stage 5): under Xvfb, an overloaded Pratt (`LOADPATH_PRESET=pratt:24,6,1.6`) shows mode pills, buckled bows, the legend entry and the inspector failure list; `J` cycles with a position toast; clicking a failure row selects its member. The presets flyout was driven end to end (span set to 30 m, K truss loaded, `Ctrl+Z` restored and refit the previous structure). Share → New → Paste round-tripped the Howe roof through the real X11 clipboard, and `Ctrl+Z` undid the paste.
 - 21 unit tests: a triangle truss matches method-of-joints forces and reactions to three decimals; a square without a diagonal is a mechanism; detached parts are left out; drags coalesce; delete/split/duplicate revert exactly; samples serialize round-trip and all solve below full utilization.
@@ -92,7 +100,7 @@ Loadpath.Tests/     xunit: solver against method-of-joints values, mechanism det
 - Release build has zero warnings.
 - A UI craft pass (critique checklist, two widths, two heights, every display mode) brought control heights from five values to three (26 px chrome, 24 px status-bar segments, 32 px tool rail), moved arrow labels off the members, added the exaggeration readout, replaced the macOS `⌃K` glyph with `Ctrl+K`, and made the status bar drop the cursor readout below 960 px so the display toggles and max utilization stay whole.
 
-Fixture hooks make headless captures deterministic: `LOADPATH_SAMPLE=warren|cantilever|roof`, `LOADPATH_PRESET=pratt` or `pratt:24,6,1.6` (span, panels, depth), `LOADPATH_RESET=1` (ignore settings and autosave), `LOADPATH_SELECT=n4,m12`, `LOADPATH_MODE=utilization,deflection,reactions,nolabels`, `LOADPATH_TOOL=member`, `LOADPATH_PALETTE=1`, `LOADPATH_TOAST=text`, `LOADPATH_EDIT=unsupported|overload`, `LOADPATH_TRACE=path`. `LOADPATH_SAMPLE`, `LOADPATH_RESET` and `LOADPATH_NO_RESIZE` work in every build; the rest are Debug only.
+Fixture hooks make headless captures deterministic: `LOADPATH_SAMPLE=warren|cantilever|roof`, `LOADPATH_PRESET=pratt` or `pratt:24,6,1.6` (span, panels, depth), `LOADPATH_RESET=1` (ignore settings and autosave), `LOADPATH_SELECT=n4,m12`, `LOADPATH_MODE=utilization,deflection,reactions,nolabels`, `LOADPATH_TOOL=member`, `LOADPATH_PALETTE=1`, `LOADPATH_TOAST=text`, `LOADPATH_EDIT=unsupported|overload`, `LOADPATH_TRACE=path`, `LOADPATH_THEME=light|dark|system`, `LOADPATH_SHEET=1` (open the inspector sheet), `LOADPATH_TAB=outline`, `LOADPATH_MULTI=1`, `LOADPATH_FREE=1`, `LOADPATH_TOUCH=1` (route the mouse through the touch path, for headless touch checks). `LOADPATH_SAMPLE`, `LOADPATH_RESET` and `LOADPATH_NO_RESIZE` work in every build; the rest are Debug only.
 
 ## Platform notes
 

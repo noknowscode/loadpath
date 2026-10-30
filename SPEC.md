@@ -360,7 +360,7 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 
 - Every head draws the workspace with `SKCanvasElement` (Skia on the Uno heads, the x64/ARM64 WinAppSDK build on Windows). The canvas fonts load from `ms-appx:///Assets/Fonts`, which every head can read.
 - Window sizing is per head: desktop sets `PreferredLaunchViewSize` and re-asserts the X11 size; WinAppSDK resizes its `AppWindow` once at the display scale; WebAssembly, Android and iOS fill the browser or screen.
-- Editing is keyboard-and-mouse first. Touch editing for phones (pinch, long-press, larger hit radii) is planned, not built.
+- Editing works by mouse and keyboard and by touch: one finger edits like the left button (its press held back until drag, tap or long press), two fingers pinch-zoom and pan, a long press opens the context menu, fingers hit-test with 22 px radii, and toggles stand in for Shift (multi-select) and Alt (free placement).
 - `UIElement.Opacity` does not affect `SKCanvasElement`; alpha is baked into paints.
 - No `CompositionTarget.Rendering` subscription held; timers only while animating.
 - `CharacterSpacing` is a no-op on Skia; tracking is not relied on.
@@ -382,8 +382,8 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 - **Typography**: Inter 11/12/13/15 for UI, JetBrains Mono for all numbers. Section labels uppercase 11 Medium.
 - **Spacing**: 4 px base; 12 panel padding; 28 rows; 26 fields; 16 between sections.
 - **Component hierarchy**: MainPage → TitleStrip, ToolRail, WorkspaceHost (WorkspaceView + overlay Canvas: FloatingBar, MechanismBanner, EmptyState, ToastHost), InspectorColumn (InspectorHost → SummaryInspector | NodeInspector | MemberInspector | MixedInspector; OutlinePanel), StatusBar, CommandPalette (overlay).
-- **Theme usage**: single dark theme. Tokens in a plain root dictionary merged in App.xaml. `RequestedTheme="Dark"`. No Material.
-- **Responsive/adaptive**: below 1100 px width the inspector column collapses to an edge toggle; below 800 px the tool rail becomes a horizontal strip under the title. The canvas always fills the rest.
+- **Theme usage**: Light (blueprint sheet) and Dark (drafting table) ThemeDictionaries in Tokens.xaml, `{ThemeResource}` in views, follows the system by default with a System / Light / Dark choice saved in settings. No Material.
+- **Responsive/adaptive**: one Toolkit `DefaultResponsiveLayout` (Normal 600, Wide 1100, Widest 1240). Widest: outline, canvas, inspector. Wide: canvas and docked inspector with the outline as a tab. Normal: inspector as a side sheet. Narrow: bottom tool strip, inspector as a bottom sheet, title overflow menu. The canvas always fills the rest.
 
 ## Interaction Brief
 
@@ -437,7 +437,7 @@ Three additions that make a design leave the app, start faster, and say clearly 
 - **Presets flyout**: same `SheetFlyoutPresenter` as Reduce noise. Header row of three mono number fields (SPAN m, PANELS, DEPTH m), then a two-column grid of preset tiles: a line thumbnail of the generated geometry (blueprint ink on paper) above a mono caption and a one-line description.
 - **Typography/spacing**: existing tokens only. Mono 11–12 for captions, Inter for descriptions, 8/12/16 spacing.
 - **Component hierarchy**: TitleStrip → `PRESETS` link button (flyout) · `SHARE` link button · `OPEN` · `SAVE`. Inspector summary → "Failures" section listing rows (M id, mode, utilization) under the max-utilization bar.
-- **Responsive behavior**: `SHARE` and `PRESETS` collapse with the search button below 720 px; both stay reachable through the palette.
+- **Responsive behavior**: `SHARE` moves into the title's `⋯` menu below 1240 px, `PRESETS` and search below 1100 px; both stay reachable through the palette and the menu.
 
 ### Interaction Brief
 
