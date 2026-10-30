@@ -34,6 +34,9 @@ public sealed partial class WorkspaceView : SKCanvasElement
     public WorkspaceView()
     {
         IsTabStop = false;
+        // Uno 7's SKCanvasElement is a Grid, and a Grid without a background is not hit-testable: presses fell through
+        // to the page, so the canvas took no input and the press pulled keyboard focus off the key sink.
+        Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         SizeChanged += (_, e) =>
         {
             _editor?.Viewport.Resize(e.NewSize.Width, e.NewSize.Height);
