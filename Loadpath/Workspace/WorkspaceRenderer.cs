@@ -31,7 +31,12 @@ public sealed class WorkspaceRenderer : IDisposable
     private readonly SKPathEffect _frameDash = SKPathEffect.CreateDash([3, 3], 0);
     private readonly SKPathEffect _extDash = SKPathEffect.CreateDash([2, 3], 0);
     private readonly SKPathEffect _haloDash = SKPathEffect.CreateDash([2, 2.5f], 0);
-    private readonly SKPath _path = new();
+    /// <summary>
+    /// SkiaSharp 4 obsoletes the SKPath mutators. Per-frame shapes (ribbons, arrow heads, buckled bows) are built in
+    /// this one builder and detached per draw; the support triangle never changes, so it is built once.
+    /// </summary>
+    private readonly SKPathBuilder _pb = new();
+    private readonly SKPath _supportTriangle;
     /// <summary>Label boxes drawn this frame; later labels steer around them.</summary>
     private readonly List<SKRect> _labelRects = new(64);
     private readonly List<double> _xs = new(32);
@@ -45,6 +50,11 @@ public sealed class WorkspaceRenderer : IDisposable
         _monoSmall = new SKFont(mono, 10.5f) { Edging = SKFontEdging.SubpixelAntialias, Subpixel = true };
         _monoBold = new SKFont(monoMedium, 10.5f) { Edging = SKFontEdging.SubpixelAntialias, Subpixel = true };
         _ui = new SKFont(ui, 12.5f) { Edging = SKFontEdging.SubpixelAntialias, Subpixel = true };
+        _pb.MoveTo(0, 6);
+        _pb.LineTo(-11, 19);
+        _pb.LineTo(11, 19);
+        _pb.Close();
+        _supportTriangle = _pb.Detach();
     }
 
     private static SKTypeface? LoadTypeface(string file)
@@ -185,21 +195,21 @@ public sealed class WorkspaceRenderer : IDisposable
         var len = MathF.Sqrt(d.X * d.X + d.Y * d.Y);
         if (len < 1) return;
         var nx = -d.Y / len * width / 2; var ny = d.X / len * width / 2;
-        _path.Reset();
-        _path.MoveTo(a.X + nx, a.Y + ny);
-        _path.LineTo(b.X + nx, b.Y + ny);
-        _path.LineTo(b.X - nx, b.Y - ny);
-        _path.LineTo(a.X - nx, a.Y - ny);
-        _path.Close();
+        _pb.MoveTo(a.X + nx, a.Y + ny);
+        _pb.LineTo(b.X + nx, b.Y + ny);
+        _pb.LineTo(b.X - nx, b.Y - ny);
+        _pb.LineTo(a.X - nx, a.Y - ny);
+        _pb.Close();
+        using var ribbon = _pb.Detach();
         _fill.Color = kind == Stroke.Over ? SkiaPalette.DangerSoft : SkiaPalette.Canvas;
-        canvas.DrawPath(_path, _fill);
+        canvas.DrawPath(ribbon, _fill);
 
         if (kind is Stroke.Compression or Stroke.Over)
         {
             // 45° hatch clipped to the ribbon.
-            var bounds = _path.Bounds;
+            var bounds = ribbon.Bounds;
             canvas.Save();
-            canvas.ClipPath(_path, SKClipOperation.Intersect, true);
+            canvas.ClipPath(ribbon, SKClipOperation.Intersect, true);
             _stroke.StrokeWidth = 1f;
             for (var c = bounds.Left - bounds.Height; c < bounds.Right; c += 4.5f)
                 canvas.DrawLine(c, bounds.Bottom, c + bounds.Height, bounds.Top, _stroke);
@@ -208,7 +218,7 @@ public sealed class WorkspaceRenderer : IDisposable
 
         _stroke.StrokeWidth = 1.2f;
         _stroke.StrokeJoin = SKStrokeJoin.Miter;
-        canvas.DrawPath(_path, _stroke);
+        canvas.DrawPath(ribbon, _stroke);
         _stroke.StrokeJoin = SKStrokeJoin.Round;
     }
 
@@ -250,27 +260,27 @@ public sealed class WorkspaceRenderer : IDisposable
             var nx = -d.Y / len; var ny = d.X / len;
             if (nx * (s.Center.X - mid.X) + ny * (s.Center.Y - mid.Y) < 0) { nx = -nx; ny = -ny; }
             var amp = RibbonWidth(s, m, Stroke.Over) / 2 + Math.Clamp(len * 0.07f, 5, 16);
-            BowPath(m.A, m.B, nx, ny, amp);
+            using var bow = BowPath(m.A, m.B, nx, ny, amp);
             _stroke.StrokeWidth = 1.3f;
             _stroke.Color = m.Dimmed ? SkiaPalette.Danger.WithAlpha(0.35) : SkiaPalette.Danger;
             _stroke.PathEffect = _deflectDash;
-            canvas.DrawPath(_path, _stroke);
+            canvas.DrawPath(bow, _stroke);
             _stroke.PathEffect = null;
         }
     }
 
-    /// <summary>Half-sine from a to b, displaced along (nx, ny) by up to amp pixels, into the shared path.</summary>
-    private void BowPath(SKPoint a, SKPoint b, float nx, float ny, float amp)
+    /// <summary>Half-sine from a to b, displaced along (nx, ny) by up to amp pixels. The caller disposes the path.</summary>
+    private SKPath BowPath(SKPoint a, SKPoint b, float nx, float ny, float amp)
     {
         const int steps = 24;
-        _path.Reset();
         for (var i = 0; i <= steps; i++)
         {
             var t = i / (float)steps;
             var off = amp * MathF.Sin(MathF.PI * t);
             var p = new SKPoint(a.X + (b.X - a.X) * t + nx * off, a.Y + (b.Y - a.Y) * t + ny * off);
-            if (i == 0) _path.MoveTo(p); else _path.LineTo(p);
+            if (i == 0) _pb.MoveTo(p); else _pb.LineTo(p);
         }
+        return _pb.Detach();
     }
 
     /// <summary>Plain force numbers (member-forces layer) and red pills for members over capacity (over-capacity layer).</summary>
@@ -315,7 +325,7 @@ public sealed class WorkspaceRenderer : IDisposable
                 canvas.DrawRect(rect, _fill);
                 _text.Color = m.Dimmed ? SkiaPalette.AccentFaint : SkiaPalette.Accent;
             }
-            canvas.DrawText(text, cx - width / 2, cy + 3.8f, font, _text);
+            canvas.DrawText(text, cx - width / 2, cy + 3.8f, SKTextAlign.Left, font, _text);
         }
     }
 
@@ -390,16 +400,16 @@ public sealed class WorkspaceRenderer : IDisposable
         if (len > 1)
         {
             var ux = d.X / len; var uy = d.Y / len;
-            _path.Reset();
-            _path.MoveTo(to);
-            _path.LineTo(to.X - ux * 6 - uy * 2.5f, to.Y - uy * 6 + ux * 2.5f);
-            _path.LineTo(to.X - ux * 6 + uy * 2.5f, to.Y - uy * 6 - ux * 2.5f);
-            _path.Close();
+            _pb.MoveTo(to);
+            _pb.LineTo(to.X - ux * 6 - uy * 2.5f, to.Y - uy * 6 + ux * 2.5f);
+            _pb.LineTo(to.X - ux * 6 + uy * 2.5f, to.Y - uy * 6 - ux * 2.5f);
+            _pb.Close();
+            using var head = _pb.Detach();
             _fill.Color = SkiaPalette.Accent;
-            canvas.DrawPath(_path, _fill);
+            canvas.DrawPath(head, _fill);
         }
         _text.Color = SkiaPalette.Accent;
-        canvas.DrawText(text, box.Left + 3, box.MidY + 3.8f, _monoSmall, _text);
+        canvas.DrawText(text, box.Left + 3, box.MidY + 3.8f, SKTextAlign.Left, _monoSmall, _text);
     }
 
     private static SKPoint Lerp(SKPoint a, SKPoint b, float t) => new(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t);
@@ -481,7 +491,7 @@ public sealed class WorkspaceRenderer : IDisposable
             canvas.Translate(x - 6, (topScreenY + sy(minY)) / 2 + w / 2);
             canvas.RotateDegrees(-90);
             _text.Color = SkiaPalette.Accent;
-            canvas.DrawText(text, 0, 0, _monoSmall, _text);
+            canvas.DrawText(text, 0, 0, SKTextAlign.Left, _monoSmall, _text);
             canvas.Restore();
         }
     }
@@ -511,7 +521,7 @@ public sealed class WorkspaceRenderer : IDisposable
     {
         var w = _monoSmall.MeasureText(text);
         _text.Color = SkiaPalette.Accent;
-        canvas.DrawText(text, cx - w / 2, baseline, _monoSmall, _text);
+        canvas.DrawText(text, cx - w / 2, baseline, SKTextAlign.Left, _monoSmall, _text);
     }
 
     // ---- deflected shape ----
@@ -537,16 +547,11 @@ public sealed class WorkspaceRenderer : IDisposable
             canvas.Save();
             canvas.Translate(p.X, p.Y);
             if (n.Support == SupportKind.RollerX) canvas.RotateDegrees(90);
-            _path.Reset();
-            _path.MoveTo(0, 6);
-            _path.LineTo(-11, 19);
-            _path.LineTo(11, 19);
-            _path.Close();
             _fill.Color = SkiaPalette.AccentSoft;
-            canvas.DrawPath(_path, _fill);
+            canvas.DrawPath(_supportTriangle, _fill);
             _stroke.StrokeWidth = 1.3f;
             _stroke.Color = ink;
-            canvas.DrawPath(_path, _stroke);
+            canvas.DrawPath(_supportTriangle, _stroke);
             var groundY = 19f;
             if (n.Support == SupportKind.RollerY || n.Support == SupportKind.RollerX)
             {
@@ -573,7 +578,7 @@ public sealed class WorkspaceRenderer : IDisposable
                 if (!clear) continue;
                 _labelRects.Add(box);
                 _text.Color = SkiaPalette.Accent;
-                canvas.DrawText(name, x, p.Y + 21, _monoSmall, _text);
+                canvas.DrawText(name, x, p.Y + 21, SKTextAlign.Left, _monoSmall, _text);
             }
         }
     }
@@ -605,7 +610,7 @@ public sealed class WorkspaceRenderer : IDisposable
                 var y = dir > 0 ? tail.Y + 15 : tail.Y - 7;
                 _labelRects.Add(new SKRect(tail.X - w / 2 - 3, y - 11, tail.X + w / 2 + 3, y + 3));
                 _text.Color = SkiaPalette.Accent;
-                canvas.DrawText(text, tail.X - w / 2, y, _monoSmall, _text);
+                canvas.DrawText(text, tail.X - w / 2, y, SKTextAlign.Left, _monoSmall, _text);
             }
             if (n.Support.FixesX() && Math.Abs(n.ReactionKn.X) > 1e-6)
             {
@@ -629,13 +634,15 @@ public sealed class WorkspaceRenderer : IDisposable
         _stroke.StrokeWidth = width;
         _stroke.Color = color;
         canvas.DrawLine(tail, new SKPoint(tip.X - ux * headSize * 0.6f, tip.Y - uy * headSize * 0.6f), _stroke);
-        _path.Reset();
-        _path.MoveTo(tip);
-        _path.LineTo(tip.X - ux * headSize - uy * headSize * 0.4f, tip.Y - uy * headSize + ux * headSize * 0.4f);
-        _path.LineTo(tip.X - ux * headSize + uy * headSize * 0.4f, tip.Y - uy * headSize - ux * headSize * 0.4f);
-        _path.Close();
-        _fill.Color = color;
-        canvas.DrawPath(_path, _fill);
+        _pb.MoveTo(tip);
+        _pb.LineTo(tip.X - ux * headSize - uy * headSize * 0.4f, tip.Y - uy * headSize + ux * headSize * 0.4f);
+        _pb.LineTo(tip.X - ux * headSize + uy * headSize * 0.4f, tip.Y - uy * headSize - ux * headSize * 0.4f);
+        _pb.Close();
+        using (var arrowHead = _pb.Detach())
+        {
+            _fill.Color = color;
+            canvas.DrawPath(arrowHead, _fill);
+        }
         if (!handle) return;
         // Tail handle: a hollow ring the user can drag to aim the load.
         _fill.Color = SkiaPalette.Canvas;
@@ -673,7 +680,7 @@ public sealed class WorkspaceRenderer : IDisposable
         }
         _labelRects.Add(chosen);
         _text.Color = color;
-        canvas.DrawText(text, chosen.Left + 3, chosen.MidY + 4, _mono, _text);
+        canvas.DrawText(text, chosen.Left + 3, chosen.MidY + 4, SKTextAlign.Left, _mono, _text);
 
         // Text box grown from an anchor in direction (dx, dy): centered across the direction, flush along it.
         static SKRect Box(SKPoint a, float dx, float dy, float width)
@@ -809,7 +816,7 @@ public sealed class WorkspaceRenderer : IDisposable
 
         var left = FrameInset + 24;
         _text.Color = SkiaPalette.InkSecondary;
-        canvas.DrawText(caption, left, s.Height - FrameInset - 42, _ui, _text);
+        canvas.DrawText(caption, left, s.Height - FrameInset - 42, SKTextAlign.Left, _ui, _text);
 
         var y = s.Height - FrameInset - 16;
         var x = left;
@@ -820,14 +827,14 @@ public sealed class WorkspaceRenderer : IDisposable
         foreach (ref readonly var m in s.Members.AsSpan()) anyBuckles |= m.Overstressed && m.BucklingGoverns;
         if (anyBuckles && s.ShowOverCapacity && s.Status == AnalysisStatus.Solved)
         {
-            BowPath(new SKPoint(x, y - 2), new SKPoint(x + 26, y - 2), 0, -1, 6);
+            using var bow = BowPath(new SKPoint(x, y - 2), new SKPoint(x + 26, y - 2), 0, -1, 6);
             _stroke.StrokeWidth = 1.3f;
             _stroke.Color = SkiaPalette.Danger;
             _stroke.PathEffect = _deflectDash;
-            canvas.DrawPath(_path, _stroke);
+            canvas.DrawPath(bow, _stroke);
             _stroke.PathEffect = null;
             _text.Color = SkiaPalette.Danger;
-            canvas.DrawText("BUCKLED SHAPE", x + 34, y, _monoSmall, _text);
+            canvas.DrawText("BUCKLED SHAPE", x + 34, y, SKTextAlign.Left, _monoSmall, _text);
             x += 34 + _monoSmall.MeasureText("BUCKLED SHAPE") + 26;
         }
         x = LegendItem(canvas, x, y, Stroke.Zero, SkiaPalette.Accent, "ZERO FORCE");
@@ -839,7 +846,7 @@ public sealed class WorkspaceRenderer : IDisposable
             canvas.DrawLine(x, y - 4, x + 26, y - 4, _stroke);
             _stroke.PathEffect = null;
             _text.Color = SkiaPalette.Accent;
-            canvas.DrawText($"DEFLECTED ×{s.Exaggeration:0.0}", x + 34, y, _monoSmall, _text);
+            canvas.DrawText($"DEFLECTED ×{s.Exaggeration:0.0}", x + 34, y, SKTextAlign.Left, _monoSmall, _text);
         }
     }
 
@@ -848,7 +855,7 @@ public sealed class WorkspaceRenderer : IDisposable
         canvas.Save();
         canvas.Translate(x, top);
         canvas.RotateDegrees(90);
-        canvas.DrawText(text, 0, 0, _monoSmall, _text);
+        canvas.DrawText(text, 0, 0, SKTextAlign.Left, _monoSmall, _text);
         canvas.Restore();
     }
 
@@ -856,7 +863,7 @@ public sealed class WorkspaceRenderer : IDisposable
     {
         DrawMember(canvas, new SKPoint(x, y - 4), new SKPoint(x + 26, y - 4), kind, kind == Stroke.Zero ? 0 : 8, color);
         _text.Color = kind == Stroke.Over ? SkiaPalette.Danger : SkiaPalette.Accent;
-        canvas.DrawText(label, x + 34, y, _monoSmall, _text);
+        canvas.DrawText(label, x + 34, y, SKTextAlign.Left, _monoSmall, _text);
         return x + 34 + _monoSmall.MeasureText(label) + 26;
     }
 
@@ -875,6 +882,7 @@ public sealed class WorkspaceRenderer : IDisposable
         _frameDash.Dispose();
         _extDash.Dispose();
         _haloDash.Dispose();
-        _path.Dispose();
+        _pb.Dispose();
+        _supportTriangle.Dispose();
     }
 }
