@@ -40,6 +40,8 @@ public sealed class WorkspaceRenderer : IDisposable
     /// <summary>Label boxes drawn this frame; later labels steer around them.</summary>
     private readonly List<SKRect> _labelRects = new(64);
     private readonly List<double> _xs = new(32);
+    /// <summary>The drawing frame of this frame; annotations that would cross it are left out rather than clipped.</summary>
+    private SKRect _frame;
 
     public WorkspaceRenderer()
     {
@@ -92,8 +94,9 @@ public sealed class WorkspaceRenderer : IDisposable
         if (_pal is null) return;
         canvas.Clear(_pal.Canvas);
         _labelRects.Clear();
-        // The XAML tool palette floats over the top-left of the sheet (MainPage: Margin 40,24, ~56 x 300).
-        _labelRects.Add(new SKRect(36, 20, 100, 330));
+        _frame = new SKRect(FrameInset, FrameInset, s.Width - FrameInset, s.Height - FrameInset);
+        // The XAML tool palette floats over the top-left of the sheet (RailMargin 40,24, ~56 x 340); on a phone it is a strip below.
+        if (s.RailOverlay) _labelRects.Add(new SKRect(36, 20, 100, 370));
         var solved = s.Status == AnalysisStatus.Solved;
         DrawFrame(canvas, s);
         if (s.ShowGrid) DrawGrid(canvas, s);
@@ -407,6 +410,7 @@ public sealed class WorkspaceRenderer : IDisposable
             TextSide.Right => new SKRect(from.X + 4, from.Y - 7, from.X + w + 10, from.Y + 7),
             _ => new SKRect(from.X - w / 2 - 3, from.Y + 4, from.X + w / 2 + 3, from.Y + 18),
         };
+        if (!_frame.Contains(box)) return;
         foreach (var r in _labelRects) if (r.IntersectsWith(box)) return;
         _labelRects.Add(box);
         _stroke.StrokeWidth = 0.9f;
@@ -590,7 +594,7 @@ public sealed class WorkspaceRenderer : IDisposable
                 var left = p.X < s.Center.X;
                 var x = left ? p.X - 22 - w : p.X + 22;
                 var box = new SKRect(x - 2, p.Y + 10, x + w + 2, p.Y + 24);
-                var clear = true;
+                var clear = _frame.Contains(box);
                 foreach (var r in _labelRects) if (r.IntersectsWith(box)) { clear = false; break; }
                 if (!clear) continue;
                 _labelRects.Add(box);
@@ -832,18 +836,49 @@ public sealed class WorkspaceRenderer : IDisposable
         var caption = $"{s.StructureKind}, {maxX - minX:0.000} m span. {what}";
 
         var left = FrameInset + 24;
-        _text.Color = _pal.InkSecondary;
-        canvas.DrawText(caption, left, s.Height - FrameInset - 42, SKTextAlign.Left, _ui, _text);
-
-        var y = s.Height - FrameInset - 16;
-        var x = left;
-        x = LegendItem(canvas, x, y, Stroke.Tension, _pal.Accent, "TENSION");
-        x = LegendItem(canvas, x, y, Stroke.Compression, _pal.Accent, "COMPRESSION");
-        x = LegendItem(canvas, x, y, Stroke.Over, _pal.Danger, "OVER CAPACITY");
+        var right = s.Width - FrameInset - 30; // clear of the vertical frame tag
         var anyBuckles = false;
         foreach (ref readonly var m in s.Members.AsSpan()) anyBuckles |= m.Overstressed && m.BucklingGoverns;
-        if (anyBuckles && s.ShowOverCapacity && s.Status == AnalysisStatus.Solved)
+        var showBuckles = anyBuckles && s.ShowOverCapacity && s.Status == AnalysisStatus.Solved;
+        var deflected = $"DEFLECTED ×{s.Exaggeration:0.0}";
+
+        // The legend wraps on a narrow sheet (a phone): count its rows first so the caption sits above all of them.
+        var rows = 1;
+        var x = left;
+        void Fit(string label, ref float cursor, ref int rowCount)
         {
+            var w = LegendWidth(label);
+            if (cursor + w - 26 > right && cursor > left) { rowCount++; cursor = left; }
+            cursor += w;
+        }
+        Fit("TENSION", ref x, ref rows);
+        Fit("COMPRESSION", ref x, ref rows);
+        Fit("OVER CAPACITY", ref x, ref rows);
+        if (showBuckles) Fit("BUCKLED SHAPE", ref x, ref rows);
+        Fit("ZERO FORCE", ref x, ref rows);
+        if (s.ShowDeflection) Fit(deflected, ref x, ref rows);
+
+        const float rowStep = 18;
+        // A phone-width sheet keeps the span and drops the reading hint the legend already gives.
+        if (_ui.MeasureText(caption) > right - left) caption = $"{s.StructureKind}, {maxX - minX:0.000} m span.";
+        _text.Color = _pal.InkSecondary;
+        canvas.DrawText(caption, left, s.Height - FrameInset - 42 - (rows - 1) * rowStep, SKTextAlign.Left, _ui, _text);
+
+        var y = s.Height - FrameInset - 16 - (rows - 1) * rowStep;
+        x = left;
+        void Next(string label, ref float cursor, ref float baseline)
+        {
+            if (cursor + LegendWidth(label) - 26 > right && cursor > left) { cursor = left; baseline += rowStep; }
+        }
+        Next("TENSION", ref x, ref y);
+        x = LegendItem(canvas, x, y, Stroke.Tension, _pal.Accent, "TENSION");
+        Next("COMPRESSION", ref x, ref y);
+        x = LegendItem(canvas, x, y, Stroke.Compression, _pal.Accent, "COMPRESSION");
+        Next("OVER CAPACITY", ref x, ref y);
+        x = LegendItem(canvas, x, y, Stroke.Over, _pal.Danger, "OVER CAPACITY");
+        if (showBuckles)
+        {
+            Next("BUCKLED SHAPE", ref x, ref y);
             using var bow = BowPath(new SKPoint(x, y - 2), new SKPoint(x + 26, y - 2), 0, -1, 6);
             _stroke.StrokeWidth = 1.3f;
             _stroke.Color = _pal.Danger;
@@ -852,20 +887,25 @@ public sealed class WorkspaceRenderer : IDisposable
             _stroke.PathEffect = null;
             _text.Color = _pal.Danger;
             canvas.DrawText("BUCKLED SHAPE", x + 34, y, SKTextAlign.Left, _monoSmall, _text);
-            x += 34 + _monoSmall.MeasureText("BUCKLED SHAPE") + 26;
+            x += LegendWidth("BUCKLED SHAPE");
         }
+        Next("ZERO FORCE", ref x, ref y);
         x = LegendItem(canvas, x, y, Stroke.Zero, _pal.Accent, "ZERO FORCE");
         if (s.ShowDeflection)
         {
+            Next(deflected, ref x, ref y);
             _stroke.StrokeWidth = 1f;
             _stroke.Color = _pal.AccentFaint;
             _stroke.PathEffect = _deflectDash;
             canvas.DrawLine(x, y - 4, x + 26, y - 4, _stroke);
             _stroke.PathEffect = null;
             _text.Color = _pal.Accent;
-            canvas.DrawText($"DEFLECTED ×{s.Exaggeration:0.0}", x + 34, y, SKTextAlign.Left, _monoSmall, _text);
+            canvas.DrawText(deflected, x + 34, y, SKTextAlign.Left, _monoSmall, _text);
         }
     }
+
+    /// <summary>Swatch, gap, label and the gap to the next item.</summary>
+    private float LegendWidth(string label) => 34 + _monoSmall.MeasureText(label) + 26;
 
     private void VerticalText(SKCanvas canvas, string text, float x, float top)
     {
@@ -881,7 +921,7 @@ public sealed class WorkspaceRenderer : IDisposable
         DrawMember(canvas, new SKPoint(x, y - 4), new SKPoint(x + 26, y - 4), kind, kind == Stroke.Zero ? 0 : 8, color);
         _text.Color = kind == Stroke.Over ? _pal.Danger : _pal.Accent;
         canvas.DrawText(label, x + 34, y, SKTextAlign.Left, _monoSmall, _text);
-        return x + 34 + _monoSmall.MeasureText(label) + 26;
+        return x + LegendWidth(label);
     }
 
     public void Dispose()

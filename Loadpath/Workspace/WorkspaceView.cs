@@ -1,5 +1,7 @@
 using Loadpath.Controls;
 using Loadpath.Core.Geometry;
+using Loadpath.Core.Input;
+using Loadpath.Core.Viewport;
 using Loadpath.Presentation;
 using Loadpath.Workspace.Tools;
 using Microsoft.UI.Input;
@@ -10,6 +12,9 @@ using Windows.Foundation;
 
 namespace Loadpath.Workspace;
 
+/// <summary>A context menu request from the canvas. Touch requests get finger-sized menu rows.</summary>
+public sealed record ContextMenuRequest(Point Position, HitResult Hit, bool Touch);
+
 /// <summary>
 /// The canvas. Owns rendering (through WorkspaceRenderer), pointer input (forwarded to WorkspaceInteraction),
 /// the viewport size, and the small viewport animation timer.
@@ -18,6 +23,31 @@ public sealed partial class WorkspaceView : SKCanvasElement
 {
     public static readonly DependencyProperty EditorProperty = DependencyProperty.Register(
         nameof(Editor), typeof(EditorEngine), typeof(WorkspaceView), new PropertyMetadata(null, (d, e) => ((WorkspaceView)d).Attach(e.OldValue as EditorEngine, e.NewValue as EditorEngine)));
+
+    public static readonly DependencyProperty FitInsetsProperty = DependencyProperty.Register(
+        nameof(FitInsets), typeof(Thickness), typeof(WorkspaceView), new PropertyMetadata(default(Thickness), (d, _) => ((WorkspaceView)d).OnLayoutTokensChanged()));
+
+    public static readonly DependencyProperty RailOverlayProperty = DependencyProperty.Register(
+        nameof(RailOverlay), typeof(bool), typeof(WorkspaceView), new PropertyMetadata(true, (d, _) => ((WorkspaceView)d).OnLayoutTokensChanged()));
+
+    /// <summary>
+    /// Where Fit frames the structure: clear of the floating tool rail (left), the banners (top), the height dimension
+    /// (right) and the band that holds the dimension chain and the legend (bottom). Set per layout from Layout.xaml.
+    /// </summary>
+    public Thickness FitInsets { get => (Thickness)GetValue(FitInsetsProperty); set => SetValue(FitInsetsProperty, value); }
+
+    /// <summary>True while the tool rail floats over the sheet's top-left corner, so labels steer around it.</summary>
+    public bool RailOverlay { get => (bool)GetValue(RailOverlayProperty); set => SetValue(RailOverlayProperty, value); }
+
+    private void OnLayoutTokensChanged()
+    {
+        if (_editor is not null && _fitted && _editor.Document.Nodes.Count > 0)
+        {
+            var target = SheetFit(_editor.Document.GetBounds());
+            _editor.Viewport.Set(target.Scale, target.Offset);
+        }
+        MarkDirty();
+    }
 
     private readonly WorkspaceRenderer _renderer = new();
     private volatile RenderSnapshot _snapshot = RenderSnapshot.Empty;
@@ -96,8 +126,8 @@ public sealed partial class WorkspaceView : SKCanvasElement
         set => SetValue(EditorProperty, value);
     }
 
-    /// <summary>Raised on right-click with the screen point and what was hit.</summary>
-    public event EventHandler<(Point Position, HitResult Hit)>? ContextMenuRequested;
+    /// <summary>Raised on right-click or a long press, with the screen point, what was hit, and whether a finger asked.</summary>
+    public event EventHandler<ContextMenuRequest>? ContextMenuRequested;
 
     private void Attach(EditorEngine? old, EditorEngine? editor)
     {
@@ -136,7 +166,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
     {
         if (_snapshotDirty && _editor is not null)
         {
-            _snapshot = BuildSnapshot(_editor, (float)area.Width, (float)area.Height);
+            _snapshot = BuildSnapshot(_editor, (float)area.Width, (float)area.Height, RailOverlay);
             _snapshotDirty = false;
         }
         _renderer.Render(canvas, _snapshot);
@@ -144,7 +174,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
 
     // ---- snapshot ----
 
-    private static RenderSnapshot BuildSnapshot(EditorEngine ed, float width, float height)
+    private static RenderSnapshot BuildSnapshot(EditorEngine ed, float width, float height, bool railOverlay)
     {
         var doc = ed.Document;
         var vp = ed.Viewport;
@@ -229,6 +259,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
             DocumentName = doc.Name,
             Exaggeration = options.Exaggeration,
             Center = bounds.IsEmpty ? new SKPoint(width / 2, height / 2) : P(vp.ToScreen(bounds.Center)),
+            RailOverlay = railOverlay,
         };
     }
 
@@ -239,28 +270,50 @@ public sealed partial class WorkspaceView : SKCanvasElement
     private PointerState State(PointerRoutedEventArgs e)
     {
         var pt = e.GetCurrentPoint(this);
-        var screen = new Vec2(pt.Position.X, pt.Position.Y);
+        return State(e, new Vec2(pt.Position.X, pt.Position.Y), pt.Properties.IsLeftButtonPressed, pt.Properties.IsMiddleButtonPressed, pt.Properties.IsRightButtonPressed);
+    }
+
+    private PointerState State(PointerRoutedEventArgs e, Vec2 screen, bool left, bool middle = false, bool right = false)
+    {
         var mods = e.KeyModifiers;
-        var props = pt.Properties;
+        var options = _editor?.Options;
         return new PointerState(
             screen,
             _editor?.Viewport.ToWorld(screen) ?? Vec2.Zero,
             mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift),
             mods.HasFlag(Windows.System.VirtualKeyModifiers.Menu),
             mods.HasFlag(Windows.System.VirtualKeyModifiers.Control),
-            props.IsLeftButtonPressed,
-            props.IsMiddleButtonPressed,
-            props.IsRightButtonPressed);
+            left, middle, right,
+            Multi: options?.MultiSelect ?? false,
+            Free: options?.FreePlacement ?? false,
+            IsTouch: IsTouch(e));
     }
+
+    /// <summary>A finger. DEBUG builds can route the mouse through the touch path (LOADPATH_TOUCH=1) for headless checks.</summary>
+    private static bool IsTouch(PointerRoutedEventArgs e) =>
+        e.Pointer.PointerDeviceType == PointerDeviceType.Touch || EmulateTouch;
+
+#if DEBUG
+    private static readonly bool EmulateTouch = Environment.GetEnvironmentVariable("LOADPATH_TOUCH") == "1";
+#else
+    private const bool EmulateTouch = false;
+#endif
 
     private PointerState _lastState;
 
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if (_editor is null) return;
+        FocusRequested?.Invoke(this, EventArgs.Empty);
+        if (IsTouch(e))
+        {
+            CapturePointer(e.Pointer);
+            OnTouch(_touch.Down(e.Pointer.PointerId, Position(e), Environment.TickCount64), e);
+            e.Handled = true;
+            return;
+        }
         var s = State(e);
         _lastState = s;
-        FocusRequested?.Invoke(this, EventArgs.Empty);
 #if DEBUG
         if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } tr)
         {
@@ -270,33 +323,52 @@ public sealed partial class WorkspaceView : SKCanvasElement
 #endif
         if (s.IsRight)
         {
-            _editor.Interaction.CancelTool();
-            var hit = _editor.Interaction.Hit(s.Screen);
-            if (hit.Ref is { } r && !_editor.Selection.Contains(r)) _editor.Selection.Set(r);
-            ContextMenuRequested?.Invoke(this, (new Point(s.Screen.X, s.Screen.Y), hit));
+            OpenContextMenu(s, touch: false);
             e.Handled = true;
             return;
         }
         CapturePointer(e.Pointer);
         if (s.IsMiddle || _editor.Interaction.ActiveTool == ToolKind.Pan) _fitted = false;
+        Press(s);
+        e.Handled = true;
+    }
+
+    /// <summary>A press for the tools, with double-tap detection (two presses within 350 ms and 6 px).</summary>
+    private void Press(PointerState s)
+    {
+        _lastState = s;
         var now = DateTime.UtcNow;
         if ((now - _lastTap).TotalMilliseconds < 350 && (s.Screen - _lastTapPos).Length < 6)
         {
-            _editor.Interaction.DoubleTap(s);
+            _editor!.Interaction.DoubleTap(s);
             _lastTap = DateTime.MinValue;
         }
         else
         {
             _lastTap = now;
             _lastTapPos = s.Screen;
-            _editor.Interaction.PointerPressed(s);
+            _editor!.Interaction.PointerPressed(s);
         }
-        e.Handled = true;
+    }
+
+    private void OpenContextMenu(PointerState s, bool touch)
+    {
+        _editor!.Interaction.CancelTool();
+        _editor.Interaction.Radii = HitRadii.For(touch);
+        var hit = _editor.Interaction.Hit(s.Screen);
+        if (hit.Ref is { } r && !_editor.Selection.Contains(r)) _editor.Selection.Set(r);
+        ContextMenuRequested?.Invoke(this, new ContextMenuRequest(new Point(s.Screen.X, s.Screen.Y), hit, touch));
     }
 
     private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
     {
         if (_editor is null) return;
+        if (IsTouch(e))
+        {
+            OnTouch(_touch.Move(e.Pointer.PointerId, Position(e)), e);
+            e.Handled = true;
+            return;
+        }
         var s = State(e);
         _lastState = s;
         _editor.Interaction.PointerMoved(s);
@@ -306,6 +378,13 @@ public sealed partial class WorkspaceView : SKCanvasElement
     private void OnPointerReleased(object sender, PointerRoutedEventArgs e)
     {
         if (_editor is null) return;
+        if (IsTouch(e))
+        {
+            OnTouch(_touch.Up(e.Pointer.PointerId, Position(e)), e);
+            ReleasePointerCapture(e.Pointer);
+            e.Handled = true;
+            return;
+        }
         var s = State(e);
         _editor.Interaction.PointerReleased(s);
         ReleasePointerCapture(e.Pointer);
@@ -314,7 +393,96 @@ public sealed partial class WorkspaceView : SKCanvasElement
 
     private void OnPointerLost(object sender, PointerRoutedEventArgs e)
     {
+        if (IsTouch(e))
+        {
+            OnTouch(_touch.Cancel(e.Pointer.PointerId), e);
+            return;
+        }
         _editor?.Interaction.PointerReleased(_lastState with { IsLeft = false, IsMiddle = false });
+    }
+
+    // ---- touch: one finger edits like the left button; two fingers pinch-zoom and pan; a resting finger opens the menu ----
+
+    private readonly TouchTracker _touch = new();
+    private PinchGesture? _pinch;
+    private DispatcherTimer? _longPressTimer;
+
+    private Vec2 Position(PointerRoutedEventArgs e)
+    {
+        var pt = e.GetCurrentPoint(this).Position;
+        return new Vec2(pt.X, pt.Y);
+    }
+
+    private void OnTouch(TouchSignal signal, PointerRoutedEventArgs e)
+    {
+        var interaction = _editor!.Interaction;
+        switch (signal)
+        {
+            case TouchSignal.None:
+                break;
+            case TouchSignal.BeginDrag:
+                Press(State(e, _touch.PressPoint, left: true));
+                interaction.PointerMoved(_lastState = State(e, Position(e), left: true));
+                break;
+            case TouchSignal.Drag:
+                interaction.PointerMoved(_lastState = State(e, Position(e), left: true));
+                break;
+            case TouchSignal.EndDrag:
+                interaction.PointerReleased(State(e, Position(e), left: false));
+                break;
+            case TouchSignal.Tap:
+                var at = State(e, _touch.PressPoint, left: true);
+                Press(at);
+                interaction.PointerReleased(at with { IsLeft = false });
+                break;
+            case TouchSignal.PinchStart:
+                // A held press never reached a tool; a drag in progress is cancelled (undone) before the view moves.
+                if (interaction.IsBusy) interaction.CancelTool();
+                _fitted = false;
+                var (a, b) = _touch.PinchPoints;
+                _pinch = new PinchGesture(_editor.Viewport, a, b);
+                break;
+            case TouchSignal.Pinch:
+                if (_pinch is not null)
+                {
+                    var (p1, p2) = _touch.PinchPoints;
+                    _animTimer?.Stop();
+                    _pinch.Apply(_editor.Viewport, p1, p2);
+                }
+                break;
+            case TouchSignal.LongPress:
+                OpenContextMenu(State(e, _touch.PressPoint, left: false), touch: true);
+                break;
+        }
+        if (!_touch.IsPinching) _pinch = null;
+        UpdateLongPressTimer();
+    }
+
+    /// <summary>Runs only while a press is held back; the long press fires from here, with no pointer event to carry it.</summary>
+    private void UpdateLongPressTimer()
+    {
+        if (!_touch.IsPending)
+        {
+            _longPressTimer?.Stop();
+            return;
+        }
+        if (_longPressTimer is null)
+        {
+            _longPressTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(60) };
+            _longPressTimer.Tick += (_, _) =>
+            {
+                if (_editor is null || _touch.Tick(Environment.TickCount64) != TouchSignal.LongPress)
+                {
+                    if (!_touch.IsPending) _longPressTimer!.Stop();
+                    return;
+                }
+                _longPressTimer!.Stop();
+                var p = _touch.PressPoint;
+                OpenContextMenu(new PointerState(p, _editor.Viewport.ToWorld(p), false, false, false, false, false, false,
+                    _editor.Options.MultiSelect, _editor.Options.FreePlacement, IsTouch: true), touch: true);
+            };
+        }
+        if (!_longPressTimer.IsEnabled) _longPressTimer.Start();
     }
 
 #if !ANDROID && !IOS
@@ -382,7 +550,8 @@ public sealed partial class WorkspaceView : SKCanvasElement
     {
         var vp = _editor!.Viewport;
         if (world.IsEmpty || vp.ScreenWidth <= 0 || vp.ScreenHeight <= 0) return vp.ComputeFit(world);
-        const double left = 120, top = 110, right = 96, bottom = 210;
+        var insets = FitInsets;
+        double left = insets.Left, top = insets.Top, right = insets.Right, bottom = insets.Bottom;
         var areaW = Math.Max(120, vp.ScreenWidth - left - right);
         var areaH = Math.Max(120, vp.ScreenHeight - top - bottom);
         var w = Math.Max(world.Width, 1.0);

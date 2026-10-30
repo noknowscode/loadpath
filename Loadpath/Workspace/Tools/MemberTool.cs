@@ -47,7 +47,7 @@ public sealed class MemberTool : Tool
             return ctx.Document.GetNode(hit.Id).Position;
         }
         var origin = _start is { } s && ctx.Document.FindNode(s) is { } n ? n.Position : (Vec2?)null;
-        var snap = ctx.SnapPoint(p.World, allowNodeSnap: true, constrainAxis: p.Shift && origin is not null, origin: origin, disableSnap: p.Alt);
+        var snap = ctx.SnapPoint(p.World, allowNodeSnap: true, constrainAxis: p.Shift && origin is not null, origin: origin, disableSnap: p.NoSnap);
         snappedNode = snap.SnappedNodeId;
         guides = snap.Guides;
         return snap.Point;

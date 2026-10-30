@@ -79,6 +79,10 @@ public partial record EditorModel
     public IState<bool> SnapEnabled => State.Value(this, () => _engine.Options.SnapEnabled);
     public IState<string> SnapText => State.Value(this, () => SnapLabel());
     public IState<bool> InspectorVisible => State.Value(this, () => _engine.Options.InspectorVisible);
+    /// <summary>Whether the inspector shows in the current layout (docked column or sheet).</summary>
+    public IState<bool> InspectorShown => State.Value(this, () => _engine.Options.InspectorShown);
+    public IState<bool> MultiSelect => State.Value(this, () => _engine.Options.MultiSelect).ForEach(async (v, ct) => Push(o => o.MultiSelect = v));
+    public IState<bool> FreePlacement => State.Value(this, () => _engine.Options.FreePlacement);
     public IState<bool> IsThemeSystem => State.Value(this, () => _engine.Options.Theme == ThemeChoice.System);
     public IState<bool> IsThemeLight => State.Value(this, () => _engine.Options.Theme == ThemeChoice.Light);
     public IState<bool> IsThemeDark => State.Value(this, () => _engine.Options.Theme == ThemeChoice.Dark);
@@ -107,6 +111,22 @@ public partial record EditorModel
     // One declaration per layer: MVUX keys each state by its declaring member, so a shared factory would merge them.
 
     [Command] public void ShowAll() => Ui(() => _engine.Options.ReduceNoise = false);
+    [Command] public void ToggleInspector() => Ui(() => _engine.Options.ToggleInspector());
+    [Command] public void ToggleFreePlacement() => Ui(() => _engine.Options.FreePlacement = !_engine.Options.FreePlacement);
+
+    // ---- inspector tabs (below 1240 px the structure outline is the inspector's second tab) ----
+
+    public IState<bool> InspectorTabSelected => State.Value(this, () => true);
+    public IState<bool> OutlineTabSelected => State.Value(this, () => false);
+    [Command] public void ShowInspectorTab() => Fire(SelectTabAsync(outline: false));
+    [Command] public void ShowOutlineTab() => Fire(SelectTabAsync(outline: true));
+
+    internal async ValueTask SelectTabAsync(bool outline)
+    {
+        await InspectorTabSelected.SetAsync(!outline);
+        await OutlineTabSelected.SetAsync(outline);
+    }
+
     [Command] public void ThemeSystem() => Ui(() => _engine.Options.Theme = ThemeChoice.System);
     [Command] public void ThemeLight() => Ui(() => _engine.Options.Theme = ThemeChoice.Light);
     [Command] public void ThemeDark() => Ui(() => _engine.Options.Theme = ThemeChoice.Dark);
@@ -146,6 +166,9 @@ public partial record EditorModel
             await SnapEnabled.SetAsync(o.SnapEnabled);
             await SnapText.SetAsync(SnapLabel());
             await InspectorVisible.SetAsync(o.InspectorVisible);
+            await InspectorShown.SetAsync(o.InspectorShown);
+            await MultiSelect.SetAsync(o.MultiSelect);
+            await FreePlacement.SetAsync(o.FreePlacement);
             await IsThemeSystem.SetAsync(o.Theme == ThemeChoice.System);
             await IsThemeLight.SetAsync(o.Theme == ThemeChoice.Light);
             await IsThemeDark.SetAsync(o.Theme == ThemeChoice.Dark);

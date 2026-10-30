@@ -89,6 +89,14 @@
   <Thickness x:Key="HistoryClusterMargin">16,0,8,0</Thickness>
   <Thickness x:Key="HistoryClusterMarginNarrow">4,0,0,0</Thickness>
 
+  <!--
+    Where Fit frames the structure on the sheet: clear of the floating tool rail (left), the banners (top), the height
+    dimension (right) and the band for the dimension chain, reactions and legend (bottom). A phone has no rail on the
+    sheet and keeps tighter margins so the structure is not drawn postage-stamp small.
+  -->
+  <Thickness x:Key="CanvasFitInsets">120,110,96,210</Thickness>
+  <Thickness x:Key="CanvasFitInsetsNarrow">24,64,84,190</Thickness>
+
   <!-- Canvas overlays -->
   <Thickness x:Key="RailMargin">40,24,0,0</Thickness>
   <Thickness x:Key="BannerMargin">0,28,0,0</Thickness>
@@ -99,6 +107,7 @@
   <Thickness x:Key="EmptyStateInsetNarrow">20,16</Thickness>
   <Thickness x:Key="FloatingBarInset">10,3,3,3</Thickness>
   <Thickness x:Key="StripPanelInset">4</Thickness>
+  <Thickness x:Key="StripRuleInset">4,8</Thickness>
 
   <!-- Inspector, outline -->
   <Thickness x:Key="InspectorHeaderInset">20,22,20,20</Thickness>

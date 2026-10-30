@@ -354,7 +354,9 @@ public sealed class EditorEngine
         c.Add(new AppCommand("view.reactions", "Toggle reactions", "View", "5", () => Options.ShowReactions = !Options.ShowReactions));
         c.Add(new AppCommand("view.grid", "Toggle grid", "View", "Ctrl+G", () => Options.ShowGrid = !Options.ShowGrid));
         c.Add(new AppCommand("view.snap", "Toggle snapping", "View", "G", () => Options.SnapEnabled = !Options.SnapEnabled));
-        c.Add(new AppCommand("view.inspector", "Toggle inspector", "View", "Ctrl+\\", () => Options.InspectorVisible = !Options.InspectorVisible, icon: "panel"));
+        c.Add(new AppCommand("view.inspector", "Toggle inspector", "View", "Ctrl+\\", Options.ToggleInspector, icon: "panel"));
+        c.Add(new AppCommand("edit.multiSelect", "Multi-select (like holding Shift)", "Edit", null, () => Options.MultiSelect = !Options.MultiSelect, icon: "select-add"));
+        c.Add(new AppCommand("view.freePlacement", "Free placement, no snapping (like holding Alt)", "View", null, () => Options.FreePlacement = !Options.FreePlacement, icon: "snap-off"));
         c.Add(new AppCommand("view.palette", "Command palette", "View", "Ctrl+K", RequestPalette, icon: "search"));
         c.Add(new AppCommand("view.themeSystem", "Theme: follow system", "View", null, () => Options.Theme = ThemeChoice.System, icon: "theme"));
         c.Add(new AppCommand("view.themeLight", "Theme: light sheet", "View", null, () => Options.Theme = ThemeChoice.Light, icon: "theme"));

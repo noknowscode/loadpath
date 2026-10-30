@@ -46,6 +46,7 @@ public sealed partial class MainPage : Page
         DataContext = viewModel;
         Workspace.Editor = Engine;
         Outline.Engine = Engine;
+        OutlineTab.Engine = Engine;
         Palette.Model = Model;
         Model.IsPaletteOpen.ForEach(async (open, ct) =>
         {
@@ -60,6 +61,8 @@ public sealed partial class MainPage : Page
         Engine.OptionsChanged += (_, name) =>
         {
             if (name == nameof(ViewOptions.Theme)) ApplyTheme();
+            if (name == nameof(ViewOptions.InspectorSheetOpen) && Engine.Options.InspectorSheetOpen) DispatcherQueue.TryEnqueue(RevealSelectionBesideSheet);
+            if (name is nameof(ViewOptions.InspectorSheetOpen) or nameof(ViewOptions.InspectorDocked)) UpdateFloatingBar();
             PersistSettings();
         };
         Engine.Interaction.ToolChanged += (_, _) => UpdateFloatingBar();
@@ -86,6 +89,25 @@ public sealed partial class MainPage : Page
 #endif
         Root.AddHandler(KeyUpEvent, new KeyEventHandler(OnRootKeyUp), true);
         Loaded += OnLoaded;
+        LayoutProbe.RegisterPropertyChangedCallback(TagProperty, (_, _) => OnLayoutChanged());
+        OnLayoutChanged();
+    }
+
+    // ---- layout ----
+
+    /// <summary>
+    /// The responsive layout (LayoutProbe.Tag, from the one DefaultResponsiveLayout) decides whether the inspector is a
+    /// docked column or a sheet; Ctrl+\ and the inspector button act on whichever it is. At Widest the outline docks
+    /// beside the canvas, so the inspector host goes back to its inspector tab.
+    /// </summary>
+    private void OnLayoutChanged()
+    {
+        var layout = LayoutProbe.Tag as string ?? "Widest";
+        Engine.Options.InspectorDocked = layout is "Wide" or "Widest";
+        if (layout == "Widest") _ = GuardAsync("Inspector tab", () => Model.SelectTabAsync(outline: false).AsTask());
+#if DEBUG
+        Console.Error.WriteLine($"VERIFY layout={layout} width={XamlRoot?.Size.Width ?? 0:0}");
+#endif
     }
 
     public EditorEngine Engine { get; }
@@ -250,6 +272,10 @@ public sealed partial class MainPage : Page
                 }
             }
         }
+        if (Environment.GetEnvironmentVariable("LOADPATH_SHEET") == "1") Engine.Options.InspectorSheetOpen = true;
+        if (Environment.GetEnvironmentVariable("LOADPATH_TAB") == "outline") _ = Model.SelectTabAsync(outline: true);
+        if (Environment.GetEnvironmentVariable("LOADPATH_MULTI") == "1") Engine.Options.MultiSelect = true;
+        if (Environment.GetEnvironmentVariable("LOADPATH_FREE") == "1") Engine.Options.FreePlacement = true;
         var tool = Environment.GetEnvironmentVariable("LOADPATH_TOOL");
         if (!string.IsNullOrEmpty(tool) && Enum.TryParse<ToolKind>(tool, true, out var kind)) Engine.Interaction.SetTool(kind);
         if (Environment.GetEnvironmentVariable("LOADPATH_PALETTE") == "1") _ = Model.TogglePalette(default);
@@ -372,14 +398,17 @@ public sealed partial class MainPage : Page
     // ---- context menu ----
 
     // xaml-lint: allow codebehind - the menu depends on the canvas hit test at the pointer
-    private void OnContextMenuRequested(object? sender, (Point Position, HitResult Hit) args)
+    private void OnContextMenuRequested(object? sender, Workspace.ContextMenuRequest args)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+        // A long press gets fingertip rows; the theme comes from the canvas the menu opens on.
+        var touchStyle = args.Touch && Application.Current.Resources.TryGetValue("TouchMenuItem", out var ts) ? ts as Style : null;
         void Add(string id, string? title = null)
         {
             var c = Engine.Commands.Find(id);
             if (c is null) return;
             var item = new MenuFlyoutItem { Text = title ?? c.Title, IsEnabled = c.CanExecute, KeyboardAcceleratorTextOverride = c.ShortcutDisplay.Split('|')[0] };
+            if (touchStyle is not null) item.Style = touchStyle;
             item.Click += (_, _) => { if (!c.TryExecute()) Engine.Toast($"{c.Title} is not available"); };
             menu.Items.Add(item);
         }
@@ -404,6 +433,7 @@ public sealed partial class MainPage : Page
                 {
                     var c = Engine.Commands[$"section.{s.Id}"];
                     var item = new MenuFlyoutItem { Text = s.Name };
+                    if (touchStyle is not null) item.Style = touchStyle;
                     item.Click += (_, _) => c.TryExecute();
                     sub.Items.Add(item);
                 }
@@ -415,6 +445,7 @@ public sealed partial class MainPage : Page
                 break;
             default:
                 var addNode = new MenuFlyoutItem { Text = "Add node here", KeyboardAcceleratorTextOverride = "N" };
+                if (touchStyle is not null) addNode.Style = touchStyle;
                 var world = Engine.Interaction.SnapPoint(Engine.Viewport.ToWorld(new Vec2(args.Position.X, args.Position.Y)), false).Point;
                 addNode.Click += (_, _) => { var add = new AddNodeEdit(world); Engine.History.Do(add); Engine.Selection.Set(ElementRef.Node(add.NodeId)); };
                 menu.Items.Add(addNode);
@@ -428,6 +459,37 @@ public sealed partial class MainPage : Page
                 break;
         }
         menu.ShowAt(Workspace, args.Position);
+    }
+
+    /// <summary>
+    /// A sheet covers part of the drawing (the right 336 px, or the bottom of a phone screen). When it opens over the
+    /// selection, the view pans so the selection sits in the middle of the part still showing.
+    /// </summary>
+    private void RevealSelectionBesideSheet()
+    {
+        if (Engine.Options.InspectorDocked || !Engine.Options.InspectorSheetOpen || Engine.Selection.IsEmpty) return;
+        var bounds = Bounds.Empty;
+        foreach (var id in Engine.SelectedNodeIdsIncludingMemberEnds())
+        {
+            if (Engine.Document.FindNode(id) is { } n) bounds = bounds.Include(Engine.Viewport.ToScreen(n.Position));
+        }
+        if (bounds.IsEmpty) return;
+        var center = bounds.Center;
+        var free = UncoveredCanvas();
+        if (free.Contains(new Point(center.X, center.Y)) && bounds.Max.Y < free.Bottom && bounds.Max.X < free.Right) return;
+        Engine.Viewport.PanBy(new Vec2(free.Left + free.Width / 2 - center.X, free.Top + free.Height / 2 - center.Y));
+    }
+
+    /// <summary>The part of the canvas no sheet covers: all of it, less the side sheet's width or the bottom sheet's height.</summary>
+    private Rect UncoveredCanvas()
+    {
+        var free = new Rect(0, 0, WorkspaceHost.ActualWidth, WorkspaceHost.ActualHeight);
+        if (Engine.Options.InspectorDocked || !Engine.Options.InspectorSheetOpen) return free;
+        // The sheet's size is a layout token; the layout (from the one responsive layout) says which edge it covers.
+        static double Token(string key) => Application.Current.Resources.TryGetValue(key, out var v) && v is double d ? d : 0;
+        if (LayoutProbe.Tag as string == "Narrow") free.Height = Math.Max(0, free.Height - Token("BottomSheetHeight"));
+        else free.Width = Math.Max(0, free.Width - Token("InspectorWidth"));
+        return free;
     }
 
     // ---- floating selection bar ----
@@ -454,9 +516,13 @@ public sealed partial class MainPage : Page
         var w = FloatingBar.ActualWidth > 0 ? FloatingBar.ActualWidth : 150;
         // Up and to the right of the selection, clear of its load arrow; flip left when it would leave the sheet.
         var x = bounds.Max.X + 24;
+        // The bar stays on the part of the canvas no sheet covers.
+        var area = UncoveredCanvas();
         // xaml-lint: allow responsive - clamps the popover inside the canvas; not a layout breakpoint
-        if (x + w > WorkspaceHost.ActualWidth - 8) x = bounds.Min.X - 24 - w;
-        x = Math.Clamp(x, 32, Math.Max(32, WorkspaceHost.ActualWidth - w - 8));
+        if (x + w > area.Right - 8) x = bounds.Min.X - 24 - w;
+        // Keep 32 px off the sheet's left edge when there is room; a phone-wide bar may use the 8 px gutter instead.
+        var minX = Math.Min(32, Math.Max(8, area.Right - w - 8));
+        x = Math.Clamp(x, minX, Math.Max(minX, area.Right - w - 8));
         var y = bounds.Min.Y - 80;
         if (y < 32) y = bounds.Max.Y + 28;
         var target = new Thickness(x, y, 0, 0);

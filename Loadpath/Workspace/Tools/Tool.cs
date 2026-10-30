@@ -5,8 +5,19 @@ namespace Loadpath.Workspace.Tools;
 
 public enum CursorKind { Arrow, Hand, Grab, Grabbing, Cross, Move }
 
-/// <summary>One pointer sample, in both spaces, with modifiers.</summary>
-public readonly record struct PointerState(Vec2 Screen, Vec2 World, bool Shift, bool Alt, bool Ctrl, bool IsLeft, bool IsMiddle, bool IsRight);
+/// <summary>
+/// One pointer sample, in both spaces, with modifiers. <paramref name="Multi"/> and <paramref name="Free"/> are the
+/// sticky touch stand-ins for Shift (add to the selection) and Alt (no snapping); <paramref name="IsTouch"/> marks a
+/// finger, which hit-tests with the larger touch radii.
+/// </summary>
+public readonly record struct PointerState(Vec2 Screen, Vec2 World, bool Shift, bool Alt, bool Ctrl, bool IsLeft, bool IsMiddle, bool IsRight,
+    bool Multi = false, bool Free = false, bool IsTouch = false)
+{
+    /// <summary>Add to (or toggle within) the selection instead of replacing it: Shift, or the multi-select toggle.</summary>
+    public bool Extend => Shift || Multi;
+    /// <summary>Place without snapping: Alt, or the free-placement toggle.</summary>
+    public bool NoSnap => Alt || Free;
+}
 
 /// <summary>What a tool needs from the editor. Implemented by WorkspaceInteraction.</summary>
 public interface IToolContext

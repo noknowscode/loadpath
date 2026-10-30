@@ -46,6 +46,10 @@ public sealed class ViewOptions
     private bool _reduceNoise;
     private NoiseLayer _keep = DefaultKeep;
     private ThemeChoice _theme = ThemeChoice.System;
+    private bool _inspectorDocked = true;
+    private bool _inspectorSheetOpen;
+    private bool _multiSelect;
+    private bool _freePlacement;
 
     public event EventHandler<string>? Changed;
 
@@ -62,6 +66,26 @@ public sealed class ViewOptions
     /// <summary>The layers that stay on screen while noise is reduced.</summary>
     public NoiseLayer Keep { get => _keep; set => Set(ref _keep, value & NoiseLayer.All); }
     public ThemeChoice Theme { get => _theme; set => Set(ref _theme, value); }
+
+    // Session state, not saved: the layout and the touch modifiers.
+
+    /// <summary>Set by the page from the responsive layout: true where the inspector is a docked column (1100 px and up).</summary>
+    public bool InspectorDocked { get => _inspectorDocked; set => Set(ref _inspectorDocked, value); }
+    /// <summary>The inspector as a side sheet (600 to 1099 px) or bottom sheet (phones): opened and closed by the user.</summary>
+    public bool InspectorSheetOpen { get => _inspectorSheetOpen; set => Set(ref _inspectorSheetOpen, value); }
+    /// <summary>Whether the inspector shows in the current layout: the docked toggle (saved) or the sheet (session).</summary>
+    public bool InspectorShown => InspectorDocked ? InspectorVisible : InspectorSheetOpen;
+    /// <summary>Touch stand-in for holding Shift while selecting: taps add to or remove from the selection.</summary>
+    public bool MultiSelect { get => _multiSelect; set => Set(ref _multiSelect, value); }
+    /// <summary>Touch stand-in for holding Alt: nodes are placed and dragged without grid, guide or node snapping.</summary>
+    public bool FreePlacement { get => _freePlacement; set => Set(ref _freePlacement, value); }
+
+    /// <summary>Ctrl+\ and the inspector button: the docked column in a docked layout, the sheet otherwise.</summary>
+    public void ToggleInspector()
+    {
+        if (InspectorDocked) InspectorVisible = !InspectorVisible;
+        else InspectorSheetOpen = !InspectorSheetOpen;
+    }
 
     public void SetKeep(NoiseLayer layer, bool keep) => Keep = keep ? Keep | layer : Keep & ~layer;
 
