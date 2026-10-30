@@ -315,7 +315,7 @@ Loadpath/                        (solution root)
     Geometry/     Vec2, HitTester, SnapEngine, Bounds
     Serialization/ DocumentSerializer (JSON v1)
     Samples/      SampleStructures (Warren, Cantilever, Roof)
-  Loadpath/                      Uno single-project app, net10.0-desktop
+  Loadpath/                      Uno single-project app: android, ios, windows (WinAppSDK), browserwasm, desktop
     App.xaml(.cs), MainPage.xaml(.cs)
     Presentation/ EditorViewModel, InspectorViewModel (+ Node/Member/Mixed/Summary), OutlineViewModel, StatusViewModel, PaletteViewModel, ViewOptions
     Commands/     AppCommand, CommandRegistry, ShortcutMap
@@ -350,7 +350,7 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 
 ### Services and dependencies
 
-- `Uno.Sdk 6.7.30` (pinned via `global.json`, same as ReticleLab), `net10.0-desktop` only.
+- `Uno.Sdk 7.0.0-dev.115` (pinned via `global.json`), five heads: `net10.0-android`, `net10.0-ios`, `net10.0-windows10.0.19041`, `net10.0-browserwasm`, `net10.0-desktop`. `-p:LoadpathTargetFrameworks=<tfm>` builds one head without the other workloads.
 - UnoFeatures: `SkiaRenderer` (brings `Uno.WinUI.Graphics2DSK` for `SKCanvasElement`), `MVUX`, and `Toolkit` for `utu:Responsive` / `ResponsiveView` (no `ToolkitResources`: Fluent and the app's own styles remain the only control theme). No Material, no Extensions hosting: the app has three services and constructs them in `App`.
 - `CommunityToolkit.Mvvm` for `ObservableObject`/`RelayCommand`.
 - `System.Text.Json` (in-box) for documents and settings.
@@ -358,13 +358,15 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 
 ### Platform constraints
 
-- Desktop Skia only. `SKCanvasElement.IsSupportedOnCurrentPlatform()` is checked; a text fallback shows otherwise.
+- Every head draws the workspace with `SKCanvasElement` (Skia on the Uno heads, the x64/ARM64 WinAppSDK build on Windows). The canvas fonts load from `ms-appx:///Assets/Fonts`, which every head can read.
+- Window sizing is per head: desktop sets `PreferredLaunchViewSize` and re-asserts the X11 size; WinAppSDK resizes its `AppWindow` once at the display scale; WebAssembly, Android and iOS fill the browser or screen.
+- Editing is keyboard-and-mouse first. Touch editing for phones (pinch, long-press, larger hit radii) is planned, not built.
 - `UIElement.Opacity` does not affect `SKCanvasElement`; alpha is baked into paints.
 - No `CompositionTarget.Rendering` subscription held; timers only while animating.
 - `CharacterSpacing` is a no-op on Skia; tracking is not relied on.
 - Composition blur is unavailable; entrances use opacity + translate only.
 - `UseStudio()` is gated behind `APP_NO_HOTDESIGN != "1"` so headless runs show a window.
-- File pickers are called on the UI thread; a Documents-folder fallback path exists if the picker is unavailable on the host.
+- File pickers are called on the UI thread and files are read and written through `StorageFile` streams (a picked file has no usable path on WebAssembly or Android). When the picker is unavailable the app falls back to Documents/Loadpath on desktop and Windows and to the app's local folder elsewhere.
 
 ### Testing and validation
 

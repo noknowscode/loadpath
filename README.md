@@ -2,17 +2,19 @@
 
 A desktop workbench for 2D trusses that solves as you draw. Place nodes, connect them, pin some to the ground, hang loads, and every member shows the force it carries, its utilization, and the deflected shape. Drag a node and the whole load path re-solves on every pointer move.
 
-Built with Uno Platform (`Uno.Sdk 6.7.30`, `net10.0-desktop`, Skia renderer). The product and interaction design are in [`SPEC.md`](SPEC.md); this file covers what shipped, how it is built, and how it was validated.
+Built with Uno Platform (`Uno.Sdk 7.0.0-dev.115`, Skia renderer, SkiaSharp 4) for five heads: desktop (Windows, macOS and Linux through Skia), Windows App SDK, WebAssembly, Android and iOS. Editing is keyboard-and-mouse first; touch editing for phones is planned. The product and interaction design are in [`SPEC.md`](SPEC.md); this file covers what shipped, how it is built, and how it was validated.
 
 ![Warren truss with a member selected](docs/shot1.png)
 
 ## Run
 
 ```powershell
-dotnet build Loadpath/Loadpath.csproj -f net10.0-desktop
-dotnet run --project Loadpath/Loadpath.csproj -f net10.0-desktop
+dotnet build Loadpath/Loadpath.csproj -f net10.0-desktop -p:LoadpathTargetFrameworks=net10.0-desktop
+dotnet run --project Loadpath/Loadpath.csproj -f net10.0-desktop -p:LoadpathTargetFrameworks=net10.0-desktop
 dotnet test Loadpath.Tests/Loadpath.Tests.csproj
 ```
+
+`LoadpathTargetFrameworks` limits the app to one head, so a build needs only that head's workload. The other heads: `net10.0-browserwasm` (`wasm-tools` workload), `net10.0-android`, `net10.0-ios` (macOS) and `net10.0-windows10.0.19041` (Windows, x64 or ARM64). CI (`.github/workflows/ci.yml`) builds all five.
 
 In Debug, set `APP_NO_HOTDESIGN=1` to skip `UseStudio()` when no DevServer is reachable (headless runs).
 
@@ -90,16 +92,20 @@ Loadpath.Tests/     xunit: solver against method-of-joints values, mechanism det
 - Release build has zero warnings.
 - A UI craft pass (critique checklist, two widths, two heights, every display mode) brought control heights from five values to three (26 px chrome, 24 px status-bar segments, 32 px tool rail), moved arrow labels off the members, added the exaggeration readout, replaced the macOS `⌃K` glyph with `Ctrl+K`, and made the status bar drop the cursor readout below 960 px so the display toggles and max utilization stay whole.
 
-Fixture hooks (Debug only) make headless captures deterministic: `LOADPATH_SAMPLE=warren|cantilever|roof`, `LOADPATH_PRESET=pratt` or `pratt:24,6,1.6` (span, panels, depth), `LOADPATH_RESET=1` (ignore settings and autosave), `LOADPATH_SELECT=n4,m12`, `LOADPATH_MODE=utilization,deflection,reactions,nolabels`, `LOADPATH_TOOL=member`, `LOADPATH_PALETTE=1`, `LOADPATH_TOAST=text`, `LOADPATH_EDIT=unsupported|overload`, `LOADPATH_TRACE=path`.
+Fixture hooks make headless captures deterministic: `LOADPATH_SAMPLE=warren|cantilever|roof`, `LOADPATH_PRESET=pratt` or `pratt:24,6,1.6` (span, panels, depth), `LOADPATH_RESET=1` (ignore settings and autosave), `LOADPATH_SELECT=n4,m12`, `LOADPATH_MODE=utilization,deflection,reactions,nolabels`, `LOADPATH_TOOL=member`, `LOADPATH_PALETTE=1`, `LOADPATH_TOAST=text`, `LOADPATH_EDIT=unsupported|overload`, `LOADPATH_TRACE=path`. `LOADPATH_SAMPLE`, `LOADPATH_RESET` and `LOADPATH_NO_RESIZE` work in every build; the rest are Debug only.
 
 ## Platform notes
 
-- The window is sized at launch through `ApplicationView.PreferredLaunchViewSize`; resizing after creation raced the X11 Skia surface and produced a stale first layout. A self-healing check still nudges the size if the layout ever disagrees with the frame.
-- On Linux the file pickers go through the xdg-desktop-portal. Without a session bus the app saves to `~/Documents/Loadpath` and says so in a toast.
-- Share uses `Windows.ApplicationModel.DataTransfer.Clipboard`, which works on the X11 host. Any clipboard exception falls back to a `.share.txt` file next to the Documents fallback folder.
+- On desktop the window is sized at launch through `ApplicationView.PreferredLaunchViewSize`; resizing after creation raced the X11 Skia surface and produced a stale first layout. A self-healing check still nudges the size if the layout ever disagrees with the frame. WinAppSDK resizes its `AppWindow` once at the display scale; WebAssembly, Android and iOS fill the browser or the screen.
+- Files are read and written through `StorageFile` streams, never `file.Path`: a picked file is a browser handle or temporary copy on WebAssembly (saves go through `CachedFileManager`, which starts the download in browsers without the File System Access API) and a content URI on Android. WinAppSDK pickers get the main window as their owner.
+- On Linux the file pickers go through the xdg-desktop-portal. Without a session bus the app saves to `~/Documents/Loadpath` and says so in a toast. Heads with no Documents folder (WebAssembly, Android, iOS) fall back to the app's local folder.
+- Share uses `Windows.ApplicationModel.DataTransfer.Clipboard`, which works on the X11 host; desktop and WinAppSDK also `Flush` it so the code outlives the app. Any clipboard exception falls back to a `.share.txt` file in the fallback folder, and a toast says so when there is no folder either.
 - `ItemsWrapGrid` is not implemented in Uno, so the preset tiles use `ItemsRepeater` with `UniformGridLayout`.
 - Mouse-wheel zoom uses `PointerWheelChanged`. Synthesized X11 button-4/5 clicks arrive as plain presses on this host, so wheel zoom was not exercised headlessly; `Ctrl+=`, `Ctrl+-`, `Ctrl+0`, `Ctrl+1` and `F` were.
 - `SKCanvasElement` ignores `UIElement.Opacity`; dimming is baked into the paints.
+- On Uno 7 `SKCanvasElement` derives from `Grid`, which is not hit-testable without a background; the workspace sets a transparent `Background` so it receives pointer input (and keeps keyboard focus on the key sink).
+- Mouse-wheel zoom is off on Android and iOS, which report no wheel delta; `Ctrl+=`, `Ctrl+-`, `Ctrl+0` and Fit remain. Cursor shapes are set on desktop, WebAssembly and WinAppSDK only.
+- Documents and settings serialize through source-generated `JsonSerializerContext`s: the trimmed WebAssembly head turns reflection-based `System.Text.Json` off.
 - Load and reaction arrows have a fixed pixel length, so where their labels are clear depends on zoom. The renderer keeps the label boxes drawn each frame and gives an arrow label the first of four spots (beyond the tail, further beyond, beside the tail outward, beside it inward) that misses them.
 - MVUX generator notes: records carried by feeds are plain `partial record`s (no `required` members, no record structs), colors travel as resource keys resolved by a converter, and a `readonly record struct` with an `Id` property must not be `partial` or the key-equality generator emits a non-partial duplicate.
 - MVUX runs generated commands and `ForEach` callbacks on a thread-pool thread. Anything that mutates the document (and therefore raises events that reach XAML) is posted back to the UI dispatcher through `EditorModel.Ui(...)`; without it the first edit of a transaction lands and the rest throw "dependency property system should not be accessed from non UI thread".
