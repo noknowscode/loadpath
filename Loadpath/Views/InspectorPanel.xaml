@@ -133,7 +133,7 @@
                           <TextBlock Text="{Binding Mode}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource DangerBrush}" />
                           <TextBlock Text="{Binding Detail}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
-                        <!-- xaml-lint: allow card - utilization pill, not a card; no Toolkit by README decision -->
+                        <!-- xaml-lint: allow card - utilization pill, not a card -->
                         <Border Grid.Column="2" Style="{StaticResource DangerPill}">
                           <TextBlock Text="{Binding Util}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" Foreground="{ThemeResource DangerBrush}" />
                         </Border>
@@ -194,7 +194,7 @@
             <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom14}">
               <TextBlock Text="02" Style="{StaticResource SectionNumber}" /><TextBlock Text="SUPPORT" Style="{StaticResource SectionLabel}" />
             </StackPanel>
-            <!-- xaml-lint: allow card - segmented control frame; no Toolkit by README decision -->
+            <!-- xaml-lint: allow card - segmented control frame -->
             <Border Style="{StaticResource SegmentGroup}">
               <Grid>
                 <Grid.ColumnDefinitions>
@@ -298,8 +298,8 @@
                       <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
                       <TextBlock Grid.Column="1" Text="{Binding Endpoints}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
                       <TextBlock Grid.Column="2" Text="{Binding Force}" Style="{StaticResource MonoCaption}" Foreground="{Binding ForceToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center" />
-                      <!-- xaml-lint: allow card - utilization pill, not a card; no Toolkit by README decision -->
-                      <Border Grid.Column="3" HorizontalAlignment="Right" Style="{StaticResource PillBorder}" BorderThickness="0"
+                      <!-- xaml-lint: allow card - utilization pill, not a card -->
+                      <Border Grid.Column="3" HorizontalAlignment="Right" Style="{StaticResource PillBorder}" BorderThickness="{StaticResource Inset0}"
                               Background="{Binding UtilIsDanger, Converter={StaticResource Pick}, ConverterParameter=DangerSoftBrush|TransparentBrush}">
                         <TextBlock Text="{Binding Util}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}"
                                    Foreground="{Binding UtilIsDanger, Converter={StaticResource Pick}, ConverterParameter=DangerBrush|InkSecondaryBrush}" />
@@ -350,7 +350,7 @@
             </ComboBox>
             <TextBlock Text="{Binding Inspector.MaterialText}" Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource GapTop10}" />
             <TextBlock Text="{Binding Inspector.AreaText}" Style="{StaticResource MonoCaption}" Margin="{StaticResource GapTop2}" />
-            <TextBlock Text="Drag a section onto any member to apply it." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource GapTop10}" />
+            <TextBlock Text="Drag a section onto any member, or pick one to apply it here." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource GapTop10}" />
             <!-- The chips overflow one 296 px row; a uniform grid wraps them into rows of four instead of clipping. -->
             <ItemsRepeater ItemsSource="{Binding Sections}" Margin="{StaticResource GapTop8}">
               <ItemsRepeater.Layout>
@@ -358,11 +358,14 @@
               </ItemsRepeater.Layout>
               <ItemsRepeater.ItemTemplate>
                 <DataTemplate>
-                  <!-- xaml-lint: allow card - draggable section chip; no Toolkit by README decision -->
-                  <Border Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusHairline}" Padding="{StaticResource Inset6x3}" Tag="{Binding Id}"
-                          PointerPressed="OnSectionChipPressed" ToolTipService.ToolTip="{Binding Name}">
+                  <!--
+                    A section chip: drag it onto any member (mouse and pen), or click, tap, Enter or Space to apply it to the
+                    selected members. The drag starts from InspectorPanel's press handler, which sees presses the button handles.
+                  -->
+                  <Button Style="{StaticResource ChipButton}" Tag="{Binding Id}" Command="{Binding DataContext.ApplySection, ElementName=Panel}" CommandParameter="{Binding Id}"
+                          AutomationProperties.Name="{Binding ApplyName}" ToolTipService.ToolTip="{Binding Name}">
                     <TextBlock Text="{Binding ShortName}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Center" />
-                  </Border>
+                  </Button>
                 </DataTemplate>
               </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>

@@ -119,7 +119,47 @@ public sealed partial class MainPage : Page
         KeySink.Focus(FocusState.Programmatic);
         RestoreOrSeed();
         SizeWindowAtLaunch();
+        GuardCloseWithUnsavedChanges();
     }
+
+    // ---- closing with unsaved changes ----
+
+#if __DESKTOP__ || WINDOWS
+    private bool _closeConfirmed;
+#endif
+
+    /// <summary>
+    /// Desktop and WinAppSDK ask before a window with unsaved changes closes (Save, Discard, Cancel). WebAssembly cancels
+    /// the close, so the browser asks to confirm leaving the page. Android and iOS have no close to intercept; the
+    /// autosave keeps the work.
+    /// </summary>
+    private void GuardCloseWithUnsavedChanges()
+    {
+#if __DESKTOP__ || WINDOWS || __WASM__
+        if (App.MainWindow is { } window) window.AppWindow.Closing += OnWindowClosing;
+#endif
+    }
+
+#if __DESKTOP__ || WINDOWS || __WASM__
+    // xaml-lint: allow codebehind - the close prompt needs the window's closing event and a dialog
+    private void OnWindowClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
+    {
+        if (!Engine.IsDirty) return;
+#if __WASM__
+        // The browser asks on its own (leave this page?); a dialog cannot outlive the unloading page.
+        args.Cancel = true;
+#else
+        if (_closeConfirmed) return;
+        args.Cancel = true;
+        _ = GuardAsync("Close", async () =>
+        {
+            if (!await ConfirmDiscardAsync(closing: true)) return;
+            _closeConfirmed = true;
+            App.MainWindow?.Close();
+        });
+#endif
+    }
+#endif
 
     /// <summary>
     /// Desktop (X11, Win32, macOS) and WinAppSDK open at 1440 x 960. WebAssembly, Android and iOS fill the browser
@@ -742,7 +782,8 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private async Task<bool> ConfirmDiscardAsync()
+    /// <param name="closing">The window is closing: Discard also drops the autosave, so the next launch does not bring the discarded edits back.</param>
+    private async Task<bool> ConfirmDiscardAsync(bool closing = false)
     {
         var dialog = new ContentDialog
         {
@@ -757,7 +798,13 @@ public sealed partial class MainPage : Page
         };
         var result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary) { await SaveAsync(false); return !Engine.IsDirty; }
-        return result == ContentDialogResult.Secondary;
+        if (result != ContentDialogResult.Secondary) return false;
+        if (closing)
+        {
+            _autosaveTimer?.Stop();
+            try { File.Delete(_settings.AutosavePath); } catch (Exception) { /* nothing to drop */ }
+        }
+        return true;
     }
 
     private void ScheduleAutosave()

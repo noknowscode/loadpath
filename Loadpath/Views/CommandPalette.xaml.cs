@@ -65,10 +65,9 @@ public sealed partial class CommandPalette : UserControl
         }
     }
 
-    // xaml-lint: allow codebehind - rows are not Buttons so arrow keys keep focus in the query; a press runs the row
-    private async void OnItemPressed(object sender, PointerRoutedEventArgs e)
+    // xaml-lint: allow codebehind - a row is a button: a click, Enter or Space runs its command
+    private async void OnItemClick(object sender, RoutedEventArgs e)
     {
-        e.Handled = true;
         if (sender is not FrameworkElement { Tag: string id } || Model is not { } model) return;
         try
         {

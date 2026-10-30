@@ -57,12 +57,23 @@ public record InspectorContent(
 }
 
 /// <summary>One outline row. Key is "n{id}" or "m{id}" so the view can name the element without carrying Core types.</summary>
-public partial record OutlineItem(string Key, string Label, string Detail, string Value, string ValueToneKey, string RowBrushKey, bool HasBadge, string Badge, bool HasPill, string PillText);
+public partial record OutlineItem(string Key, string Label, string Detail, string Value, string ValueToneKey, string RowBrushKey, bool HasBadge, string Badge, bool HasPill, string PillText)
+{
+    /// <summary>What a screen reader says for the row: "Node N4, 6, 0, pin, 15 kN" or "Member M6, N6-N7, +18.7, over capacity 120%".</summary>
+    public string AutomationName =>
+        $"{(Key.StartsWith('n') ? "Node" : "Member")} {Label}, {Detail}"
+        + (HasBadge ? $", {Badge.ToLowerInvariant()}" : "")
+        + (Value.Length > 0 ? $", {Value.TrimStart('↓', '↑', '←', '→', '↖', '↗', '↙', '↘', ' ')}" : "")
+        + (HasPill ? $", over capacity {PillText}" : "");
+}
 
 /// <summary>A member connected to the selected node, as listed in the node inspector.</summary>
 public partial record ConnectedItem(string Key, string Label, string Endpoints, string Force, string ForceToneKey, string Util, bool UtilIsDanger);
 
-public partial record PaletteItem(string Id, string Title, string Category, string Shortcut, string Icon, bool HasIcon, bool IsDisabled, string RowBrushKey);
+public partial record PaletteItem(string Id, string Title, string Category, string Shortcut, string Icon, bool HasIcon, bool IsDisabled, string RowBrushKey)
+{
+    public string AutomationName => IsDisabled ? $"{Title}, {Category}, not available now" : $"{Title}, {Category}";
+}
 
 /// <summary>Counts beside each layer in the Reduce noise flyout.</summary>
 public record LayerCounts(string Grid, string Supports, string Loads, string OverCapacity, string MemberForces, string Reactions)
@@ -71,7 +82,10 @@ public record LayerCounts(string Grid, string Supports, string Loads, string Ove
 }
 
 /// <summary>A section choice for the inspector, decoupled from the Core record.</summary>
-public partial record SectionChoice(string Id, string Name, string ShortName);
+public partial record SectionChoice(string Id, string Name, string ShortName)
+{
+    public string ApplyName => $"Apply section {Name} to the selected members";
+}
 
 /// <summary>A member over capacity, as listed in the summary inspector. Mode is the failure verb ("BUCKLES", "YIELDS").</summary>
 public partial record FailureItem(string Key, string Label, string Mode, string Util, string Detail, string AutomationName);

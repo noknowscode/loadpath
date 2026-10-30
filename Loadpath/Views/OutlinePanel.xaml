@@ -3,10 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="using:Loadpath.Controls">
   <UserControl.Resources>
-    <!-- Node row: id, coordinates, then support badge and load flush right. -->
+    <!-- Node row: id, coordinates, then support badge and load flush right. A button: Tab reaches it, Enter selects. -->
     <DataTemplate x:Key="NodeRow">
-      <Border Height="{StaticResource RowHeight}" Padding="{StaticResource OutlineRowInset}" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Key}"
-              PointerPressed="OnRowPressed" PointerEntered="OnRowEntered" PointerExited="OnRowExited">
+      <Button Style="{StaticResource RowButton}" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Key}"
+              AutomationProperties.Name="{Binding AutomationName}" Click="OnRowClick" PointerEntered="OnRowEntered" PointerExited="OnRowExited">
         <Grid ColumnSpacing="{StaticResource Space10}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="26" />
@@ -16,19 +16,19 @@
           </Grid.ColumnDefinitions>
           <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
           <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
-          <!-- xaml-lint: allow card - support badge, not a card; no Toolkit by README decision -->
+          <!-- xaml-lint: allow card - support badge, not a card -->
           <Border Grid.Column="2" Style="{StaticResource PillBorder}" HorizontalAlignment="Right" c:Motion.Reveal="True" Visibility="{Binding HasBadge, Converter={StaticResource Vis}}">
             <TextBlock Text="{Binding Badge}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" Foreground="{ThemeResource InkBrush}" />
           </Border>
           <TextBlock Grid.Column="3" Text="{Binding Value}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" TextAlignment="Right" />
         </Grid>
-      </Border>
+      </Button>
     </DataTemplate>
 
     <!-- Member row: id, endpoints, force, and a red pill when over capacity. -->
     <DataTemplate x:Key="MemberRow">
-      <Border Height="{StaticResource RowHeight}" Padding="{StaticResource OutlineRowInset}" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Key}"
-              PointerPressed="OnRowPressed" PointerEntered="OnRowEntered" PointerExited="OnRowExited">
+      <Button Style="{StaticResource RowButton}" Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Key}"
+              AutomationProperties.Name="{Binding AutomationName}" Click="OnRowClick" PointerEntered="OnRowEntered" PointerExited="OnRowExited">
         <Grid ColumnSpacing="{StaticResource Space8}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="26" />
@@ -40,12 +40,12 @@
           <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
           <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
           <TextBlock Grid.Column="2" Text="{Binding Value}" Style="{StaticResource MonoCaption}" Foreground="{Binding ValueToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center" />
-          <!-- xaml-lint: allow card - utilization pill, not a card; no Toolkit by README decision -->
-          <Border Grid.Column="3" Style="{StaticResource DangerPill}" BorderThickness="0" c:Motion.Reveal="True" Visibility="{Binding HasPill, Converter={StaticResource Vis}}">
+          <!-- xaml-lint: allow card - utilization pill, not a card -->
+          <Border Grid.Column="3" Style="{StaticResource DangerPill}" BorderThickness="{StaticResource Inset0}" c:Motion.Reveal="True" Visibility="{Binding HasPill, Converter={StaticResource Vis}}">
             <TextBlock Text="{Binding PillText}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" Foreground="{ThemeResource DangerBrush}" />
           </Border>
         </Grid>
-      </Border>
+      </Button>
     </DataTemplate>
   </UserControl.Resources>
 
