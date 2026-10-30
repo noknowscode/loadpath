@@ -43,12 +43,12 @@ public sealed class WorkspaceRenderer : IDisposable
 
     public WorkspaceRenderer()
     {
-        var mono = LoadTypeface("JetBrainsMono-Regular.ttf") ?? SKTypeface.FromFamilyName("monospace") ?? SKTypeface.Default;
-        var monoMedium = LoadTypeface("JetBrainsMono-Medium.ttf") ?? mono;
-        var ui = LoadTypeface("Inter-Regular.ttf") ?? SKTypeface.Default;
-        _mono = new SKFont(monoMedium, 11.5f) { Edging = SKFontEdging.SubpixelAntialias, Subpixel = true };
+        // Fallback faces for the first frames, until the bundled fonts arrive through SetTypefaces.
+        var mono = SKTypeface.FromFamilyName("monospace") ?? SKTypeface.Default;
+        var ui = SKTypeface.Default;
+        _mono = new SKFont(mono, 11.5f) { Edging = SKFontEdging.SubpixelAntialias, Subpixel = true };
         _monoSmall = new SKFont(mono, 10.5f) { Edging = SKFontEdging.SubpixelAntialias, Subpixel = true };
-        _monoBold = new SKFont(monoMedium, 10.5f) { Edging = SKFontEdging.SubpixelAntialias, Subpixel = true };
+        _monoBold = new SKFont(mono, 10.5f) { Edging = SKFontEdging.SubpixelAntialias, Subpixel = true };
         _ui = new SKFont(ui, 12.5f) { Edging = SKFontEdging.SubpixelAntialias, Subpixel = true };
         _pb.MoveTo(0, 6);
         _pb.LineTo(-11, 19);
@@ -57,22 +57,30 @@ public sealed class WorkspaceRenderer : IDisposable
         _supportTriangle = _pb.Detach();
     }
 
-    private static SKTypeface? LoadTypeface(string file)
+    private volatile CanvasTypefaces? _pendingTypefaces;
+
+    /// <summary>
+    /// Hands over the bundled faces. They are swapped in at the start of the next <see cref="Render"/>, on the thread
+    /// that draws, so a frame never sees half-updated fonts. The faces are shared and not owned by the renderer.
+    /// </summary>
+    public void SetTypefaces(CanvasTypefaces faces) => _pendingTypefaces = faces;
+
+    private void ApplyPendingTypefaces()
     {
-        foreach (var dir in new[] { AppContext.BaseDirectory, Path.Combine(AppContext.BaseDirectory, "Assets"), Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts") })
+        if (_pendingTypefaces is not { } faces) return;
+        _pendingTypefaces = null;
+        if ((faces.MonoMedium ?? faces.Mono) is { } medium)
         {
-            var p = Path.Combine(dir, file);
-            if (!File.Exists(p)) p = Path.Combine(dir, "Fonts", file);
-            if (File.Exists(p))
-            {
-                try { return SKTypeface.FromFile(p); } catch { /* fall through */ }
-            }
+            _mono.Typeface = medium;
+            _monoBold.Typeface = medium;
         }
-        return null;
+        if (faces.Mono is { } regular) _monoSmall.Typeface = regular;
+        if (faces.Ui is { } ui) _ui.Typeface = ui;
     }
 
     public void Render(SKCanvas canvas, RenderSnapshot s)
     {
+        ApplyPendingTypefaces();
         canvas.Clear(SkiaPalette.Canvas);
         _labelRects.Clear();
         // The XAML tool palette floats over the top-left of the sheet (MainPage: Margin 40,24, ~56 x 300).

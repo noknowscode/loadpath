@@ -55,6 +55,21 @@ public sealed partial class WorkspaceView : SKCanvasElement
         PointerCaptureLost += OnPointerLost;
         PointerExited += (_, _) => _editor?.Interaction.PointerExited();
         PointerWheelChanged += OnPointerWheelChanged;
+        _ = LoadTypefacesAsync();
+    }
+
+    /// <summary>The bundled canvas fonts load from the app package; the first frames use the fallback faces.</summary>
+    private async Task LoadTypefacesAsync()
+    {
+        try
+        {
+            _renderer.SetTypefaces(await CanvasTypefaces.LoadAsync());
+            Invalidate();
+        }
+        catch (Exception)
+        {
+            // Cosmetic: the canvas keeps its fallback faces.
+        }
     }
 
     public EditorEngine? Editor
