@@ -15,11 +15,14 @@
     <!--
       SkiaRenderer: the workspace is an SKCanvasElement.
       MVUX: the presentation model (Uno.Extensions.Reactive).
-      No Material, Toolkit, or Extensions hosting: the visual system is custom and the app has three services.
+      Toolkit: utu:Responsive and ResponsiveView for the width layouts. Only the helpers and controls are used;
+      ToolkitResources is not merged, so Fluent (XamlControlsResources) plus the app's own tokens and control
+      styles stay the only control theme. No Material, no Extensions hosting: the app has three services.
     -->
     <UnoFeatures>
       SkiaRenderer;
       MVUX;
+      Toolkit;
     </UnoFeatures>
   </PropertyGroup>
 

@@ -351,7 +351,7 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 ### Services and dependencies
 
 - `Uno.Sdk 6.7.30` (pinned via `global.json`, same as ReticleLab), `net10.0-desktop` only.
-- UnoFeatures: `SkiaRenderer` (brings `Uno.WinUI.Graphics2DSK` for `SKCanvasElement`). No Material, no Toolkit, no Extensions hosting: the app has three services and constructs them in `App`.
+- UnoFeatures: `SkiaRenderer` (brings `Uno.WinUI.Graphics2DSK` for `SKCanvasElement`), `MVUX`, and `Toolkit` for `utu:Responsive` / `ResponsiveView` (no `ToolkitResources`: Fluent and the app's own styles remain the only control theme). No Material, no Extensions hosting: the app has three services and constructs them in `App`.
 - `CommunityToolkit.Mvvm` for `ObservableObject`/`RelayCommand`.
 - `System.Text.Json` (in-box) for documents and settings.
 - Fonts: Inter static TTFs (OFL), JetBrains Mono static TTFs (OFL, copied from the repo's Meridian assets).

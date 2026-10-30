@@ -77,7 +77,7 @@ Loadpath.Tests/     xunit: solver against method-of-joints values, mechanism det
 
 **Decision: one `SKCanvasElement` for the workspace, XAML for everything contextual.** Ribbons, labels, supports, guides and adorners must be pixel-registered with the structure, so they are Skia. The floating bar, banners, toasts and the drag ghost are XAML on an overlay layer positioned through the viewport transform. The renderer reads a `RenderSnapshot` built on the UI thread and holds no per-frame allocations beyond paths. There is no `CompositionTarget.Rendering` subscription; viewport animations run a timer only while moving.
 
-**Decision: no Material or Toolkit.** The visual system is custom (dark drafting table, Inter for UI, JetBrains Mono for every number, hairlines instead of shadows), so the app carries its own tokens and control styles instead of restyling a theme.
+**Decision: Fluent plus the app's own tokens; Uno Toolkit for responsive layout only.** The visual system is custom (blueprint drafting sheet, Inter for UI, JetBrains Mono for every number, hairlines instead of shadows), so the app carries its own tokens and control styles on top of Fluent (`XamlControlsResources`) instead of restyling a theme. No Material. The Toolkit (`UnoFeatures` `Toolkit`) is referenced for `utu:Responsive` and `ResponsiveView`; `ToolkitResources` is not merged, so it adds no control styles. This reverses the earlier "no Toolkit" decision.
 
 **Decision: detached parts are tolerated.** The solver finds connected components; a component with no support is excluded and reported instead of making the whole solve singular. A structure that is genuinely a mechanism still reports as one.
 

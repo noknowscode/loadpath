@@ -9,7 +9,8 @@
   <Grid x:Name="Root" Background="{StaticResource CanvasBrush}">
     <!--
       Width breakpoints. The canvas keeps the room: the structure outline yields first, then the inspector,
-      then the floating tool palette. AdaptiveTrigger is the platform route; the project takes no Toolkit dependency.
+      then the floating tool palette. These are AdaptiveTriggers for now; the Toolkit is referenced so the width layouts
+      can move to utu:Responsive and ResponsiveView.
     -->
     <VisualStateManager.VisualStateGroups>
       <VisualStateGroup x:Name="WidthStates">
