@@ -1,6 +1,12 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net10.0-desktop</TargetFrameworks>
+    <!-- Five heads. Uno.Sdk skips the ones the build OS can't build (iOS off macOS, Windows off Windows). -->
+    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041;net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
+    <!--
+      App-only override for single-head builds (CI, RID-specific publish): -p:LoadpathTargetFrameworks=net10.0-desktop.
+      A global -p:TargetFrameworks would also reach Loadpath.Core, a plain net10.0 library.
+    -->
+    <TargetFrameworks Condition="'$(LoadpathTargetFrameworks)' != ''">$(LoadpathTargetFrameworks)</TargetFrameworks>
 
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
@@ -24,6 +30,16 @@
       MVUX;
       Toolkit;
     </UnoFeatures>
+  </PropertyGroup>
+
+  <!--
+    WinAppSDK: SKCanvasElement (the workspace) needs an x64 or ARM64 build, never AnyCPU.
+    Uno 7's WinUI libraries need WinRT.Runtime 2.3.1; the default 19041 projection brings 2.2.0 (CS1705).
+  -->
+  <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+    <Platforms>x64;ARM64</Platforms>
+    <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
+    <WindowsSdkPackageVersion>10.0.19041.87</WindowsSdkPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
