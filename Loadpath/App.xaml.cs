@@ -16,7 +16,7 @@ public partial class App : Application
         // Size the window at creation; resizing after the fact races the Skia host's surface.
         Windows.UI.ViewManagement.ApplicationView.PreferredLaunchViewSize = new Windows.Foundation.Size(LaunchWidth, LaunchHeight);
         MainWindow = new Window();
-#if DEBUG
+#if DEBUG && !NO_UNO_STUDIO
         // Headless verification runs opt out: UseStudio() keeps the window hidden when no DevServer is reachable.
         if (Environment.GetEnvironmentVariable("APP_NO_HOTDESIGN") != "1")
         {
