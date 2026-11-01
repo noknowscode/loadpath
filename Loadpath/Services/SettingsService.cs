@@ -4,7 +4,7 @@ using Loadpath.Presentation;
 
 namespace Loadpath.Services;
 
-/// <summary>View options, last file and the autosave, as JSON in the app's local folder.</summary>
+/// <summary>View options and the autosave, as JSON in the app's local folder.</summary>
 public sealed class SettingsService
 {
     /// <summary>Source-generated: trimmed heads (WebAssembly) turn reflection-based System.Text.Json off.</summary>
@@ -25,7 +25,6 @@ public sealed class SettingsService
         public int NoiseKeep { get; set; } = (int)ViewOptions.DefaultKeep;
         /// <summary>"System", "Light" or "Dark". Missing in older settings files, which then follow the system.</summary>
         public string Theme { get; set; } = nameof(ThemeChoice.System);
-        public string? LastFilePath { get; set; }
         public List<string> RecentFiles { get; set; } = new();
     }
 

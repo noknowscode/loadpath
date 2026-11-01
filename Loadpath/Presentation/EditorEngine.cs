@@ -3,6 +3,7 @@ using Loadpath.Core.Analysis;
 using Loadpath.Core.Editing;
 using Loadpath.Core.Samples;
 using Loadpath.Core.Selection;
+using Loadpath.Core.Serialization;
 using Loadpath.Workspace;
 
 namespace Loadpath.Presentation;
@@ -92,16 +93,27 @@ public sealed class EditorEngine
         SavedStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void LoadSnapshot(DocumentSnapshot snapshot, string label, string? filePath)
+    /// <summary>
+    /// Load a document with a fresh history (open, new). <paramref name="saved"/>: the document matches
+    /// <paramref name="filePath"/>; false keeps it unsaved, so New, Open and closing still ask before dropping it.
+    /// </summary>
+    public void LoadSnapshot(DocumentSnapshot snapshot, string label, string? filePath, bool saved = true)
     {
-        History.Do(new ReplaceDocumentEdit(snapshot, label));
-        History.Clear();
-        Selection.Clear();
         Interaction.CancelTool();
+        Selection.Clear();
+        History.Do(new ReplaceDocumentEdit(snapshot, label));
+        // Clearing keeps the document dirty: the replacement just made it so.
+        History.Clear();
         FilePath = filePath;
-        MarkSaved();
+        if (saved) MarkSaved();
         RequestFit();
     }
+
+    /// <summary>
+    /// Bring back an autosaved session: the document, the file it belongs to (none for a sample, preset or paste),
+    /// and its unsaved changes as unsaved.
+    /// </summary>
+    public void RestoreSession(AutosavedSession session) => LoadSnapshot(session.Snapshot, "Restore", session.FilePath, saved: !session.Dirty);
 
     public void LoadSample(string id) => LoadSnapshot(SampleStructures.Build(id), "Load sample", null);
 

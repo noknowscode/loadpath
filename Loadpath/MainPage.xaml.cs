@@ -58,6 +58,8 @@ public sealed partial class MainPage : Page
         Engine.SelectionChanged += (_, _) => { UpdateFloatingBar(glide: true); EnsureKeyboardTarget(); };
         Engine.ViewportChanged += (_, _) => UpdateFloatingBar();
         Engine.AnalysisChanged += (_, _) => { UpdateFloatingBar(); ScheduleAutosave(); };
+        // Saving changes what the autosave records (the file, clean) without changing the document.
+        Engine.SavedStateChanged += (_, _) => ScheduleAutosave();
         Engine.OptionsChanged += (_, name) =>
         {
             if (name == nameof(ViewOptions.Theme)) ApplyTheme();
@@ -267,8 +269,8 @@ public sealed partial class MainPage : Page
         {
             try
             {
-                var snap = DocumentSerializer.Deserialize(File.ReadAllText(_settings.AutosavePath));
-                if (snap.Nodes.Count > 0) Engine.LoadSnapshot(snap, "Restore", _settingsModel.LastFilePath);
+                var session = Autosave.Deserialize(File.ReadAllText(_settings.AutosavePath));
+                if (session.Snapshot.Nodes.Count > 0) Engine.RestoreSession(session);
             }
             catch { /* a bad autosave is discarded */ }
         }
@@ -774,8 +776,6 @@ public sealed partial class MainPage : Page
             var result = await _files.OpenAsync();
             if (result is null) { ShowToast("Nothing opened"); return; }
             Engine.LoadSnapshot(result.Value.Snapshot, "Open", result.Value.Path);
-            _settingsModel.LastFilePath = result.Value.Path;
-            PersistSettings();
             ShowToast($"Opened {Path.GetFileName(result.Value.Path)}");
         }
         catch (Exception ex)
@@ -793,8 +793,6 @@ public sealed partial class MainPage : Page
             Engine.FilePath = path;
             Engine.Document.Name = Path.GetFileNameWithoutExtension(path);
             Engine.MarkSaved();
-            _settingsModel.LastFilePath = path;
-            PersistSettings();
             ShowToast($"Saved to {path}");
         }
         catch (Exception ex)
@@ -843,8 +841,9 @@ public sealed partial class MainPage : Page
         _autosaveTimer?.Stop();
         try
         {
-            // Serialize on the UI thread (the document is UI-owned); write off it.
-            var json = DocumentSerializer.Serialize(Engine.Document);
+            // Serialize on the UI thread (the document is UI-owned); write off it. The file and the dirty flag go
+            // with the document, so a restart restores the session as it was, not as saved to the last file.
+            var json = Autosave.Serialize(Engine.Document, Engine.FilePath, Engine.IsDirty);
             await File.WriteAllTextAsync(_settings.AutosavePath, json);
         }
         catch (Exception)
