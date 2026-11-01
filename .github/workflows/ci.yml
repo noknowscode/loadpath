@@ -19,7 +19,7 @@ env:
 
 jobs:
   test:
-    name: Unit tests (Loadpath.Core)
+    name: Unit tests (Loadpath.Core and the app layer)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,8 +27,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Test
-        # The tests reference Loadpath.Core only (net10.0), so no mobile workloads are needed.
-        run: dotnet test Loadpath.Tests/Loadpath.Tests.csproj -c Release
+        # The runner has no mobile workloads: restore the app for its net10.0 test target only.
+        run: dotnet test Loadpath.Tests/Loadpath.Tests.csproj -c Release -p:LoadpathTargetFrameworks=net10.0
 
   desktop:
     name: Desktop (${{ matrix.rid }})
