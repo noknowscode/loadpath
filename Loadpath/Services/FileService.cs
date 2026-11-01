@@ -13,7 +13,7 @@ namespace Loadpath.Services;
 /// browser handle or a temporary copy on WebAssembly and a content URI on Android.
 /// Pickers run on the UI thread; callers await from there.
 /// </summary>
-public sealed class FileService
+public sealed class FileService : IDocumentFiles
 {
     private static readonly Encoding Utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 

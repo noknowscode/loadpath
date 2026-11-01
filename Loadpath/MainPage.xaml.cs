@@ -13,13 +13,14 @@ namespace Loadpath;
 
 /// <summary>
 /// The single page. Composes the shell, routes keyboard shortcuts, hosts the context menu, floating bar,
-/// toast, section drag-and-drop, and the file/autosave lifecycle.
+/// toast and section drag-and-drop, and gives the document session its dialog, autosave timer and close guard.
 /// </summary>
 public sealed partial class MainPage : Page
 {
     private readonly FileService _files = new(() => App.MainWindow);
     private readonly SettingsService _settings = new();
     private readonly SettingsService.Model _settingsModel;
+    private readonly DocumentSession _session;
     private DispatcherTimer? _autosaveTimer;
     private DispatcherTimer? _toastTimer;
     private Section? _draggingSection;
@@ -33,7 +34,9 @@ public sealed partial class MainPage : Page
 #if DEBUG
         ApplyThemeFixture();
 #endif
-        RegisterFileCommands();
+        _session = new DocumentSession(Engine, _files, _settings.AutosavePath, AskUnsavedAsync);
+        _session.RegisterCommands();
+        RegisterShareCommands();
         // Before the views are built, so the canvas and the converter brushes start in the right theme.
         ApplyTheme();
         InitializeComponent();
@@ -119,12 +122,12 @@ public sealed partial class MainPage : Page
     public EditorModel Model { get; }
 
     // xaml-lint: allow codebehind - startup: autosave restore and the launch-size re-assert (no XAML surface)
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         KeySink.Focus(FocusState.Programmatic);
-        RestoreOrSeed();
         SizeWindowAtLaunch();
         GuardCloseWithUnsavedChanges();
+        await GuardAsync("Restore", RestoreOrSeedAsync);
     }
 
     // ---- closing with unsaved changes ----
@@ -158,7 +161,7 @@ public sealed partial class MainPage : Page
         args.Cancel = true;
         _ = GuardAsync("Close", async () =>
         {
-            if (!await ConfirmDiscardAsync(closing: true)) return;
+            if (!await _session.ConfirmDiscardAsync(closing: true)) return;
             _closeConfirmed = true;
             App.MainWindow?.Close();
         });
@@ -239,7 +242,7 @@ public sealed partial class MainPage : Page
 
     // ---- startup: autosave restore, DEBUG fixture hooks ----
 
-    private void RestoreOrSeed()
+    private async Task RestoreOrSeedAsync()
     {
         var sample = Environment.GetEnvironmentVariable("LOADPATH_SAMPLE");
         var fixtureFile = Environment.GetEnvironmentVariable("LOADPATH_FILE");
@@ -266,14 +269,9 @@ public sealed partial class MainPage : Page
             Engine.LoadSnapshot(DocumentSerializer.Deserialize(File.ReadAllText(fixtureFile)), "Open", null);
         }
 #endif
-        else if (Environment.GetEnvironmentVariable("LOADPATH_RESET") != "1" && File.Exists(_settings.AutosavePath))
+        else if (Environment.GetEnvironmentVariable("LOADPATH_RESET") != "1")
         {
-            try
-            {
-                var session = Autosave.Deserialize(File.ReadAllText(_settings.AutosavePath));
-                if (session.Snapshot.Nodes.Count > 0) Engine.RestoreSession(session);
-            }
-            catch { /* a bad autosave is discarded */ }
+            await _session.RestoreAsync();
         }
 #if DEBUG
         ApplyFixtureHooks();
@@ -688,13 +686,9 @@ public sealed partial class MainPage : Page
 
     // ---- files, autosave, settings ----
 
-    private void RegisterFileCommands()
+    private void RegisterShareCommands()
     {
-        // Commands are synchronous; each file command runs as a guarded task so any failure ends as a toast.
-        Engine.Commands.Add(new AppCommand("file.new", "New structure", "File", "Ctrl+N", () => _ = GuardAsync("New", NewAsync), icon: "new"));
-        Engine.Commands.Add(new AppCommand("file.open", "Open…", "File", "Ctrl+O", () => _ = GuardAsync("Open", OpenAsync), icon: "folder"));
-        Engine.Commands.Add(new AppCommand("file.save", "Save", "File", "Ctrl+S", () => _ = GuardAsync("Save", () => SaveAsync(false)), icon: "save"));
-        Engine.Commands.Add(new AppCommand("file.saveAs", "Save as…", "File", "Ctrl+Shift+S", () => _ = GuardAsync("Save as", () => SaveAsync(true)), icon: "save"));
+        // Commands are synchronous; each runs as a guarded task so any failure ends as a toast.
         Engine.Commands.Add(new AppCommand("file.share", "Copy share code", "File", "Ctrl+Shift+C", () => _ = GuardAsync("Copy share code", ShareAsync), () => Engine.Document.Nodes.Count > 0, "duplicate"));
         Engine.Commands.Add(new AppCommand("file.paste", "Paste design from share code", "File", "Ctrl+Shift+V", () => _ = GuardAsync("Paste", PasteAsync), icon: "folder"));
     }
@@ -763,52 +757,13 @@ public sealed partial class MainPage : Page
         return clean.Length == 0 ? "Untitled" : clean;
     }
 
-    private async Task NewAsync()
-    {
-        if (Engine.IsDirty && !await ConfirmDiscardAsync()) return;
-        Engine.NewDocument();
-    }
-
-    private async Task OpenAsync()
-    {
-        if (Engine.IsDirty && !await ConfirmDiscardAsync()) return;
-        try
-        {
-            var result = await _files.OpenAsync();
-            if (result is null) { ShowToast("Nothing opened"); return; }
-            Engine.LoadSnapshot(result.Value.Snapshot, "Open", result.Value.Path);
-            ShowToast($"Opened {Path.GetFileName(result.Value.Path)}");
-        }
-        catch (Exception ex)
-        {
-            ShowToast($"Could not open: {ex.Message}");
-        }
-    }
-
-    private async Task SaveAsync(bool ask)
-    {
-        try
-        {
-            var path = await _files.SaveAsync(Engine.Document, Engine.FilePath, ask);
-            if (path is null) return;
-            Engine.FilePath = path;
-            Engine.Document.Name = Path.GetFileNameWithoutExtension(path);
-            Engine.MarkSaved();
-            ShowToast($"Saved to {path}");
-        }
-        catch (Exception ex)
-        {
-            ShowToast($"Could not save: {ex.Message}");
-        }
-    }
-
-    /// <param name="closing">The window is closing: Discard also drops the autosave, so the next launch does not bring the discarded edits back.</param>
-    private async Task<bool> ConfirmDiscardAsync(bool closing = false)
+    /// <summary>The session's unsaved-changes question, as a dialog: Save, Discard or Cancel.</summary>
+    private async Task<UnsavedChoice> AskUnsavedAsync(string documentName)
     {
         var dialog = new ContentDialog
         {
             Title = "Unsaved changes",
-            Content = $"“{Engine.Document.Name}” has changes that are not saved.",
+            Content = $"“{documentName}” has changes that are not saved.",
             PrimaryButtonText = "Save",
             SecondaryButtonText = "Discard",
             CloseButtonText = "Cancel",
@@ -816,15 +771,12 @@ public sealed partial class MainPage : Page
             // A dialog opens in the popup layer, outside the page: hand it the page's theme.
             RequestedTheme = ActualTheme,
         };
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary) { await SaveAsync(false); return !Engine.IsDirty; }
-        if (result != ContentDialogResult.Secondary) return false;
-        if (closing)
+        return await dialog.ShowAsync() switch
         {
-            _autosaveTimer?.Stop();
-            try { File.Delete(_settings.AutosavePath); } catch (Exception) { /* nothing to drop */ }
-        }
-        return true;
+            ContentDialogResult.Primary => UnsavedChoice.Save,
+            ContentDialogResult.Secondary => UnsavedChoice.Discard,
+            _ => UnsavedChoice.Cancel,
+        };
     }
 
     private void ScheduleAutosave()
@@ -842,10 +794,7 @@ public sealed partial class MainPage : Page
         _autosaveTimer?.Stop();
         try
         {
-            // Serialize on the UI thread (the document is UI-owned); write off it. The file and the dirty flag go
-            // with the document, so a restart restores the session as it was, not as saved to the last file.
-            var json = Autosave.Serialize(Engine.Document, Engine.FilePath, Engine.IsDirty);
-            await File.WriteAllTextAsync(_settings.AutosavePath, json);
+            await _session.AutosaveAsync();
         }
         catch (Exception)
         {
