@@ -65,7 +65,7 @@ public sealed class SelectTool : Tool
             _pressedRef = r;
             _pressedWasSelected = ctx.Selection.Contains(r);
             if (!_pressedWasSelected && !p.Extend) ctx.Selection.Set(r);
-            else if (!_pressedWasSelected && p.Extend) ctx.Selection.Add([r]);
+            else if (!_pressedWasSelected && p.Extend) ctx.Selection.Add(new[] { r });
             return;
         }
         _phase = Phase.PressedEmpty;
@@ -106,7 +106,7 @@ public sealed class SelectTool : Tool
         _undoDepthAtDrag = ctx.History.UndoDepth;
         var r = _pressedRef!.Value;
         // Dragging something already selected moves the whole selection; otherwise just the pressed element.
-        var refs = ctx.Selection.Contains(r) ? ctx.Selection.Items : [r];
+        var refs = ctx.Selection.Contains(r) ? ctx.Selection.Items : new[] { r };
         _dragNodes = new HashSet<int>();
         foreach (var e in refs)
         {

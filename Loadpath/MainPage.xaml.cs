@@ -706,7 +706,7 @@ public sealed partial class MainPage : Page
         Engine.Interaction.Overlay.HighlightMember = null;
         if (drop && _dropTargetMember is { } id)
         {
-            Engine.History.Do(new SetSectionEdit([id], section));
+            Engine.History.Do(new SetSectionEdit(new[] { id }, section));
             Engine.Selection.Set(ElementRef.Member(id));
             ShowToast($"{section.Name} applied to member {id}");
         }

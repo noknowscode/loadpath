@@ -186,7 +186,7 @@ public sealed class EditorEngine
 
     public void SetMemberSection(int memberId, Section section)
     {
-        if (Document.FindMember(memberId) is { } m && m.Section != section) History.Do(new SetSectionEdit([memberId], section));
+        if (Document.FindMember(memberId) is { } m && m.Section != section) History.Do(new SetSectionEdit(new[] { memberId }, section));
     }
 
     public IEnumerable<int> SelectedNodeIdsIncludingMemberEnds()
