@@ -19,7 +19,8 @@ public sealed partial class MainPage : Page
 {
     private readonly FileService _files = new(() => App.MainWindow);
     private readonly SettingsService _settings = new();
-    private readonly SettingsService.Model _settingsModel;
+    private SettingsService.Model _settingsModel = new();
+    private bool _settingsLoaded;
     private readonly DocumentSession _session;
     private DispatcherTimer? _autosaveTimer;
     private DispatcherTimer? _toastTimer;
@@ -29,10 +30,10 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         Engine = new EditorEngine();
-        _settingsModel = Environment.GetEnvironmentVariable("LOADPATH_RESET") == "1" ? new SettingsService.Model() : _settings.Load();
-        _settings.Apply(_settingsModel, Engine.Options);
-#if DEBUG
-        ApplyThemeFixture();
+#if !__WASM__
+        // The local folder is there at launch: read the settings before the views are built, so the first frame is
+        // already in the saved theme. WebAssembly mounts its storage later and reads them in StartAsync.
+        ApplySettings(Environment.GetEnvironmentVariable("LOADPATH_RESET") == "1" ? new SettingsService.Model() : _settings.Load());
 #endif
         _session = new DocumentSession(Engine, _files, _settings.AutosavePath, AskUnsavedAsync);
         _session.RegisterCommands();
@@ -121,13 +122,36 @@ public sealed partial class MainPage : Page
     public EditorEngine Engine { get; }
     public EditorModel Model { get; }
 
-    // xaml-lint: allow codebehind - startup: autosave restore and the launch-size re-assert (no XAML surface)
+    // xaml-lint: allow codebehind - startup: settings, autosave restore and the launch-size re-assert (no XAML surface)
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         KeySink.Focus(FocusState.Programmatic);
         SizeWindowAtLaunch();
         GuardCloseWithUnsavedChanges();
-        await GuardAsync("Restore", RestoreOrSeedAsync);
+        await GuardAsync("Start", StartAsync);
+    }
+
+    /// <summary>
+    /// Settings and the autosave live in the app's local folder. WebAssembly mounts it (browser storage) only after
+    /// launch, so there both are read here, once SettingsService.LoadAsync has waited for the mount.
+    /// </summary>
+    private async Task StartAsync()
+    {
+#if __WASM__
+        ApplySettings(Environment.GetEnvironmentVariable("LOADPATH_RESET") == "1" ? new SettingsService.Model() : await _settings.LoadAsync());
+#endif
+        await RestoreOrSeedAsync();
+    }
+
+    /// <summary>Apply the saved settings. From here on, option changes are saved; before, they would overwrite them with defaults.</summary>
+    private void ApplySettings(SettingsService.Model model)
+    {
+        _settingsModel = model;
+        _settings.Apply(model, Engine.Options);
+#if DEBUG
+        ApplyThemeFixture();
+#endif
+        _settingsLoaded = true;
     }
 
     // ---- closing with unsaved changes ----
@@ -804,6 +828,7 @@ public sealed partial class MainPage : Page
 
     private void PersistSettings()
     {
+        if (!_settingsLoaded) return;
         _settings.Capture(Engine.Options, _settingsModel);
         _settings.Save(_settingsModel);
     }

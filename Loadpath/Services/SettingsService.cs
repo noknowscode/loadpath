@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Loadpath.Presentation;
+using Windows.Storage;
 
 namespace Loadpath.Services;
 
@@ -33,16 +34,18 @@ public sealed class SettingsService
         get
         {
             string? dir = null;
-            try { dir = Windows.Storage.ApplicationData.Current.LocalFolder.Path; } catch { /* not available on every host */ }
+            try { dir = ApplicationData.Current.LocalFolder.Path; } catch { /* not available on every host */ }
             if (string.IsNullOrEmpty(dir)) dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Loadpath");
             Directory.CreateDirectory(dir);
             return dir;
         }
     }
 
-    private string SettingsPath => Path.Combine(Folder, "settings.json");
+    private const string SettingsFileName = "settings.json";
+    private string SettingsPath => Path.Combine(Folder, SettingsFileName);
     public string AutosavePath => Path.Combine(Folder, "autosave.loadpath");
 
+    /// <summary>Read the settings now: on every head but WebAssembly, the local folder is there at launch.</summary>
     public Model Load()
     {
         try
@@ -51,6 +54,18 @@ public sealed class SettingsService
         }
         catch { /* corrupt settings are not fatal */ }
         return new Model();
+    }
+
+    /// <summary>
+    /// Read the settings once the local folder can be read. WebAssembly mounts the browser's persistent storage after
+    /// launch, and a System.IO read before that finds nothing; an awaited StorageFolder call waits for the mount
+    /// (https://platform.uno/docs/articles/features/file-management.html#webassembly-file-system). Read the autosave
+    /// after this too.
+    /// </summary>
+    public async Task<Model> LoadAsync()
+    {
+        await ApplicationData.Current.LocalFolder.TryGetItemAsync(SettingsFileName);
+        return Load();
     }
 
     public void Save(Model model)
