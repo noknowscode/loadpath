@@ -1,5 +1,4 @@
 using Loadpath.Controls;
-using Loadpath.Commands;
 using Loadpath.Core.Editing;
 using Loadpath.Core.Serialization;
 using Loadpath.Presentation;
@@ -37,7 +36,6 @@ public sealed partial class MainPage : Page
 #endif
         _session = new DocumentSession(Engine, _files, _settings.AutosavePath, AskUnsavedAsync);
         _session.RegisterCommands();
-        RegisterShareCommands();
         // Before the views are built, so the canvas and the converter brushes start in the right theme.
         ApplyTheme();
         InitializeComponent();
@@ -736,77 +734,6 @@ public sealed partial class MainPage : Page
     }
 
     // ---- files, autosave, settings ----
-
-    private void RegisterShareCommands()
-    {
-        // Commands are synchronous; each runs as a guarded task so any failure ends as a toast.
-        Engine.Commands.Add(new AppCommand("file.share", "Copy share code", "File", "Ctrl+Shift+C", () => _ = GuardAsync("Copy share code", ShareAsync), () => Engine.Document.Nodes.Count > 0, "duplicate"));
-        Engine.Commands.Add(new AppCommand("file.paste", "Paste design from share code", "File", "Ctrl+Shift+V", () => _ = GuardAsync("Paste", PasteAsync), icon: "folder"));
-    }
-
-    /// <summary>
-    /// Copy the document as a one-line share code. Hosts without a working clipboard get the code written to the
-    /// fallback folder instead (Documents/Loadpath, or the app's local folder on WebAssembly, Android and iOS), and the
-    /// toast says where. With neither, the toast says so.
-    /// </summary>
-    private async Task ShareAsync()
-    {
-        var code = ShareCode.Encode(Engine.Document);
-        var size = code.Length < 1024 ? $"{code.Length} characters" : $"{code.Length / 1024.0:0.0} kB";
-        try
-        {
-            var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
-            package.SetText(code);
-            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
-#if __DESKTOP__ || WINDOWS
-            // Desktop hosts keep the code on the clipboard after Loadpath closes. The browser and the mobile
-            // clipboards hold the text themselves, so there is nothing to flush there.
-            Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
-#endif
-            ShowToast($"Share code copied ({size}). Paste it in Loadpath with Ctrl+Shift+V.");
-            return;
-        }
-        catch (Exception)
-        {
-            // No clipboard on this host: fall through to the share file.
-        }
-        if (_files.FallbackFolder is not { } folder)
-        {
-            ShowToast("No clipboard here, and no folder to save the share code to");
-            return;
-        }
-        var path = Path.Combine(folder, SafeName(Engine.Document.Name) + ShareFileSuffix);
-        await File.WriteAllTextAsync(path, code);
-        ShowToast($"No clipboard here. Share code saved to {path}");
-    }
-
-    private const string ShareFileSuffix = ".share.txt";
-
-    private async Task PasteAsync()
-    {
-        string? text = null;
-        try
-        {
-            var content = Windows.ApplicationModel.DataTransfer.Clipboard.GetContent();
-            if (content.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.Text)) text = await content.GetTextAsync();
-        }
-        catch (Exception)
-        {
-            // No clipboard on this host: read the most recent share file written by ShareAsync.
-            var file = _files.LatestInFallbackFolder("*" + ShareFileSuffix);
-            if (file is not null) text = await File.ReadAllTextAsync(file);
-        }
-        if (!ShareCode.TryDecode(text, out var snapshot, out var error)) { ShowToast(error); return; }
-        Engine.ReplaceDocument(snapshot!, "Paste design");
-        ShowToast($"Pasted {Engine.Document.Name} · Ctrl+Z to undo");
-    }
-
-    private static string SafeName(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        var clean = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
-        return clean.Length == 0 ? "Untitled" : clean;
-    }
 
     /// <summary>The session's unsaved-changes question, as a dialog: Save, Discard or Cancel.</summary>
     private async Task<UnsavedChoice> AskUnsavedAsync(string documentName)

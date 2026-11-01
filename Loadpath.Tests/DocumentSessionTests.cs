@@ -14,8 +14,8 @@ public sealed class DocumentSessionTests : IDisposable
     private const string FileA = "/docs/bridge.loadpath";
     private const string FileB = "/docs/roof.loadpath";
 
-    /// <summary>In-memory files and a scripted picker.</summary>
-    private sealed class Files : IDocumentFiles
+    /// <summary>In-memory documents, a scripted picker, and a real fallback folder for share files.</summary>
+    private sealed class Files(string fallbackFolder) : IDocumentFiles
     {
         public Dictionary<string, string> Disk { get; } = new();
         /// <summary>What the open picker returns next; null cancels.</summary>
@@ -38,16 +38,25 @@ public sealed class DocumentSessionTests : IDisposable
             if (path is not null) Disk[path] = DocumentSerializer.Serialize(doc);
             return Task.FromResult(path);
         }
+
+        public string? FallbackFolder => fallbackFolder;
+
+        public string? LatestInFallbackFolder(string pattern) =>
+            Directory.GetFiles(fallbackFolder, pattern).OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault();
     }
 
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "loadpath-tests-" + Guid.NewGuid().ToString("N"));
     private string AutosavePath => Path.Combine(_folder, "autosave.loadpath");
 
-    public DocumentSessionTests() => Directory.CreateDirectory(_folder);
+    public DocumentSessionTests()
+    {
+        Directory.CreateDirectory(_folder);
+        _files = new Files(_folder);
+    }
 
     public void Dispose() => Directory.Delete(_folder, recursive: true);
 
-    private readonly Files _files = new();
+    private readonly Files _files;
     private readonly List<string> _asked = new();
     private readonly List<string> _toasts = new();
 
@@ -305,5 +314,44 @@ public sealed class DocumentSessionTests : IDisposable
         Assert.False(await session.RestoreAsync());
         Assert.Empty(engine.Document.Nodes);
         Assert.False(engine.IsDirty);
+    }
+
+    // The net10.0 build has no clipboard to read (Uno's reference assemblies throw), so paste takes the path every host
+    // without one takes: the newest .share.txt file in the fallback folder, where Share writes on such a host.
+
+    [Fact]
+    public async Task Pasting_a_share_code_replaces_the_document_as_one_undo_step()
+    {
+        var roof = new StructureDocument();
+        SampleStructures.Build("roof").Restore(roof);
+        File.WriteAllText(Path.Combine(_folder, "Howe roof truss.share.txt"), ShareCode.Encode(roof));
+        var (engine, session) = Start();
+        engine.LoadSnapshot(SampleStructures.Build("cantilever"), "Open", "/docs/cantilever.loadpath");
+
+        await session.PasteAsync();
+
+        Assert.Equal("Howe roof truss", engine.Document.Name);
+        Assert.True(engine.IsDirty);
+        Assert.Null(engine.FilePath);
+        Assert.Contains("Pasted Howe roof truss · Ctrl+Z to undo", _toasts);
+        engine.History.Undo();
+        Assert.Equal("Cantilever", engine.Document.Name);
+    }
+
+    [Theory]
+    [InlineData("LP1.AAAA", "That share code is damaged or incomplete")]
+    [InlineData("""{ "version": 1, "nodes": [ { "id": 2, "x": 0, "y": 0 }, { "id": 2, "x": 1, "y": 0 } ], "members": [] }""", "Node 2 appears twice.")]
+    public async Task A_bad_pasted_design_is_refused_and_leaves_the_document_alone(string pasted, string reason)
+    {
+        File.WriteAllText(Path.Combine(_folder, "pasted.share.txt"), pasted);
+        var (engine, session) = Start();
+        engine.LoadSnapshot(SampleStructures.Build("warren"), "Open", null);
+        var before = DocumentSerializer.Serialize(engine.Document);
+
+        await session.PasteAsync();
+
+        Assert.Contains(reason, _toasts);
+        Assert.Equal(before, DocumentSerializer.Serialize(engine.Document));
+        Assert.False(engine.History.CanUndo);
     }
 }

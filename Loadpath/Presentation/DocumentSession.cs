@@ -9,9 +9,9 @@ namespace Loadpath.Presentation;
 public enum UnsavedChoice { Save, Discard, Cancel }
 
 /// <summary>
-/// The open document's life outside the editor: the file it belongs to; new, open, save and save as; the autosave and
-/// its restore; and the unsaved-changes question before anything drops work. Plain C#: the page hands it the pickers
-/// (<see cref="IDocumentFiles"/>) and the question (a dialog), so the tests can hand it their own.
+/// The open document's life outside the editor: the file it belongs to; new, open, save and save as; share codes; the
+/// autosave and its restore; and the unsaved-changes question before anything drops work. Plain C#: the page hands it
+/// the pickers (<see cref="IDocumentFiles"/>) and the question (a dialog), so the tests can hand it their own.
 /// </summary>
 public sealed class DocumentSession
 {
@@ -30,7 +30,7 @@ public sealed class DocumentSession
         _askUnsaved = askUnsaved;
     }
 
-    /// <summary>New, Open, Save and Save as, for shortcuts, menus and the palette. Commands are synchronous, so each runs as a task.</summary>
+    /// <summary>The File commands, for shortcuts, menus and the palette. Commands are synchronous, so each runs as a task.</summary>
     public void RegisterCommands()
     {
         var c = _engine.Commands;
@@ -38,6 +38,8 @@ public sealed class DocumentSession
         c.Add(new AppCommand("file.open", "Open…", "File", "Ctrl+O", () => _ = RunAsync("Open", OpenAsync), icon: "folder"));
         c.Add(new AppCommand("file.save", "Save", "File", "Ctrl+S", () => _ = RunAsync("Save", () => SaveAsync(ask: false)), icon: "save"));
         c.Add(new AppCommand("file.saveAs", "Save as…", "File", "Ctrl+Shift+S", () => _ = RunAsync("Save as", () => SaveAsync(ask: true)), icon: "save"));
+        c.Add(new AppCommand("file.share", "Copy share code", "File", "Ctrl+Shift+C", () => _ = RunAsync("Copy share code", ShareAsync), () => _engine.Document.Nodes.Count > 0, "duplicate"));
+        c.Add(new AppCommand("file.paste", "Paste design from share code", "File", "Ctrl+Shift+V", () => _ = RunAsync("Paste", PasteAsync), icon: "folder"));
     }
 
     /// <summary>Any failure ends as a toast, never as an unobserved task exception.</summary>
@@ -91,6 +93,71 @@ public sealed class DocumentSession
         {
             _engine.Toast($"Could not save: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Copy the document as a one-line share code. Hosts without a working clipboard get the code written to the
+    /// fallback folder instead (Documents/Loadpath, or the app's local folder on WebAssembly, Android and iOS), and the
+    /// toast says where. With neither, the toast says so.
+    /// </summary>
+    public async Task ShareAsync()
+    {
+        var code = ShareCode.Encode(_engine.Document);
+        var size = code.Length < 1024 ? $"{code.Length} characters" : $"{code.Length / 1024.0:0.0} kB";
+        try
+        {
+            var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+            package.SetText(code);
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+#if __DESKTOP__ || WINDOWS
+            // Desktop hosts keep the code on the clipboard after Loadpath closes. The browser and the mobile
+            // clipboards hold the text themselves, so there is nothing to flush there.
+            Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+#endif
+            _engine.Toast($"Share code copied ({size}). Paste it in Loadpath with Ctrl+Shift+V.");
+            return;
+        }
+        catch (Exception)
+        {
+            // No clipboard on this host: fall through to the share file.
+        }
+        if (_files.FallbackFolder is not { } folder)
+        {
+            _engine.Toast("No clipboard here, and no folder to save the share code to");
+            return;
+        }
+        var path = Path.Combine(folder, SafeName(_engine.Document.Name) + ShareFileSuffix);
+        await File.WriteAllTextAsync(path, code);
+        _engine.Toast($"No clipboard here. Share code saved to {path}");
+    }
+
+    private const string ShareFileSuffix = ".share.txt";
+
+    /// <summary>Replace the document with a pasted design, as one undo step. Text that is no design leaves it alone and says why.</summary>
+    public async Task PasteAsync()
+    {
+        string? text = null;
+        try
+        {
+            var content = Windows.ApplicationModel.DataTransfer.Clipboard.GetContent();
+            if (content.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.Text)) text = await content.GetTextAsync();
+        }
+        catch (Exception)
+        {
+            // No clipboard on this host: read the most recent share file written by ShareAsync.
+            var file = _files.LatestInFallbackFolder("*" + ShareFileSuffix);
+            if (file is not null) text = await File.ReadAllTextAsync(file);
+        }
+        if (!ShareCode.TryDecode(text, out var snapshot, out var error)) { _engine.Toast(error); return; }
+        _engine.ReplaceDocument(snapshot!, "Paste design");
+        _engine.Toast($"Pasted {_engine.Document.Name} · Ctrl+Z to undo");
+    }
+
+    private static string SafeName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var clean = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
+        return clean.Length == 0 ? "Untitled" : clean;
     }
 
     /// <summary>

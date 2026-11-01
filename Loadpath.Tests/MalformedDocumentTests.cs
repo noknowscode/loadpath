@@ -1,9 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using Loadpath.Core.Model;
-using Loadpath.Core.Samples;
 using Loadpath.Core.Serialization;
-using Loadpath.Presentation;
 using Xunit;
 
 namespace Loadpath.Tests;
@@ -77,21 +75,5 @@ public class MalformedDocumentTests
     {
         var snapshot = DocumentSerializer.Deserialize(Json("""{ "id": 1, "x": 0, "y": 0, "support": "7" }""", ""));
         Assert.Equal(SupportKind.None, snapshot.Nodes[0].Support);
-    }
-
-    [Fact]
-    public void Pasting_a_malformed_design_leaves_the_open_document_and_its_history_alone()
-    {
-        var engine = new EditorEngine();
-        engine.LoadSnapshot(SampleStructures.Build("warren"), "Open", null);
-        var before = DocumentSerializer.Serialize(engine.Document);
-
-        // What the page's paste does: decode, and replace only on success.
-        if (ShareCode.TryDecode(Code(Json(TwoNodes + """, { "id": 1, "x": 9, "y": 9 }""", "")), out var snapshot, out _))
-            engine.ReplaceDocument(snapshot!, "Paste design");
-
-        Assert.Equal(before, DocumentSerializer.Serialize(engine.Document));
-        Assert.False(engine.History.CanUndo);
-        Assert.False(engine.IsDirty);
     }
 }
