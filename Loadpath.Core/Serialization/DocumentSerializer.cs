@@ -85,12 +85,24 @@ public static class DocumentSerializer
     public static DocumentSnapshot Deserialize(string json) =>
         FromModel(JsonSerializer.Deserialize(json, Indented.FileModel) ?? throw new InvalidDataException("Empty document."));
 
+    /// <summary>
+    /// Check the whole document before anything is built from it. Restoring replaces the open document piece by piece,
+    /// so a duplicate id or a member to a missing node found halfway would leave the editor holding part of each.
+    /// </summary>
     internal static DocumentSnapshot FromModel(FileModel model)
     {
         if (model.Version > CurrentVersion) throw new InvalidDataException($"Document version {model.Version} is newer than this app supports.");
-        var nodeIds = model.Nodes.Select(n => n.Id).ToHashSet();
+        var nodeIds = new HashSet<int>();
+        foreach (var n in model.Nodes)
+        {
+            if (!nodeIds.Add(n.Id)) throw new InvalidDataException($"Node {n.Id} appears twice.");
+            if (!double.IsFinite(n.X) || !double.IsFinite(n.Y) || !double.IsFinite(n.Fx ?? 0) || !double.IsFinite(n.Fy ?? 0))
+                throw new InvalidDataException($"Node {n.Id} has a position or load that is not a finite number.");
+        }
+        var memberIds = new HashSet<int>();
         foreach (var m in model.Members)
         {
+            if (!memberIds.Add(m.Id)) throw new InvalidDataException($"Member {m.Id} appears twice.");
             if (!nodeIds.Contains(m.Start) || !nodeIds.Contains(m.End)) throw new InvalidDataException($"Member {m.Id} references a missing node.");
         }
         return new DocumentSnapshot
@@ -99,7 +111,8 @@ public static class DocumentSerializer
             Nodes = model.Nodes.Select(n => (
                 n.Id,
                 new Vec2(n.X, n.Y),
-                Enum.TryParse<SupportKind>(n.Support, out var s) ? s : SupportKind.None,
+                // TryParse also takes numbers, including ones that name no support kind.
+                Enum.TryParse<SupportKind>(n.Support, out var s) && Enum.IsDefined(s) ? s : SupportKind.None,
                 new Vec2(n.Fx ?? 0, n.Fy ?? 0))).ToList(),
             Members = model.Members.Select(m => (m.Id, m.Start, m.End, m.Section)).ToList(),
         };

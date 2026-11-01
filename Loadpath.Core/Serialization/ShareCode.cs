@@ -35,15 +35,12 @@ public static partial class ShareCode
         var t = text?.Trim() ?? "";
         if (t.Length == 0) { error = "Clipboard has no Loadpath design"; return false; }
 
-        if (t.StartsWith('{'))
-        {
-            try { snapshot = DocumentSerializer.Deserialize(t); return true; }
-            catch (InvalidDataException ex) { error = ex.Message; return false; }
-            catch (JsonException) { error = "That document is not valid Loadpath JSON"; return false; }
-        }
+        if (t.StartsWith('{')) return TryDeserialize(t, "That document is not valid Loadpath JSON", out snapshot, out error);
 
         var match = CodePattern().Match(t);
         if (!match.Success) { error = "Clipboard has no Loadpath design"; return false; }
+        const string damaged = "That share code is damaged or incomplete";
+        string json;
         try
         {
             var b64 = match.Groups[1].Value.Replace('-', '+').Replace('_', '/');
@@ -51,19 +48,29 @@ public static partial class ShareCode
             using var input = new MemoryStream(Convert.FromBase64String(b64));
             using var deflate = new DeflateStream(input, CompressionMode.Decompress);
             using var reader = new StreamReader(deflate, Encoding.UTF8);
-            snapshot = DocumentSerializer.Deserialize(reader.ReadToEnd());
+            json = reader.ReadToEnd();
+        }
+        catch (Exception ex) when (ex is FormatException or InvalidDataException or IOException)
+        {
+            error = damaged;
+            return false;
+        }
+        return TryDeserialize(json, damaged, out snapshot, out error);
+    }
+
+    /// <summary>A readable document error (a newer version, a duplicate id) is shown as is; unreadable JSON gets <paramref name="unreadable"/>.</summary>
+    private static bool TryDeserialize(string json, string unreadable, out DocumentSnapshot? snapshot, out string error)
+    {
+        snapshot = null;
+        error = "";
+        try
+        {
+            snapshot = DocumentSerializer.Deserialize(json);
             return true;
         }
-        catch (InvalidDataException ex) when (ex.Message.StartsWith("Document version", StringComparison.Ordinal) || ex.Message.StartsWith("Member", StringComparison.Ordinal))
-        {
-            error = ex.Message;
-            return false;
-        }
-        catch (Exception ex) when (ex is FormatException or InvalidDataException or JsonException or IOException)
-        {
-            error = "That share code is damaged or incomplete";
-            return false;
-        }
+        catch (InvalidDataException ex) { error = ex.Message; }
+        catch (JsonException) { error = unreadable; }
+        return false;
     }
 
     [GeneratedRegex(@"LP1\.([A-Za-z0-9_\-]+)")]
