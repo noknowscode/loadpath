@@ -4,7 +4,11 @@ using SkiaSharp;
 
 namespace Loadpath.Workspace;
 
-/// <summary>Plain data the renderer reads. Built on the UI thread at invalidation; never touches the live document.</summary>
+/// <summary>
+/// Plain data the renderer reads, so drawing never touches the live document. WorkspaceView builds it in RenderOverride,
+/// on the first frame after an invalidation. Uno 7 calls RenderOverride on the UI thread, the thread that owns the
+/// document (checked on the X11 desktop host; WebAssembly has no other thread).
+/// </summary>
 public sealed class RenderSnapshot
 {
     public readonly record struct NodeItem(int ElementId, SKPoint Screen, SKPoint Deflected, SupportKind Support, Vec2 LoadKn, SKPoint LoadTail, Vec2 ReactionKn, bool Selected, bool Hovered, bool Dimmed, Vec2 World);
