@@ -421,6 +421,7 @@ public sealed partial class MainPage : Page
 
         try
         {
+            if (key == VirtualKey.Escape && _draggingSection is not null) { EndSectionDrag(drop: false); e.Handled = true; return; }
             // Tools get first refusal (Esc cancels a chain or drag).
             if (!ctrl && !alt && Engine.Interaction.KeyDown(key)) { e.Handled = true; return; }
 
@@ -677,15 +678,17 @@ public sealed partial class MainPage : Page
     }
 
     // xaml-lint: allow codebehind - drag tracking, see above
-    private void OnHostPointerReleased(object sender, PointerRoutedEventArgs e)
+    private void OnHostPointerReleased(object sender, PointerRoutedEventArgs e) => EndSectionDrag(drop: true);
+
+    /// <param name="drop">The pointer was released: apply the section to the member under it. Esc only cancels.</param>
+    private void EndSectionDrag(bool drop)
     {
-        if (_draggingSection is null) return;
-        var section = _draggingSection;
+        if (_draggingSection is not { } section) return;
         _draggingSection = null;
         // xaml-lint: allow codebehind - drag ghost ends with the drag
         DragGhost.Visibility = Visibility.Collapsed;
         Engine.Interaction.Overlay.HighlightMember = null;
-        if (_dropTargetMember is { } id)
+        if (drop && _dropTargetMember is { } id)
         {
             Engine.History.Do(new SetSectionEdit([id], section));
             Engine.Selection.Set(ElementRef.Member(id));
