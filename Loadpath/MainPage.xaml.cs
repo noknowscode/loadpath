@@ -246,7 +246,8 @@ public sealed partial class MainPage : Page
         var preset = Environment.GetEnvironmentVariable("LOADPATH_PRESET");
         if (!string.IsNullOrEmpty(sample))
         {
-            Engine.LoadSample(sample);
+            // A fixture starts clean, as if opened from a file: no undo step, nothing unsaved.
+            Engine.LoadSnapshot(Core.Samples.SampleStructures.Build(sample), "Load sample", null);
         }
 #if DEBUG
         else if (!string.IsNullOrEmpty(preset))

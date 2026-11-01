@@ -115,11 +115,20 @@ public sealed class EditorEngine
     /// </summary>
     public void RestoreSession(AutosavedSession session) => LoadSnapshot(session.Snapshot, "Restore", session.FilePath, saved: !session.Dirty);
 
-    public void LoadSample(string id) => LoadSnapshot(SampleStructures.Build(id), "Load sample", null);
+    /// <summary>
+    /// Open a built-in sample the way presets and pasted designs land: one undoable step, so Ctrl+Z brings back the
+    /// structure it replaced, and a new, unsaved document.
+    /// </summary>
+    public void LoadSample(string id)
+    {
+        var replacing = Document.Nodes.Count > 0;
+        ReplaceDocument(SampleStructures.Build(id), "Load sample");
+        if (replacing) Toast($"{Document.Name} · Ctrl+Z restores your previous structure");
+    }
 
     /// <summary>
-    /// Replace the document as one undoable step, so Ctrl+Z brings back what was there. Presets and pasted designs
-    /// land this way; the result is a new, unsaved document.
+    /// Replace the document as one undoable step, so Ctrl+Z brings back what was there. Samples, presets and pasted
+    /// designs land this way; the result is a new, unsaved document.
     /// </summary>
     public void ReplaceDocument(DocumentSnapshot snapshot, string label)
     {
