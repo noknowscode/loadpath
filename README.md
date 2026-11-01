@@ -11,10 +11,10 @@ Built with Uno Platform (`Uno.Sdk 7.0.0-dev.115`, Skia renderer, SkiaSharp 4) fo
 ```powershell
 dotnet build Loadpath/Loadpath.csproj -f net10.0-desktop -p:LoadpathTargetFrameworks=net10.0-desktop
 dotnet run --project Loadpath/Loadpath.csproj -f net10.0-desktop -p:LoadpathTargetFrameworks=net10.0-desktop
-dotnet test Loadpath.Tests/Loadpath.Tests.csproj
+dotnet test Loadpath.Tests/Loadpath.Tests.csproj -p:LoadpathTargetFrameworks=net10.0
 ```
 
-`LoadpathTargetFrameworks` limits the app to one head, so a build needs only that head's workload. The other heads: `net10.0-browserwasm` (`wasm-tools` workload), `net10.0-android`, `net10.0-ios` (macOS) and `net10.0-windows10.0.19041` (Windows, x64 or ARM64). CI (`.github/workflows/ci.yml`) builds all five.
+`LoadpathTargetFrameworks` limits the app to one head, so a build needs only that head's workload. The tests reference the app's plain `net10.0` build (no head, no workload), so they cover the engine, the tools and the document session as well as Core. Warnings fail the build (`TreatWarningsAsErrors`), except trim analysis, which reports only on Uno's and MVUX's generated code. The other heads: `net10.0-browserwasm` (`wasm-tools` workload), `net10.0-android`, `net10.0-ios` (macOS) and `net10.0-windows10.0.19041` (Windows, x64 or ARM64). CI (`.github/workflows/ci.yml`) builds all five.
 
 In Debug, set `APP_NO_HOTDESIGN=1` to skip `UseStudio()` when no DevServer is reachable (headless runs).
 
@@ -63,17 +63,18 @@ Loadpath.Core/      net10.0 class library, no UI dependency
   Viewport/         Viewport (world ↔ screen, zoom-at-point, fit), PinchGesture
   Geometry/         Vec2, Bounds, HitTester (mouse and touch radii), SnapEngine, GridSteps
   Input/            TouchTracker (tap, drag, long press, pinch arbitration)
-  Serialization/    DocumentSerializer (JSON v1), ShareCode (LP1. text codes)
+  Serialization/    DocumentSerializer (JSON v1, checked whole before anything is built), ShareCode (LP1. text codes), Autosave
   Samples/          Warren, cantilever, Howe roof; TrussPresets (parametric Pratt, Howe, Warren, K, Fink, scissor)
 Loadpath/           Uno single-project app
-  Presentation/     EditorEngine (imperative), EditorModel (MVUX states, feeds, commands), Records, ViewOptions
+  Presentation/     EditorEngine (imperative), DocumentSession (files, autosave, unsaved-changes question), EditorModel (MVUX states, feeds, commands), Records, ViewOptions
   Commands/         AppCommand, CommandRegistry (shortcut parsing)
   Workspace/        WorkspaceView (SKCanvasElement), WorkspaceRenderer, RenderSnapshot, WorkspaceInteraction, Tools/
   Views/            TitleStrip, ToolRail, InspectorPanel, OutlinePanel, StatusBar, CommandPalette
   Controls/         Icon, ToolButton, NumberField, UtilizationBar, KeySink, IconLibrary, Converters
-  Services/         FileService, SettingsService
+  Services/         FileService (IDocumentFiles), SettingsService
   Themes/           Tokens (Light and Dark), Layout (spacing, sizes, the responsive layout), MotionTokens, Icons, Controls
-Loadpath.Tests/     xunit: solver against method-of-joints values, mechanism detection, history, geometry, serializer
+Loadpath.Tests/     xunit on Core and the app's net10.0 build: solver and LinearSolver, history, geometry, serializer and
+                    malformed documents, the engine, tool cancellation, the document session and autosave, inspector fields
 ```
 
 **Decision: MVUX for the presentation layer, an imperative engine for the document.** `EditorModel` is a `partial record` whose states and feeds carry immutable records (`EditorStatus`, `InspectorContent`, `OutlineItem`, `PaletteItem`); the generated `EditorViewModel` is the page's DataContext and every view binds with `{Binding}`. Buttons bind generated commands; undo and redo are feed-gated (`Command.Create(b => b.Given(Status).When(s => s.CanUndo)...)`). `EditorEngine` owns the document, undo history, selection, viewport and tools, and raises events the model projects into states, because a solve on every pointer move cannot copy an immutable document per frame. Tradeoff: two layers, and a plain `ViewOptions` mirror of the option states for the renderer.
@@ -92,6 +93,7 @@ Loadpath.Tests/     xunit: solver against method-of-joints values, mechanism det
 
 ## Validation
 
+- Code review fixes (2026-11-01): Release desktop and WebAssembly builds have 0 warnings and 0 errors with warnings as errors; 181 tests pass (79 new). The autosave records the document's file and its unsaved state: the review's repro (open a file, open a sample, restart, Save) asks where to save instead of overwriting the file, and recovered edits still ask before Open or New drops them. Esc, or a second finger, ends a drag by undoing only what that drag pushed. A sample replaces the document as an undo step. A file, share code or autosave with a duplicate id, a dangling member or a non-finite number is refused whole. Under Xvfb, a value typed into N3's X field followed by a click on N2 moves N3; Esc cancels a section drag. In headless Chromium the WebAssembly build raises the browser's leave-page prompt with unsaved changes, and after a reload restores the autosave unsaved, with the saved display mode.
 - Themes, layouts and touch: Release desktop, Android and WebAssembly builds have 0 warnings and 0 errors; 102 tests pass (11 new: touch hit radii, the touch tracker's tap / drag / long press / pinch arbitration, the pinch anchor and clamp). Under Xvfb the Warren sample with a member selected was captured at 360, 599, 600, 800, 1080, 1099, 1100, 1240 and 1920 px wide, Light and Dark, with the inspector sheet closed, open and on its outline tab, each in one launch live-resized through the widths. With `LOADPATH_TOUCH=1` the mouse drove the touch path: a tap 18 px from a node selects it, a long press opens the node menu with 44 px rows, a one-finger drag moves a node, the multi-select toggle adds a second node. The overflow menu, the theme switch, the presets and layer sheets capped to a 360 px window, `Ctrl+\` on a phone, and the close prompt (Cancel keeps the window, Discard closes it) were driven with `xdotool`. Pinch and two-finger pan are covered by unit tests only: `xdotool` has a single pointer. The published WebAssembly build starts in Chromium at 390 x 844 and 1440 x 900 and loads the Warren sample. The WinAppSDK and iOS heads cannot build on Linux and are left to CI.
 - Share, presets and failures (Stage 5 of `SPEC.md`): share codes round-trip every sample exactly, decode from inside surrounding text and from raw JSON, and refuse empty, foreign, truncated and corrupt input with a readable reason. Every preset at four parameter sets (defaults, small, odd panel count, 16 panels) solves with no detached parts, spans exactly the requested width, and balances its applied load with its reactions; defaults stay below full utilization; Pratt diagonals are in tension and Howe diagonals in compression. A slender strut fails by buckling, an overloaded tie by yield, and failures sort worst first. Section sizing brings an overloaded Pratt within capacity, changes only failing members in a determinate truss, picks the lightest working section per material, converges on a redundant K truss without leaving a touched or pushed member above 95 %, leaves a passing structure alone and reports loads beyond the library. Lighten saves mass without raising any member past its limit, keeps material and zero-force members, refuses while something fails, converges on a redundant truss, and is idempotent. The undo history's save point is clean after undo or redo back to it, dirty after branching away or extending the saved drag, and survives a history clear. An overloaded timber Fink upsizes in timber and an oversized one lightens in timber. 91 test cases in total.
 - Runtime (Stage 5): under Xvfb, an overloaded Pratt (`LOADPATH_PRESET=pratt:24,6,1.6`) shows mode pills, buckled bows, the legend entry and the inspector failure list; `J` cycles with a position toast; clicking a failure row selects its member. The presets flyout was driven end to end (span set to 30 m, K truss loaded, `Ctrl+Z` restored and refit the previous structure). Share → New → Paste round-tripped the Howe roof through the real X11 clipboard, and `Ctrl+Z` undid the paste.

@@ -324,7 +324,7 @@ Loadpath/                        (solution root)
     Services/     IFileService (+ Skia desktop implementation), SettingsService, AutosaveService, ClipboardService (in-app)
     Themes/       Tokens.xaml (colors, brushes, fonts, sizes), Typography.xaml, Controls.xaml (styles), MotionTokens.xaml, Icons.xaml
     Assets/Fonts/ Inter (3 static), JetBrainsMono (2 static)
-  Loadpath.Tests/                xunit, references Core
+  Loadpath.Tests/                xunit, references Core and the app's net10.0 build
 ```
 
 ### State model
@@ -367,10 +367,12 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 - Composition blur is unavailable; entrances use opacity + translate only.
 - `UseStudio()` is gated behind `APP_NO_HOTDESIGN != "1"` so headless runs show a window.
 - File pickers are called on the UI thread and files are read and written through `StorageFile` streams (a picked file has no usable path on WebAssembly or Android). When the picker is unavailable the app falls back to Documents/Loadpath on desktop and Windows and to the app's local folder elsewhere.
+- WebAssembly mounts the app's local folder (browser storage) after launch, so settings and the autosave are read after an awaited `StorageFolder` call, and settings are never written before they were read. A browser tab cannot be kept open through `AppWindow.Closing`; with unsaved changes a `beforeunload` handler raises the browser's own leave-page prompt.
+- The autosave records the document's file and whether it was saved, and restores both: a sample, preset or paste comes back attached to no file, and unsaved edits come back unsaved.
 
 ### Testing and validation
 
-- `Loadpath.Tests` (xunit): solver on a 3-node triangle with a known analytic answer, a Warren truss symmetry check, mechanism detection, `EditHistory` undo/redo/coalesce, `Viewport` zoom-at-point invariants, `SnapEngine` guide output, `HitTester` tolerances, serializer round-trip.
+- `Loadpath.Tests` (xunit): solver on a 3-node triangle with a known analytic answer, a Warren truss symmetry check, mechanism detection, `EditHistory` undo/redo/coalesce, `Viewport` zoom-at-point invariants, `SnapEngine` guide output, `HitTester` tolerances, serializer round-trip. Through the app's `net10.0` build: tool cancellation, the document session (open, save, the unsaved-changes question, autosave and restore), malformed documents, and inspector edits landing on the element they were typed for.
 - Runtime: build `net10.0-desktop`, run under Xvfb with `APP_NO_HOTDESIGN=1`, capture screenshots with `import`, and drive deterministic states through DEBUG env hooks (`LOADPATH_SAMPLE`, `LOADPATH_SELECT`, `LOADPATH_MODE`, `LOADPATH_PALETTE`).
 
 ---
