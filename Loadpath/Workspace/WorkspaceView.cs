@@ -146,7 +146,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
             old.ViewportChanged -= OnRenderRequested;
             old.FitRequested -= OnFitRequested;
             old.Interaction.CursorChanged -= OnCursorChanged;
-            old.Interaction.UserNavigated -= (_, _) => _fitted = false;
+            old.Interaction.UserNavigated -= OnUserNavigated;
         }
         _editor = editor;
         if (editor is null) return;
@@ -154,10 +154,13 @@ public sealed partial class WorkspaceView : SKCanvasElement
         editor.ViewportChanged += OnRenderRequested;
         editor.FitRequested += OnFitRequested;
         editor.Interaction.CursorChanged += OnCursorChanged;
-        editor.Interaction.UserNavigated += (_, _) => _fitted = false;
+        editor.Interaction.UserNavigated += OnUserNavigated;
         if (ActualWidth > 0) editor.Viewport.Resize(ActualWidth, ActualHeight);
         MarkDirty();
     }
+
+    /// <summary>The user panned or zoomed: stop keeping the structure fitted through resizes.</summary>
+    private void OnUserNavigated(object? sender, EventArgs e) => _fitted = false;
 
     private void OnRenderRequested(object? sender, EventArgs e)
     {

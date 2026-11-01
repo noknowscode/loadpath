@@ -8,7 +8,8 @@ namespace Loadpath.Controls;
 
 /// <summary>
 /// Mono numeric field with a unit suffix. Commits on Enter or blur, reverts on Esc, steps with Up/Down (×10 with Shift).
-/// Value is the committed number; Committed fires once per commit.
+/// Value is the committed number, shown and typed in the current culture like every other number on screen ("1,500" in
+/// French); only files use the invariant culture.
 /// </summary>
 public sealed partial class NumberField : Control
 {
@@ -32,8 +33,6 @@ public sealed partial class NumberField : Control
         DefaultStyleKey = typeof(NumberField);
         IsTabStop = false;
     }
-
-    public event EventHandler? Committed;
 
     public double Value { get => (double)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
     public string Unit { get => (string)GetValue(UnitProperty); set => SetValue(UnitProperty, value); }
@@ -62,8 +61,18 @@ public sealed partial class NumberField : Control
     private void RenderValue()
     {
         if (_box is null || _editing) return;
-        _box.Text = Value.ToString("F" + Decimals, CultureInfo.InvariantCulture);
+        _box.Text = Format(Value, Decimals, CultureInfo.CurrentCulture);
     }
+
+    /// <summary>The text shown for a value.</summary>
+    public static string Format(double value, int decimals, CultureInfo culture) => value.ToString("F" + decimals, culture);
+
+    /// <summary>
+    /// Read typed text. A typographic minus counts as a minus (.NET also takes "-" where the culture's sign is "−").
+    /// False for anything else, NaN and infinity included.
+    /// </summary>
+    public static bool TryParse(string text, CultureInfo culture, out double value) =>
+        double.TryParse(text.Trim().Replace("−", "-"), NumberStyles.Float, culture, out value) && double.IsFinite(value);
 
     private void OnGotFocus(object sender, RoutedEventArgs e)
     {
@@ -96,7 +105,6 @@ public sealed partial class NumberField : Control
                 var delta = (e.Key == VirtualKey.Up ? 1 : -1) * Step * (shift ? 10 : 1);
                 _editing = false;
                 Value = Math.Round(Value + delta, Math.Max(Decimals, 3));
-                Committed?.Invoke(this, EventArgs.Empty);
                 _editing = true;
                 _box?.SelectAll();
                 e.Handled = true;
@@ -119,20 +127,9 @@ public sealed partial class NumberField : Control
     private void Commit()
     {
         if (_box is null) return;
-        var text = _box.Text.Trim().Replace(',', '.').Replace("−", "-");
-        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && !double.IsNaN(v) && !double.IsInfinity(v))
-        {
-            var rounded = Math.Round(v, Math.Max(Decimals, 3));
-            var changed = Math.Abs(rounded - Value) > 1e-12;
-            _editing = false;
-            Value = rounded;
-            RenderValue();
-            if (changed) Committed?.Invoke(this, EventArgs.Empty);
-        }
-        else
-        {
-            _editing = false;
-            RenderValue();
-        }
+        _editing = false;
+        // Text that is not a number puts the last value back.
+        if (TryParse(_box.Text, CultureInfo.CurrentCulture, out var v)) Value = Math.Round(v, Math.Max(Decimals, 3));
+        RenderValue();
     }
 }

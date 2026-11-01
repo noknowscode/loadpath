@@ -26,7 +26,6 @@ public sealed class SettingsService
         public int NoiseKeep { get; set; } = (int)ViewOptions.DefaultKeep;
         /// <summary>"System", "Light" or "Dark". Missing in older settings files, which then follow the system.</summary>
         public string Theme { get; set; } = nameof(ThemeChoice.System);
-        public List<string> RecentFiles { get; set; } = new();
     }
 
     public string Folder

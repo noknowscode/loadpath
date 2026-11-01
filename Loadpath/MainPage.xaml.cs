@@ -33,7 +33,7 @@ public sealed partial class MainPage : Page
 #if !__WASM__
         // The local folder is there at launch: read the settings before the views are built, so the first frame is
         // already in the saved theme. WebAssembly mounts its storage later and reads them in StartAsync.
-        ApplySettings(Environment.GetEnvironmentVariable("LOADPATH_RESET") == "1" ? new SettingsService.Model() : _settings.Load());
+        ApplySettings(ResetFixture ? new SettingsService.Model() : _settings.Load());
 #endif
         _session = new DocumentSession(Engine, _files, _settings.AutosavePath, AskUnsavedAsync);
         _session.RegisterCommands();
@@ -144,7 +144,7 @@ public sealed partial class MainPage : Page
     private async Task StartAsync()
     {
 #if __WASM__
-        ApplySettings(Environment.GetEnvironmentVariable("LOADPATH_RESET") == "1" ? new SettingsService.Model() : await _settings.LoadAsync());
+        ApplySettings(ResetFixture ? new SettingsService.Model() : await _settings.LoadAsync());
 #endif
         await RestoreOrSeedAsync();
     }
@@ -207,7 +207,10 @@ public sealed partial class MainPage : Page
     /// </summary>
     private void SizeWindowAtLaunch()
     {
-        if (App.MainWindow is not { } window || Environment.GetEnvironmentVariable("LOADPATH_NO_RESIZE") == "1") return;
+        if (App.MainWindow is not { } window) return;
+#if DEBUG
+        if (Environment.GetEnvironmentVariable("LOADPATH_NO_RESIZE") == "1") return;
+#endif
 #if __DESKTOP__
         // The window is sized through PreferredLaunchViewSize at launch. The X11 host can still miss a configure
         // event and lay out at the old size, so the size is re-asserted until the layout agrees with the frame.
@@ -276,39 +279,52 @@ public sealed partial class MainPage : Page
 
     private async Task RestoreOrSeedAsync()
     {
-        var sample = Environment.GetEnvironmentVariable("LOADPATH_SAMPLE");
-        var fixtureFile = Environment.GetEnvironmentVariable("LOADPATH_FILE");
-        var preset = Environment.GetEnvironmentVariable("LOADPATH_PRESET");
-        if (!string.IsNullOrEmpty(sample))
-        {
-            // A fixture starts clean, as if opened from a file: no undo step, nothing unsaved.
-            Engine.LoadSnapshot(Core.Samples.SampleStructures.Build(sample), "Load sample", null);
-        }
 #if DEBUG
-        else if (!string.IsNullOrEmpty(preset))
+        if (!SeedFixture() && !ResetFixture) await _session.RestoreAsync();
+        ApplyFixtureHooks();
+#else
+        await _session.RestoreAsync();
+#endif
+    }
+
+    /// <summary>DEBUG <c>LOADPATH_RESET=1</c>: start from default settings and no autosave. Release builds read no fixture hooks.</summary>
+    private static bool ResetFixture =>
+#if DEBUG
+        Environment.GetEnvironmentVariable("LOADPATH_RESET") == "1";
+#else
+        false;
+#endif
+
+#if DEBUG
+    /// <summary>
+    /// <c>LOADPATH_SAMPLE=warren|cantilever|roof</c>, <c>LOADPATH_PRESET=pratt</c> or <c>pratt:40,6,2</c> (span, panels,
+    /// depth), <c>LOADPATH_FILE=path</c>: start from a fixture instead of the autosave. A fixture starts clean, as if
+    /// opened from a file: no undo step, nothing unsaved.
+    /// </summary>
+    private bool SeedFixture()
+    {
+        if (Environment.GetEnvironmentVariable("LOADPATH_SAMPLE") is { Length: > 0 } sample)
         {
-            // "pratt" or "pratt:40,6,2" (span, panels, depth).
+            Engine.LoadSnapshot(Core.Samples.SampleStructures.Build(sample), "Load sample", null);
+            return true;
+        }
+        if (Environment.GetEnvironmentVariable("LOADPATH_PRESET") is { Length: > 0 } preset)
+        {
             var parts = preset.Split(':');
             var p = Core.Samples.TrussPresets.Find(parts[0]).Defaults;
             if (parts.Length > 1 && parts[1].Split(',') is { Length: 3 } v)
                 p = new(double.Parse(v[0], System.Globalization.CultureInfo.InvariantCulture), int.Parse(v[1]), double.Parse(v[2], System.Globalization.CultureInfo.InvariantCulture));
             Engine.LoadSnapshot(Core.Samples.TrussPresets.Build(parts[0], p), "Load preset", null);
+            return true;
         }
-#endif
-#if DEBUG
-        else if (!string.IsNullOrEmpty(fixtureFile) && File.Exists(fixtureFile))
+        if (Environment.GetEnvironmentVariable("LOADPATH_FILE") is { Length: > 0 } file && File.Exists(file))
         {
-            Engine.LoadSnapshot(DocumentSerializer.Deserialize(File.ReadAllText(fixtureFile)), "Open", null);
+            Engine.LoadSnapshot(DocumentSerializer.Deserialize(File.ReadAllText(file)), "Open", null);
+            return true;
         }
-#endif
-        else if (Environment.GetEnvironmentVariable("LOADPATH_RESET") != "1")
-        {
-            await _session.RestoreAsync();
-        }
-#if DEBUG
-        ApplyFixtureHooks();
-#endif
+        return false;
     }
+#endif
 
 #if DEBUG
     /// <summary><c>LOADPATH_THEME=light|dark|system</c>: start in a theme without touching the saved choice first.</summary>
