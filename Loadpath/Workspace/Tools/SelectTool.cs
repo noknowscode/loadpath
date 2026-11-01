@@ -20,6 +20,7 @@ public sealed class SelectTool : Tool
     private Vec2 _grabOffsetWorld;
     private int _gesture;
     private int _loadNode;
+    private int _undoDepthAtDrag;
 
     public override ToolKind Kind => ToolKind.Select;
     public override bool IsBusy => _phase is Phase.DraggingNodes or Phase.Marquee or Phase.DraggingLoad;
@@ -53,6 +54,7 @@ public sealed class SelectTool : Tool
             _phase = Phase.DraggingLoad;
             _loadNode = hit.Id;
             _gesture = ctx.NextGesture();
+            _undoDepthAtDrag = ctx.History.UndoDepth;
             ctx.Selection.Set(ElementRef.Node(hit.Id));
             ctx.SetCursor(CursorKind.Grabbing);
             return;
@@ -101,6 +103,7 @@ public sealed class SelectTool : Tool
     {
         _phase = Phase.DraggingNodes;
         _gesture = ctx.NextGesture();
+        _undoDepthAtDrag = ctx.History.UndoDepth;
         var r = _pressedRef!.Value;
         // Dragging something already selected moves the whole selection; otherwise just the pressed element.
         var refs = ctx.Selection.Contains(r) ? ctx.Selection.Items : [r];
@@ -163,8 +166,9 @@ public sealed class SelectTool : Tool
 
     public override void Cancel(IToolContext ctx)
     {
-        if (_phase == Phase.DraggingNodes) ctx.History.Undo();
-        else if (_phase == Phase.DraggingLoad) ctx.History.Undo();
+        // Undo what this drag pushed, and only that. A press on a load handle, or a drag that snapping kept in place,
+        // pushed nothing: undoing then would revert an unrelated earlier edit.
+        if (_phase is Phase.DraggingNodes or Phase.DraggingLoad && ctx.History.UndoDepth > _undoDepthAtDrag) ctx.History.Undo();
         Reset(ctx);
     }
 

@@ -20,6 +20,12 @@ public sealed class EditHistory
     public string? RedoLabel => _redo.Count > 0 ? _redo[^1].Label : null;
     public int Version { get; private set; }
 
+    /// <summary>
+    /// The number of entries Undo can step back through. A drag reads it when it starts, so cancelling undoes only
+    /// what the drag itself pushed.
+    /// </summary>
+    public int UndoDepth => _undo.Count;
+
     // The save point is the undo entry on top when the document was saved (null: empty history).
     // Undo and redo move the top, so returning to that entry means the document matches the file again.
     // A discarded entry never comes back, so a branch away from the save point stays dirty for good.
