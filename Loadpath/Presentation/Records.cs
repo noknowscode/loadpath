@@ -56,6 +56,21 @@ public record InspectorContent(
         false, "");
 }
 
+/// <summary>
+/// A node's position or load as the inspector fields edit it, with the node it belongs to. The id travels with the
+/// values, so an edit lands on the node it was typed for, even when the model commits it after the selection moved on.
+/// </summary>
+public record NodeVector(int NodeId, double X, double Y)
+{
+    public static readonly NodeVector None = new(0, 0, 0);
+}
+
+/// <summary>The section picked in the inspector, by library index, with the member it belongs to (see <see cref="NodeVector"/>).</summary>
+public record SectionPick(int MemberId, int Index)
+{
+    public static readonly SectionPick None = new(0, 0);
+}
+
 /// <summary>One outline row. Key is "n{id}" or "m{id}" so the view can name the element without carrying Core types.</summary>
 public partial record OutlineItem(string Key, string Label, string Detail, string Value, string ValueToneKey, string RowBrushKey, bool HasBadge, string Badge, bool HasPill, string PillText)
 {

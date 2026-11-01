@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Windows.System;
 
 namespace Loadpath.Controls;
@@ -100,6 +101,18 @@ public sealed partial class NumberField : Control
                 _box?.SelectAll();
                 e.Handled = true;
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Commit the number being typed, if there is one. A press on the canvas calls this before it changes the selection:
+    /// losing focus commits too, but that arrives after the press, when the field is already bound to the next element.
+    /// </summary>
+    public static void CommitFocused(XamlRoot root)
+    {
+        for (var e = FocusManager.GetFocusedElement(root) as DependencyObject; e is not null; e = VisualTreeHelper.GetParent(e))
+        {
+            if (e is NumberField field) { field.Commit(); return; }
         }
     }
 

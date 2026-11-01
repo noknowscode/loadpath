@@ -181,11 +181,11 @@
               <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock Text="X" Style="{StaticResource FieldLabel}" />
-                <c:NumberField Value="{Binding NodeX, Mode=TwoWay}" Unit="m" Decimals="3" Step="0.5" AutomationProperties.Name="Node X" />
+                <c:NumberField Value="{Binding NodePosition.X, Mode=TwoWay}" Unit="m" Decimals="3" Step="0.5" AutomationProperties.Name="Node X" />
               </StackPanel>
               <StackPanel Grid.Column="1">
                 <TextBlock Text="Y" Style="{StaticResource FieldLabel}" />
-                <c:NumberField Value="{Binding NodeY, Mode=TwoWay}" Unit="m" Decimals="3" Step="0.5" AutomationProperties.Name="Node Y" />
+                <c:NumberField Value="{Binding NodePosition.Y, Mode=TwoWay}" Unit="m" Decimals="3" Step="0.5" AutomationProperties.Name="Node Y" />
               </StackPanel>
             </Grid>
           </StackPanel>
@@ -227,11 +227,11 @@
               <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock Text="FX" Style="{StaticResource FieldLabel}" />
-                <c:NumberField Value="{Binding LoadX, Mode=TwoWay}" Unit="kN" Decimals="1" Step="1" AutomationProperties.Name="Load X" />
+                <c:NumberField Value="{Binding NodeLoad.X, Mode=TwoWay}" Unit="kN" Decimals="1" Step="1" AutomationProperties.Name="Load X" />
               </StackPanel>
               <StackPanel Grid.Column="1">
                 <TextBlock Text="FY" Style="{StaticResource FieldLabel}" />
-                <c:NumberField Value="{Binding LoadY, Mode=TwoWay}" Unit="kN" Decimals="1" Step="1" AutomationProperties.Name="Load Y" />
+                <c:NumberField Value="{Binding NodeLoad.Y, Mode=TwoWay}" Unit="kN" Decimals="1" Step="1" AutomationProperties.Name="Load Y" />
               </StackPanel>
             </Grid>
             <TextBlock Text="Negative Fy points down. Drag the arrow tail on the drawing to aim it." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource GapTop12}" />
@@ -340,7 +340,7 @@
             <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom14}">
               <TextBlock Text="02" Style="{StaticResource SectionNumber}" /><TextBlock Text="SECTION" Style="{StaticResource SectionLabel}" />
             </StackPanel>
-            <ComboBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
+            <ComboBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding MemberSection.Index, Mode=TwoWay}"
                       HorizontalAlignment="Stretch" MinHeight="{StaticResource FieldHeight}" Height="{StaticResource FieldHeight}" FontFamily="{StaticResource UiFont}" FontSize="{StaticResource TextBody}" AutomationProperties.Name="Section">
               <ComboBox.ItemTemplate>
                 <DataTemplate>

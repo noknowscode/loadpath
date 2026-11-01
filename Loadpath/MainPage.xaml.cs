@@ -52,11 +52,12 @@ public sealed partial class MainPage : Page
         Outline.Engine = Engine;
         OutlineTab.Engine = Engine;
         Palette.Model = Model;
-        Model.IsPaletteOpen.ForEach(async (open, ct) =>
+        // MVUX runs state callbacks off the UI thread: the palette's entrance and the focus move are posted back to it.
+        Model.IsPaletteOpen.ForEach(async (open, ct) => DispatcherQueue.TryEnqueue(() =>
         {
             if (open) Palette.OnOpened();
             else KeySink.Focus(FocusState.Programmatic);
-        });
+        }));
 
         Engine.ToastRequested += (_, msg) => ShowToast(msg);
         Engine.SelectionChanged += (_, _) => { UpdateFloatingBar(glide: true); EnsureKeyboardTarget(); };
@@ -75,7 +76,12 @@ public sealed partial class MainPage : Page
         // The bar's label and buttons are bound, so its width settles after the binding; re-anchor when it does.
         FloatingBar.SizeChanged += (_, _) => UpdateFloatingBar();
         Workspace.ContextMenuRequested += OnContextMenuRequested;
-        Workspace.FocusRequested += (_, _) => KeySink.Focus(FocusState.Programmatic);
+        Workspace.FocusRequested += (_, _) =>
+        {
+            // The press may select something else: a number still being typed goes to the element it was typed for.
+            if (XamlRoot is { } root) NumberField.CommitFocused(root);
+            KeySink.Focus(FocusState.Programmatic);
+        };
         Inspector.SectionDragStarted += OnSectionDragStarted;
         // handledEventsToo: the canvas marks its pointer events handled, and the drag must still reach the host.
         Root.AddHandler(PointerMovedEvent, new PointerEventHandler(OnHostPointerMoved), true);

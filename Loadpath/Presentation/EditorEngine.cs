@@ -172,6 +172,23 @@ public sealed class EditorEngine
         History.Do(new MoveNodesEdit(nodes, delta));
     }
 
+    // Inspector fields name the element they edit: by the time a typed value is committed, the selection may have moved on.
+
+    public void SetNodePosition(int nodeId, Vec2 to)
+    {
+        if (Document.FindNode(nodeId) is { } n && n.Position != to) History.Do(new SetPositionEdit(nodeId, to));
+    }
+
+    public void SetNodeLoad(int nodeId, Vec2 to)
+    {
+        if (Document.FindNode(nodeId) is { } n && n.Load != to) History.Do(new SetLoadEdit(nodeId, to));
+    }
+
+    public void SetMemberSection(int memberId, Section section)
+    {
+        if (Document.FindMember(memberId) is { } m && m.Section != section) History.Do(new SetSectionEdit([memberId], section));
+    }
+
     public IEnumerable<int> SelectedNodeIdsIncludingMemberEnds()
     {
         var set = new HashSet<int>(Selection.NodeIds);

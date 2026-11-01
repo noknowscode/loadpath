@@ -18,7 +18,6 @@ public partial record EditorModel
     private readonly EditorEngine _engine;
     private readonly Microsoft.UI.Dispatching.DispatcherQueue _dispatcher;
     private bool _syncingOptions;
-    private bool _syncingFields;
 
     public EditorModel(EditorEngine engine)
     {
@@ -272,52 +271,32 @@ public partial record EditorModel
     // ---- inspector ----
 
     public IState<InspectorContent> Inspector => State.Value(this, () => InspectorContent.Empty);
-    public IState<double> NodeX => State.Value(this, () => 0.0).ForEach(async (v, ct) => CommitPosition());
-    public IState<double> NodeY => State.Value(this, () => 0.0).ForEach(async (v, ct) => CommitPosition());
-    public IState<double> LoadX => State.Value(this, () => 0.0).ForEach(async (v, ct) => CommitLoad());
-    public IState<double> LoadY => State.Value(this, () => 0.0).ForEach(async (v, ct) => CommitLoad());
-    public IState<int> SectionIndex => State.Value(this, () => 0).ForEach(async (v, ct) => CommitSection(v));
+    // The fields bind to X and Y (or Index) of these records; each record also names its element, so the callbacks,
+    // which run after the edit, commit to the element the value was typed for and not to whatever is selected by then.
+    public IState<NodeVector> NodePosition => State.Value(this, () => NodeVector.None).ForEach(async (v, ct) => CommitPosition(v));
+    public IState<NodeVector> NodeLoad => State.Value(this, () => NodeVector.None).ForEach(async (v, ct) => CommitLoad(v));
+    public IState<SectionPick> MemberSection => State.Value(this, () => SectionPick.None).ForEach(async (v, ct) => CommitSection(v));
     public IListState<ConnectedItem> ConnectedMembers => ListState<ConnectedItem>.Empty(this);
     public IListFeed<SectionChoice> Sections => ListFeed.Async(async ct => (IImmutableList<SectionChoice>)Section.Library.Select(s => new SectionChoice(s.Id, s.Name, s.ShortName)).ToImmutableList());
 
     private int? SelectedNodeId => _engine.Selection.Single is { IsNode: true } r ? r.Id : null;
     private int? SelectedMemberId => _engine.Selection.Single is { IsMember: true } r ? r.Id : null;
 
-    private void CommitPosition()
+    // The element comes with the value (see NodeVector). A value the inspector itself pushed matches the document, so
+    // committing it changes nothing.
+    private void CommitPosition(NodeVector? v)
     {
-        if (_syncingFields || SelectedNodeId is not { } id) return;
-        Ui(() => Fire(CommitPositionAsync(id)));
+        if (v is not null) Ui(() => _engine.SetNodePosition(v.NodeId, new Vec2(v.X, v.Y)));
     }
 
-    private async ValueTask CommitPositionAsync(int id)
+    private void CommitLoad(NodeVector? v)
     {
-        var node = _engine.Document.FindNode(id);
-        if (node is null) return;
-        var to = new Vec2(await NodeX, await NodeY);
-        if (to == node.Position) return;
-        Ui(() => _engine.History.Do(new SetPositionEdit(id, to)));
+        if (v is not null) Ui(() => _engine.SetNodeLoad(v.NodeId, new Vec2(v.X, v.Y)));
     }
 
-    private void CommitLoad()
+    private void CommitSection(SectionPick? v)
     {
-        if (_syncingFields || SelectedNodeId is not { } id) return;
-        Ui(() => Fire(CommitLoadAsync(id)));
-    }
-
-    private async ValueTask CommitLoadAsync(int id)
-    {
-        var node = _engine.Document.FindNode(id);
-        if (node is null) return;
-        var to = new Vec2(await LoadX, await LoadY);
-        if (to == node.Load) return;
-        Ui(() => _engine.History.Do(new SetLoadEdit(id, to)));
-    }
-
-    private void CommitSection(int index)
-    {
-        if (_syncingFields || SelectedMemberId is not { } id || index < 0 || index >= Section.Library.Count) return;
-        var section = Section.Library[index];
-        Ui(() => { if (_engine.Document.FindMember(id) is { } m && m.Section != section) _engine.History.Do(new SetSectionEdit([id], section)); });
+        if (v is not null && v.Index >= 0 && v.Index < Section.Library.Count) Ui(() => _engine.SetMemberSection(v.MemberId, Section.Library[v.Index]));
     }
 
     // ---- failures (summary inspector) ----
@@ -594,136 +573,129 @@ public partial record EditorModel
         var sel = _engine.Selection;
         var c = InspectorContent.Empty;
 
-        _syncingFields = true;
-        try
+        if (sel.IsEmpty)
         {
-            if (sel.IsEmpty)
+            var pins = doc.Nodes.Count(n => n.Support == SupportKind.Pin);
+            var rollers = doc.Nodes.Count(n => n.Support is SupportKind.RollerY or SupportKind.RollerX);
+            var total = doc.Nodes.Aggregate(Vec2.Zero, (acc, n) => acc + n.Load);
+            var mass = doc.Members.Sum(m => m.Section.MassPerMeter * doc.MemberLength(m));
+            var reactions = a.IsSolved ? string.Join("\n", doc.Nodes.Where(n => n.HasSupport).Select(n => { var r = a.ForNode(n.Id)?.Reaction ?? Vec2.Zero; return $"N{n.Id}  {Fmt(r.X)}  {Fmt(r.Y)} kN"; })) : "";
+            c = c with
             {
-                var pins = doc.Nodes.Count(n => n.Support == SupportKind.Pin);
-                var rollers = doc.Nodes.Count(n => n.Support is SupportKind.RollerY or SupportKind.RollerX);
-                var total = doc.Nodes.Aggregate(Vec2.Zero, (acc, n) => acc + n.Load);
-                var mass = doc.Members.Sum(m => m.Section.MassPerMeter * doc.MemberLength(m));
-                var reactions = a.IsSolved ? string.Join("\n", doc.Nodes.Where(n => n.HasSupport).Select(n => { var r = a.ForNode(n.Id)?.Reaction ?? Vec2.Zero; return $"N{n.Id}  {Fmt(r.X)}  {Fmt(r.Y)} kN"; })) : "";
-                c = c with
+                IsSummary = true,
+                Title = doc.Name,
+                Subtitle = doc.Nodes.Count == 0 ? "Nothing here yet" : "Nothing selected",
+                NodeCountText = doc.Nodes.Count.ToString(),
+                MemberCountText = doc.Members.Count.ToString(),
+                SupportsText = pins + rollers == 0 ? "none" : $"{pins} pin · {rollers} roller",
+                TotalLoadText = total.LengthSquared < 1e-12 ? "none" : $"{total.Length:0.#} kN",
+                MassText = doc.Members.Count == 0 ? "—" : $"{mass:0} kg",
+                MaxUtil = a.IsSolved ? Math.Clamp(a.MaxUtilization, 0, 1) : 0,
+                MaxUtilText = a.IsSolved ? $"{a.MaxUtilization * 100:0}%" : "—",
+                MaxUtilToneKey = UtilTone(a.MaxUtilization),
+                MaxDeflectionText = a.IsSolved ? $"{a.MaxDisplacementM * 1000:0.0} mm" : "—",
+                HasCritical = a.IsSolved && a.CriticalMemberId is not null,
+                CriticalText = a.Failures.Count > 0 ? $"Step through failures · J" : a.CriticalMemberId is { } cid ? $"M{cid} governs" : "",
+                ReactionsText = reactions,
+                SummaryHint = a.Status switch
                 {
-                    IsSummary = true,
-                    Title = doc.Name,
-                    Subtitle = doc.Nodes.Count == 0 ? "Nothing here yet" : "Nothing selected",
-                    NodeCountText = doc.Nodes.Count.ToString(),
-                    MemberCountText = doc.Members.Count.ToString(),
-                    SupportsText = pins + rollers == 0 ? "none" : $"{pins} pin · {rollers} roller",
-                    TotalLoadText = total.LengthSquared < 1e-12 ? "none" : $"{total.Length:0.#} kN",
-                    MassText = doc.Members.Count == 0 ? "—" : $"{mass:0} kg",
-                    MaxUtil = a.IsSolved ? Math.Clamp(a.MaxUtilization, 0, 1) : 0,
-                    MaxUtilText = a.IsSolved ? $"{a.MaxUtilization * 100:0}%" : "—",
-                    MaxUtilToneKey = UtilTone(a.MaxUtilization),
-                    MaxDeflectionText = a.IsSolved ? $"{a.MaxDisplacementM * 1000:0.0} mm" : "—",
-                    HasCritical = a.IsSolved && a.CriticalMemberId is not null,
-                    CriticalText = a.Failures.Count > 0 ? $"Step through failures · J" : a.CriticalMemberId is { } cid ? $"M{cid} governs" : "",
-                    ReactionsText = reactions,
-                    SummaryHint = a.Status switch
-                    {
-                        AnalysisStatus.Empty => "Press N and click to place nodes. M connects them.",
-                        AnalysisStatus.NoLoads => "Add a load with L to see forces.",
-                        AnalysisStatus.Unsupported => "Add a pin and a roller with S.",
-                        AnalysisStatus.Mechanism => "Triangulate the structure or add a support.",
-                        _ => a.MaxUtilization >= 1 ? "A member is over its limit. Select it to change its section." : "Drag any node to watch the load path change.",
-                    },
-                };
-            }
-            else if (SelectedNodeId is { } nid && doc.FindNode(nid) is { } node)
-            {
-                var r = a.ForNode(node.Id);
-                var members = doc.MembersAt(node.Id).ToList();
-                var disp = a.IsSolved && r is { } dn ? dn.Displacement * 1000 : Vec2.Zero;
-                var hasDisp = a.IsSolved && r is not null;
-                // Mini diagram: 72 px box, direction of travel drawn at a fixed 24 px so small motions still read.
-                var dotX = 36.0; var dotY = 36.0;
-                if (hasDisp && disp.Length > 1e-6) { dotX = 36 + disp.X / disp.Length * 24; dotY = 36 - disp.Y / disp.Length * 24; }
-                var kindText = node.Support switch
-                {
-                    SupportKind.Pin => "Pinned support",
-                    SupportKind.RollerY => "Roller support, free in x",
-                    SupportKind.RollerX => "Roller support, free in y",
-                    _ => "Free node",
-                };
-                c = c with
-                {
-                    NodeDescription = kindText + (node.HasLoad ? $" with a {node.Load.Length:0.#} kN point load" : ""),
-                    DispXText = hasDisp ? $"{disp.X:+0.00;−0.00} mm" : "—",
-                    DispYText = hasDisp ? $"{disp.Y:+0.00;−0.00} mm" : "—",
-                    DispMagText = hasDisp ? $"{disp.Length:0.00} mm" : "—",
-                    DispDotX = dotX, DispDotY = dotY,
-                    ConnectedCountText = members.Count.ToString(),
-                    IsSummary = false, IsNode = true, SelectionHasNodes = true, SelectionLabel = $"N{node.Id}",
-                    Title = $"Node N{node.Id}",
-                    Subtitle = node.Support.Label() + (node.HasLoad ? $" · {node.Load.Length:0.#} kN" : ""),
-                    IsPin = node.Support == SupportKind.Pin, IsRoller = node.Support == SupportKind.RollerY,
-                    IsRollerX = node.Support == SupportKind.RollerX, IsFree = node.Support == SupportKind.None,
-                    HasReaction = a.IsSolved && node.HasSupport && r is not null,
-                    ReactionText = a.IsSolved && node.HasSupport && r is { } rr ? $"{Fmt(rr.Reaction.X)}  {Fmt(rr.Reaction.Y)} kN" : "",
-                };
-                var connected = members.Select(m =>
-                {
-                    var mr = a.IsSolved ? a.For(m.Id) : null;
-                    return new ConnectedItem($"m{m.Id}", $"M{m.Id}", $"N{m.StartNodeId}–N{m.EndNodeId}",
-                        mr is { } f ? (Math.Abs(f.AxialForceKn) < 0.05 ? "0.0" : SignedKn(f.AxialForceKn)) : "—",
-                        mr is { } t && t.IsOverstressed ? "DangerBrush" : "InkBrush",
-                        mr is { } u ? $"{u.Utilization * 100:0}%" : "",
-                        mr is { IsOverstressed: true });
-                }).ToImmutableList();
-                await ConnectedMembers.UpdateAsync(_ => connected);
-                await NodeX.SetAsync(node.Position.X);
-                await NodeY.SetAsync(node.Position.Y);
-                await LoadX.SetAsync(node.Load.X);
-                await LoadY.SetAsync(node.Load.Y);
-            }
-            else if (SelectedMemberId is { } mid && doc.FindMember(mid) is { } member)
-            {
-                var res = a.For(member.Id);
-                var solved = a.IsSolved && res is not null;
-                var mr = res ?? default;
-                c = c with
-                {
-                    IsSummary = false, IsMember = true, SelectionLabel = $"M{member.Id}",
-                    Title = $"Member M{member.Id}",
-                    Subtitle = member.Section.Name,
-                    EndpointsText = $"N{member.StartNodeId} → N{member.EndNodeId}",
-                    LengthText = $"{doc.MemberLength(member):0.000} m",
-                    MaterialText = $"{member.Section.Material.Name} · E {member.Section.Material.ElasticModulusGPa:0} GPa · fy {member.Section.Material.YieldStrengthMPa:0} MPa",
-                    AreaText = $"A {member.Section.AreaMm2:0} mm²  ·  I {member.Section.SecondMomentMm4 / 1e4:0.#} cm⁴",
-                    ForceKindText = solved ? (mr.IsTension ? "Tension" : mr.IsCompression ? "Compression" : "Zero force") : "Not solved",
-                    ForceToneKey = solved ? ForceTone(mr.IsTension, mr.IsCompression, mr.IsOverstressed) : "InkTertiaryBrush",
-                    ForceText = solved ? $"{Math.Abs(mr.AxialForceKn):0.00} kN" : "—",
-                    StressText = solved ? $"{Math.Abs(mr.StressMPa):0.0} MPa" : "—",
-                    Util = solved ? Math.Clamp(mr.Utilization, 0, 1) : 0,
-                    UtilText = solved ? $"{mr.Utilization * 100:0}%" : "—",
-                    UtilToneKey = solved ? UtilTone(mr.Utilization) : "OkBrush",
-                    GovernsText = solved ? mr.Failure switch
-                    {
-                        FailureMode.Buckling => "Fails by buckling: the strut bows out",
-                        FailureMode.Yield => mr.IsTension ? "Fails by yield: the tie stretches" : "Fails by yield: the strut crushes",
-                        _ => mr.BucklingGoverns ? "Buckling governs" : "Yield governs",
-                    } : "",
-                    BucklingText = solved ? (mr.IsCompression ? $"Pcr {member.Section.CriticalBucklingLoadN(mr.LengthM) / 1000:0.0} kN · {mr.UtilizationBuckling * 100:0}%" : "n/a (tension)") : "—",
-                };
-                await SectionIndex.SetAsync(Math.Max(0, Section.Library.ToList().IndexOf(member.Section)));
-            }
-            else
-            {
-                c = c with
-                {
-                    IsSummary = false, IsMixed = true, SelectionHasNodes = sel.NodeCount > 0, SelectionLabel = $"{sel.Count} selected",
-                    Title = $"{sel.Count} selected",
-                    Subtitle = $"{Plural(sel.NodeCount, "node")} · {Plural(sel.MemberCount, "member")}",
-                    MixedHasNodes = sel.NodeCount > 0,
-                    MixedHasMembers = sel.MemberCount > 0,
-                    MixedText = "Bulk actions apply to every selected element.",
-                };
-            }
-            await Inspector.UpdateAsync(_ => c);
+                    AnalysisStatus.Empty => "Press N and click to place nodes. M connects them.",
+                    AnalysisStatus.NoLoads => "Add a load with L to see forces.",
+                    AnalysisStatus.Unsupported => "Add a pin and a roller with S.",
+                    AnalysisStatus.Mechanism => "Triangulate the structure or add a support.",
+                    _ => a.MaxUtilization >= 1 ? "A member is over its limit. Select it to change its section." : "Drag any node to watch the load path change.",
+                },
+            };
         }
-        finally { _syncingFields = false; }
+        else if (SelectedNodeId is { } nid && doc.FindNode(nid) is { } node)
+        {
+            var r = a.ForNode(node.Id);
+            var members = doc.MembersAt(node.Id).ToList();
+            var disp = a.IsSolved && r is { } dn ? dn.Displacement * 1000 : Vec2.Zero;
+            var hasDisp = a.IsSolved && r is not null;
+            // Mini diagram: 72 px box, direction of travel drawn at a fixed 24 px so small motions still read.
+            var dotX = 36.0; var dotY = 36.0;
+            if (hasDisp && disp.Length > 1e-6) { dotX = 36 + disp.X / disp.Length * 24; dotY = 36 - disp.Y / disp.Length * 24; }
+            var kindText = node.Support switch
+            {
+                SupportKind.Pin => "Pinned support",
+                SupportKind.RollerY => "Roller support, free in x",
+                SupportKind.RollerX => "Roller support, free in y",
+                _ => "Free node",
+            };
+            c = c with
+            {
+                NodeDescription = kindText + (node.HasLoad ? $" with a {node.Load.Length:0.#} kN point load" : ""),
+                DispXText = hasDisp ? $"{disp.X:+0.00;−0.00} mm" : "—",
+                DispYText = hasDisp ? $"{disp.Y:+0.00;−0.00} mm" : "—",
+                DispMagText = hasDisp ? $"{disp.Length:0.00} mm" : "—",
+                DispDotX = dotX, DispDotY = dotY,
+                ConnectedCountText = members.Count.ToString(),
+                IsSummary = false, IsNode = true, SelectionHasNodes = true, SelectionLabel = $"N{node.Id}",
+                Title = $"Node N{node.Id}",
+                Subtitle = node.Support.Label() + (node.HasLoad ? $" · {node.Load.Length:0.#} kN" : ""),
+                IsPin = node.Support == SupportKind.Pin, IsRoller = node.Support == SupportKind.RollerY,
+                IsRollerX = node.Support == SupportKind.RollerX, IsFree = node.Support == SupportKind.None,
+                HasReaction = a.IsSolved && node.HasSupport && r is not null,
+                ReactionText = a.IsSolved && node.HasSupport && r is { } rr ? $"{Fmt(rr.Reaction.X)}  {Fmt(rr.Reaction.Y)} kN" : "",
+            };
+            var connected = members.Select(m =>
+            {
+                var mr = a.IsSolved ? a.For(m.Id) : null;
+                return new ConnectedItem($"m{m.Id}", $"M{m.Id}", $"N{m.StartNodeId}–N{m.EndNodeId}",
+                    mr is { } f ? (Math.Abs(f.AxialForceKn) < 0.05 ? "0.0" : SignedKn(f.AxialForceKn)) : "—",
+                    mr is { } t && t.IsOverstressed ? "DangerBrush" : "InkBrush",
+                    mr is { } u ? $"{u.Utilization * 100:0}%" : "",
+                    mr is { IsOverstressed: true });
+            }).ToImmutableList();
+            await ConnectedMembers.UpdateAsync(_ => connected);
+            await NodePosition.UpdateAsync(_ => new NodeVector(node.Id, node.Position.X, node.Position.Y));
+            await NodeLoad.UpdateAsync(_ => new NodeVector(node.Id, node.Load.X, node.Load.Y));
+        }
+        else if (SelectedMemberId is { } mid && doc.FindMember(mid) is { } member)
+        {
+            var res = a.For(member.Id);
+            var solved = a.IsSolved && res is not null;
+            var mr = res ?? default;
+            c = c with
+            {
+                IsSummary = false, IsMember = true, SelectionLabel = $"M{member.Id}",
+                Title = $"Member M{member.Id}",
+                Subtitle = member.Section.Name,
+                EndpointsText = $"N{member.StartNodeId} → N{member.EndNodeId}",
+                LengthText = $"{doc.MemberLength(member):0.000} m",
+                MaterialText = $"{member.Section.Material.Name} · E {member.Section.Material.ElasticModulusGPa:0} GPa · fy {member.Section.Material.YieldStrengthMPa:0} MPa",
+                AreaText = $"A {member.Section.AreaMm2:0} mm²  ·  I {member.Section.SecondMomentMm4 / 1e4:0.#} cm⁴",
+                ForceKindText = solved ? (mr.IsTension ? "Tension" : mr.IsCompression ? "Compression" : "Zero force") : "Not solved",
+                ForceToneKey = solved ? ForceTone(mr.IsTension, mr.IsCompression, mr.IsOverstressed) : "InkTertiaryBrush",
+                ForceText = solved ? $"{Math.Abs(mr.AxialForceKn):0.00} kN" : "—",
+                StressText = solved ? $"{Math.Abs(mr.StressMPa):0.0} MPa" : "—",
+                Util = solved ? Math.Clamp(mr.Utilization, 0, 1) : 0,
+                UtilText = solved ? $"{mr.Utilization * 100:0}%" : "—",
+                UtilToneKey = solved ? UtilTone(mr.Utilization) : "OkBrush",
+                GovernsText = solved ? mr.Failure switch
+                {
+                    FailureMode.Buckling => "Fails by buckling: the strut bows out",
+                    FailureMode.Yield => mr.IsTension ? "Fails by yield: the tie stretches" : "Fails by yield: the strut crushes",
+                    _ => mr.BucklingGoverns ? "Buckling governs" : "Yield governs",
+                } : "",
+                BucklingText = solved ? (mr.IsCompression ? $"Pcr {member.Section.CriticalBucklingLoadN(mr.LengthM) / 1000:0.0} kN · {mr.UtilizationBuckling * 100:0}%" : "n/a (tension)") : "—",
+            };
+            await MemberSection.UpdateAsync(_ => new SectionPick(member.Id, Math.Max(0, Section.Library.ToList().IndexOf(member.Section))));
+        }
+        else
+        {
+            c = c with
+            {
+                IsSummary = false, IsMixed = true, SelectionHasNodes = sel.NodeCount > 0, SelectionLabel = $"{sel.Count} selected",
+                Title = $"{sel.Count} selected",
+                Subtitle = $"{Plural(sel.NodeCount, "node")} · {Plural(sel.MemberCount, "member")}",
+                MixedHasNodes = sel.NodeCount > 0,
+                MixedHasMembers = sel.MemberCount > 0,
+                MixedText = "Bulk actions apply to every selected element.",
+            };
+        }
+        await Inspector.UpdateAsync(_ => c);
     }
 
     private async ValueTask RefreshOutlineAsync()
