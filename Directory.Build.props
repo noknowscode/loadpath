@@ -20,6 +20,8 @@
       MVUX's generated code and from framework assemblies, none from code this repo can change.
     -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- NuGet audit stays a warning: a newly published advisory, or an unreachable audit source, must not fail a build of unchanged code. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
     <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
     <!-- .editorconfig rules set to warning gate the build too (today: file-scoped namespaces). -->
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
