@@ -53,6 +53,17 @@
     <WindowsSdkPackageVersion>10.0.19041.87</WindowsSdkPackageVersion>
   </PropertyGroup>
 
+  <!--
+    WebAssembly: the unsaved-changes prompt (BrowserUnloadGuard). Its JSImport interop is generated as unsafe code, and
+    Uno.Sdk embeds only AppManifest.js from WasmScripts by default, so the script that arms the prompt is listed here.
+  -->
+  <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'browserwasm'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'browserwasm'">
+    <EmbeddedResource Include="Platforms/WebAssembly/WasmScripts/UnsavedChanges.js" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../Loadpath.Core/Loadpath.Core.csproj" />
   </ItemGroup>

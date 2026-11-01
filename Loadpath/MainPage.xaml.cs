@@ -161,27 +161,30 @@ public sealed partial class MainPage : Page
 #endif
 
     /// <summary>
-    /// Desktop and WinAppSDK ask before a window with unsaved changes closes (Save, Discard, Cancel). WebAssembly cancels
-    /// the close, so the browser asks to confirm leaving the page. Android and iOS have no close to intercept; the
-    /// autosave keeps the work.
+    /// Desktop and WinAppSDK ask before a window with unsaved changes closes (Save, Discard, Cancel). A browser tab
+    /// cannot be kept open through AppWindow.Closing, so WebAssembly arms the browser's own "leave this page?" prompt
+    /// while there are unsaved changes. Android and iOS have no close to intercept; the autosave keeps the work.
     /// </summary>
     private void GuardCloseWithUnsavedChanges()
     {
-#if __DESKTOP__ || WINDOWS || __WASM__
+#if __DESKTOP__ || WINDOWS
         if (App.MainWindow is { } window) window.AppWindow.Closing += OnWindowClosing;
+#elif __WASM__
+        var armed = false;
+        Engine.HistoryChanged += (_, _) =>
+        {
+            if (Engine.IsDirty == armed) return;
+            armed = Engine.IsDirty;
+            BrowserUnloadGuard.SetUnsavedChanges(armed);
+        };
 #endif
     }
 
-#if __DESKTOP__ || WINDOWS || __WASM__
+#if __DESKTOP__ || WINDOWS
     // xaml-lint: allow codebehind - the close prompt needs the window's closing event and a dialog
     private void OnWindowClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
     {
-        if (!Engine.IsDirty) return;
-#if __WASM__
-        // The browser asks on its own (leave this page?); a dialog cannot outlive the unloading page.
-        args.Cancel = true;
-#else
-        if (_closeConfirmed) return;
+        if (!Engine.IsDirty || _closeConfirmed) return;
         args.Cancel = true;
         _ = GuardAsync("Close", async () =>
         {
@@ -189,7 +192,6 @@ public sealed partial class MainPage : Page
             _closeConfirmed = true;
             App.MainWindow?.Close();
         });
-#endif
     }
 #endif
 
