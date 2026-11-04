@@ -389,7 +389,7 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 
 ## Interaction Brief
 
-- **User flows**: (1) Start → sample or empty → place nodes (N) → connect (M) → support (S) two nodes → load (L) a node → read ribbons → drag a node to explore → save. (2) Open file → select critical member from summary → change section → utilization drops → save. (3) Ctrl+K → "deflection" → toggle → adjust exaggeration in status bar.
+- **User flows**: (1) Start → sample or empty → place nodes (N) → connect (M) → support (S) two nodes → load (L) a node → read ribbons → drag a node to explore → save. (2) Open file → select critical member from summary → change section → utilization drops → save. (3) Ctrl+K → "deflection" → toggle → step the exaggeration from the palette (×0.2 to ×3; the legend and the layers sheet show it).
 - **Input behavior**: as specified in Stage 2. Pointer capture on press; release or capture-lost ends the gesture and commits or cancels cleanly.
 - **Empty states**: empty document invitation; empty selection → summary inspector; outline with zero items shows "No elements yet".
 - **Loading states**: file open and sample load are synchronous; the title strip shows the name when done. No spinners.
