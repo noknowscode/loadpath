@@ -1,54 +1,60 @@
-# HANDOFF — Loadpath blueprint v2, motion and polish
-Updated: 2026-10-01 14:55
+# HANDOFF — Loadpath uno-audit
+Updated: 2026-11-04 06:10
 
 ## Where we are
-Cloned and built Loadpath, then reworked the UI in four steps:
-- the light drafting-sheet look (v1);
-- the blueprint v2 sheet with Reduce noise (12 layers you can keep or hide, `F`);
-- an eased motion system (spline keyframes, the `Motion` Enter/Exit/Glide helper);
-- a gold-standard polish pass: SI unit case (kN/m/ms), N7/M6 naming, 40 px inspector controls, a grid for the section chips, a bounded document name, and singular/plural counts.
-
-Everything is merged to `main` and pushed. The user records walkthrough takes themselves from a scripted input run. The last take (14:51) ran every step except the CHS 76.1 chip drag: a comment I added had swallowed the drag-target line. That line is fixed in the script but has not been re-run.
+The uno-audit pass ran on `feat/production-readiness` from `1c788fc` (report: `docs/UNO-AUDIT.md`). It removed 15
+unused usings and 13 dead Core members, merged the duplicated `IsDown` and `SafeName` helpers, moved the canvas menu's
+add-node edit and the section drop into `EditorEngine`, bound the palette rows to a generated `RunPalette` command,
+replaced the silent autosave and settings-write catches with toasts, and re-checked every `xaml-lint: allow` comment
+(13 that suppressed nothing are gone; the rest name why the replacement does not fit). The preset-tile fix from
+`997f7be` is unchanged. The owner approved the DI and MainPage split for the next pass; its plan is item 1 of
+"Remaining" in `docs/UNO-AUDIT.md`.
 
 ## Last verified state
-- Build: Release `net10.0-desktop` 0 warnings / 0 errors; 26/26 tests pass.
-- Runtime: node, member, mixed and empty inspector states captured with fixture env hooks, maximised (PrintWindow). Narrow widths and long section names not checked.
-- Git: `main` at `b635c14` (pushed). `polish/gold-standard` and `ui/blueprint-v2` are also pushed. Working tree clean apart from this file.
-- Lint: CARD 0 · HEX 0 · TOKENTHEME 23 (pending the dark-mode decision) · BACKBAR 0 · CODEBEHIND 0 · OVERLAY 0 · RESPONSIVE 0 · BUILTIN 0 · ICON 0 · TEMPLATE 10 (info).
+- Build: Release `net10.0-desktop`, `net10.0-browserwasm` and `net10.0-android` 0 warnings / 0 errors each.
+  Tests 190/190 (was 183). WinAppSDK and iOS are CI-only.
+- Runtime: Debug desktop under Xvfb, driven with `xdotool`: palette row click (light 1440 px, dark 390 px), Enter in the
+  palette, canvas menu "Add node here" plus Ctrl+Z, section chip dragged onto a member, Shift-click in the outline, and
+  the autosave/settings failure toasts (files replaced by folders). Idle CPU 0 % over 10 s.
+- Git: `feat/production-readiness`, audit commits `e19ef48` to `8b8292c` plus the docs commit with this file.
+- Lint: CARD 0 · HEX 0 · TOKENTHEME 0 · BACKBAR 0 · CODEBEHIND 0 · OVERLAY 0 · RESPONSIVE 0 · BUILTIN 0 · ICON 0.
+  Allowed with reasons: CARD 8 · CODEBEHIND 29 · RESPONSIVE 1. Info: TOKEN 172 · TEMPLATE 11.
 
 ## Guidance applied
 | Skill / rule / decision | Applied at (file:line) |
 |---|---|
-| xaml-design-polish: house curves as tokens | `Loadpath/Themes/MotionTokens.xaml:4` |
-| xaml-design-polish: spline keyframes in templates | `Loadpath/Themes/Controls.xaml:95` |
-| xaml-design-polish: honour the in-app animations setting | `Loadpath/Controls/Motion.cs:41` |
-| winui-xaml: width states via AdaptiveTrigger in XAML | `Loadpath/MainPage.xaml:12` |
-| gold-standard-pass Coherence: one inspector control height | `Loadpath/Views/InspectorPanel.xaml:19` |
-| gold-standard-pass Hardening: section chips in a grid, no clipping | `Loadpath/Views/InspectorPanel.xaml:314` |
-| gold-standard-pass Content Reality: SI unit case | `Loadpath/Workspace/WorkspaceRenderer.cs:748` |
-| gold-standard-pass Coherence: N/M naming | `Loadpath/Presentation/EditorModel.cs:525` |
+| uno-scaffolding code-behind budget: edits live in the engine, not the page | `Loadpath/Presentation/EditorEngine.cs:193`, `:201` |
+| mvux: generated command bound from a template | `Loadpath/Presentation/EditorModel.cs:437`, `Loadpath/Views/CommandPalette.xaml:34` |
+| dotnet-csharp: narrow catch filters, failures reported | `Loadpath/Presentation/DocumentSession.cs:213`, `Loadpath/Services/SettingsService.cs:80` |
+| uno-toolkit: breakpoints as `{utu:Responsive}` | `Loadpath/MainPage.xaml:28` |
+| winui-xaml: virtualized outline | `Loadpath/Views/OutlinePanel.xaml:75` |
+| skiasharp-uno: paints allocated once | `Loadpath/Workspace/WorkspaceRenderer.cs:21` |
 
-Read, not applied: `utu:Responsive` (the app uses no Toolkit, by README decision); uno-verify through the App MCP (verification used Win32 capture instead).
+Read, not applied: uno-extensions-services hosting/DI (planned, Remaining item 1); `utu:SafeArea` (COMPLETENESS Major,
+next pass); uno-navigation (single page).
 
 ## Next actions (in order)
-1. If the user wants a clean take with the chip drag: run `showcase.ps1 -Phase launch`, say ready, wait for "go", then run `-Phase run` ONCE.
-2. Decide dark mode. This settles the 23 TOKENTHEME hits (add ThemeDictionaries, or rename the brushes `*Invariant`).
-3. Refresh the README and docs screenshots for blueprint v2.
-4. Check narrow widths (<1100, <640) and long section and document names.
+1. DI and the MainPage split (`docs/UNO-AUDIT.md`, Remaining 1): Hosting + Logging + ThemeService, services registered,
+   `MainPage.xaml.cs` from 764 to about 200 lines, then re-run the seven critical workflows on desktop and WebAssembly.
+2. `utu:SafeArea` on the page root for the phone heads (COMPLETENESS Major), checked on Android.
+3. Owner calls: InfoBar banners, ToggleSplitButton for Reduce noise, the palette as a light-dismiss Popup, the
+   ToolTip/Separator templates (Remaining 2-5), and the two test-package bumps.
 
 ## Open questions
-- Dark mode: yes or no?
-- Adopt the Uno Toolkit? The README currently says no.
-- The exaggeration slider was removed from the UI and now lives only as palette commands. Is that OK?
-- `F` now toggles Reduce noise; Fit moved to `Ctrl+0`. Is that OK?
-- The user's original autosave backup is at scratchpad `autosave.before-showcase`. Fixture runs overwrite `%LOCALAPPDATA%\Loadpath\com.loadpath.app\LocalState\autosave.loadpath`, so back it up first.
+- Dark mode and Toolkit questions in the previous handoff are settled (README Architecture); still open: the
+  exaggeration control (README promises a slider, there is none) and whether Android/iOS/WinAppSDK need runtime proof.
+- Settings and autosave failures share one toast slot: at launch the autosave message replaces the settings one within
+  a second. Fine for a sample, or should the toast queue?
 
 ## Relaunch
-```powershell
-cd C:\Users\Platform006\loadpath
-dotnet build Loadpath\Loadpath.csproj -c Debug -f net10.0-desktop
-$env:APP_NO_HOTDESIGN='1'; Start-Process Loadpath\bin\Debug\net10.0-desktop\Loadpath.exe
-# Fixture hooks: LOADPATH_RESET=1, LOADPATH_SAMPLE=warren|cantilever|roof, LOADPATH_SELECT=n7,m6, LOADPATH_MODE=..., LOADPATH_FILE=path
-# Walkthrough: <session scratchpad>\showcase.ps1 -Phase launch | run [-Capture] (Win32 input; window must be in front)
+```bash
+cd /home/user/loadpath
+dotnet build Loadpath/Loadpath.csproj -c Debug -f net10.0-desktop -p:LoadpathTargetFrameworks=net10.0-desktop
+dotnet test Loadpath.Tests/Loadpath.Tests.csproj -p:LoadpathTargetFrameworks=net10.0
+Xvfb :454 -screen 0 1600x1000x24 -nolisten tcp &
+DISPLAY=:454 HOME=<scratch home> APP_NO_HOTDESIGN=1 LIBGL_ALWAYS_SOFTWARE=1 LOADPATH_TRACE=<trace file> \
+  LOADPATH_RESET=1 LOADPATH_SAMPLE=warren Loadpath/bin/Debug/net10.0-desktop/Loadpath
+# Android: -p:AndroidSdkDirectory=/home/user/android-sdk -p:JavaSdkDirectory=/usr/lib/jvm/java-21-openjdk-amd64
 ```
-The scratchpad scripts (`showcase.ps1`, `lib.ps1`) live in this session's temp folder and won't survive cleanup. Copy them into the repo (for example `tools/`) if the walkthrough should be kept.
+Fixture hooks (Debug only) are listed at the end of README's Validation section. `tools/drive.sh` and
+`tools/capture.sh` use display :99 and `pkill -x Loadpath`; prefer a private display and killing only your own PID.
