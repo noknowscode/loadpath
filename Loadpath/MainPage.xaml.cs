@@ -87,8 +87,6 @@ public sealed partial class MainPage : Page
         await GuardAsync("Start", _startup.StartAsync);
     }
 
-    // ---- layout ----
-
     /// <summary>
     /// The responsive layout (LayoutProbe.Tag, from the one DefaultResponsiveLayout) decides whether the inspector is a
     /// docked column or a sheet; Ctrl+\ and the inspector button act on whichever it is. At Widest the outline docks
@@ -105,8 +103,6 @@ public sealed partial class MainPage : Page
         Console.Error.WriteLine($"VERIFY layout={layout} width={XamlRoot?.Size.Width ?? 0:0}");
 #endif
     }
-
-    // ---- keyboard ----
 
     /// <summary>
     /// When the focused element leaves the tree (an inspector panel collapses, the palette closes), keyboard events

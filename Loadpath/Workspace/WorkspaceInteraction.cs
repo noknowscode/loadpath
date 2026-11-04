@@ -127,8 +127,6 @@ public sealed class WorkspaceInteraction : IToolContext
     /// <summary>True while a tool is mid-gesture (drag, chain); shortcuts that change tools are deferred.</summary>
     public bool IsBusy => _active.IsBusy || _transientPan is not null;
 
-    // ---- pointer routing ----
-
     public void PointerPressed(PointerState p)
     {
         Radii = HitRadii.For(p.IsTouch);
@@ -184,8 +182,6 @@ public sealed class WorkspaceInteraction : IToolContext
         if (r != Hover) { Hover = r; Invalidate(); }
     }
 
-    // ---- keys ----
-
     public bool KeyDown(VirtualKey key)
     {
         if (key == VirtualKey.Space) { _spaceHeld = true; SetCursor(CursorKind.Grab); return true; }
@@ -198,8 +194,6 @@ public sealed class WorkspaceInteraction : IToolContext
     {
         if (key == VirtualKey.Space) { _spaceHeld = false; SetCursor(_active.IdleCursor); }
     }
-
-    // ---- zoom ----
 
     public event EventHandler? UserNavigated;
 

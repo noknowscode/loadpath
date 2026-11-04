@@ -67,7 +67,7 @@ Loadpath.Core/      net10.0 class library, no UI dependency
   Samples/          Warren, cantilever, Howe roof; TrussPresets (parametric Pratt, Howe, Warren, K, Fink, scissor)
 Loadpath/           Uno single-project app
   App, AppServices  the composition root: the host (logging, the theme service) and every service, one instance each
-  MainPage          composes the shell, routes shortcuts, reports the layout, places the floating bar
+  MainPage          composes the shell, routes shortcuts, reports the layout
   Presentation/     EditorEngine (imperative), EditorModel (the MVUX binding surface and commands) and the pieces that
                     project the editor into its states: StatusProjection, OptionMirror, InspectorProjection,
                     OutlineProjection, PaletteSearch, PresetGallery; DocumentSession (files, share
@@ -79,7 +79,8 @@ Loadpath/           Uno single-project app
                     RenderSnapshotBuilder, WorkspaceRenderer, RenderSnapshot, ViewFitting and ViewportAnimation (keeping
                     the structure framed), WorkspaceInteraction, Tools/
   Views/            TitleStrip, ToolRail, InspectorPanel, OutlinePanel, StatusBar, CommandPalette, ToastHost,
-                    CanvasMenu, SectionDragController, UnsavedChangesDialog
+                    CanvasMenu, CanvasOverlays (the floating bar and what an open sheet covers),
+                    SectionDragController, UnsavedChangesDialog
   Controls/         Icon, ToolButton, NumberField, KeySink, KeyboardState (modifier keys), Motion, Sketch, IconLibrary,
                     WrapStack, ThemeLookup, Converters (the utilization bar is a styled ProgressBar)
   Services/         FileService (IDocumentFiles), SettingsService (ISettingsStore), ThemeSwitcher (IThemeService),

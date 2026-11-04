@@ -8,11 +8,11 @@ namespace Loadpath.Presentation;
 /// <remarks>
 /// The two directions meet in the states the view writes (the touch multi-select, reduce noise and the layer toggles).
 /// MVUX calls a state's ForEach on a pool thread some time after the update that raised it, so a flag held across the
-/// pull's awaits could not tell the pull's own echoes from the view's changes: a toggle made while a pull ran was dropped
-/// and left the check box on and the layer off. Each of those states now has a <see cref="Link"/> instead. A pull
-/// writes a state only when the engine's value moved since the last pull, so it never overwrites a toggle on its way to
-/// the engine; a change goes to the engine only when it is the state's latest value and not the value the last pull
-/// wrote, so an echo, or a value a later change replaced, never reaches it.
+/// pull's awaits cannot tell the pull's own echoes from the view's changes, and a toggle made while a pull runs would be
+/// dropped. Each of those states has a <see cref="Link"/>: a pull writes the state only when the engine's value moved
+/// since the last pull, so it never overwrites a toggle on its way to the engine; a change goes to the engine only when
+/// it is the state's latest value and not the value the last pull wrote, so an echo, or a value a later change replaced,
+/// never reaches it.
 /// </remarks>
 public sealed class OptionMirror(EditorEngine engine, IUiThread ui)
 {

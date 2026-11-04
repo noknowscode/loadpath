@@ -87,8 +87,6 @@ public sealed class EditorEngine
         RequestRender();
     }
 
-    // ---- document lifecycle ----
-
     public void MarkSaved()
     {
         History.MarkSaved();
