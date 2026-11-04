@@ -98,7 +98,8 @@
   <Thickness x:Key="CanvasFitInsetsNarrow">24,64,84,190</Thickness>
 
   <!-- Canvas overlays -->
-  <Thickness x:Key="RailMargin">40,24,0,0</Thickness>
+  <!-- The bottom 24 keeps a rail that wraps (short canvases) clear of the status bar. -->
+  <Thickness x:Key="RailMargin">40,24,0,24</Thickness>
   <Thickness x:Key="BannerMargin">0,28,0,0</Thickness>
   <Thickness x:Key="BannerMarginNarrow">12,16,12,0</Thickness>
   <Thickness x:Key="ToastMargin">0,0,0,64</Thickness>
