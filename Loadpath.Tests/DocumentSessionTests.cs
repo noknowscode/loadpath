@@ -290,6 +290,31 @@ public sealed class DocumentSessionTests : IDisposable
     }
 
     [Fact]
+    public async Task A_failing_autosave_says_so_when_it_starts_failing_and_not_on_every_edit()
+    {
+        var folder = Path.Combine(_folder, "gone");
+        var path = Path.Combine(folder, "autosave.loadpath");
+        var engine = new EditorEngine();
+        engine.ToastRequested += (_, message) => _toasts.Add(message);
+        var session = new DocumentSession(engine, _files, path, _ => Task.FromResult(UnsavedChoice.Cancel));
+        engine.LoadSample("warren");
+        int Failures() => _toasts.Count(t => t.StartsWith("Autosave failed: "));
+
+        await session.AutosaveAsync();
+        await session.AutosaveAsync();
+        Assert.Equal(1, Failures());
+
+        Directory.CreateDirectory(folder);
+        await session.AutosaveAsync();
+        Assert.True(File.Exists(path));
+        Assert.Equal(1, Failures());
+
+        Directory.Delete(folder, recursive: true);
+        await session.AutosaveAsync();
+        Assert.Equal(2, Failures());
+    }
+
+    [Fact]
     public async Task Discarding_before_open_or_new_keeps_the_autosave()
     {
         var (engine, session) = Start(UnsavedChoice.Discard);

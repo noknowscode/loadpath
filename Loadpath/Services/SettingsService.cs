@@ -50,7 +50,10 @@ public sealed class SettingsService
         {
             if (File.Exists(SettingsPath)) return JsonSerializer.Deserialize(File.ReadAllText(SettingsPath), Json.Model) ?? new Model();
         }
-        catch { /* corrupt settings are not fatal */ }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            // Unreadable or corrupt settings start from the defaults; the next option change rewrites the file.
+        }
         return new Model();
     }
 
@@ -66,9 +69,18 @@ public sealed class SettingsService
         return Load();
     }
 
-    public void Save(Model model)
+    /// <summary>Write the settings. Returns why they could not be written, or null when they were.</summary>
+    public string? Save(Model model)
     {
-        try { File.WriteAllText(SettingsPath, JsonSerializer.Serialize(model, Json.Model)); } catch { /* best effort */ }
+        try
+        {
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(model, Json.Model));
+            return null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return ex.Message;
+        }
     }
 
     public void Apply(Model m, ViewOptions o)

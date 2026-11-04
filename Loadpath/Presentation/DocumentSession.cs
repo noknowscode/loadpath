@@ -20,6 +20,7 @@ public sealed class DocumentSession
     private readonly string _autosavePath;
     private readonly Func<string, Task<UnsavedChoice>> _askUnsaved;
     private bool _autosaveDropped;
+    private bool _autosaveFailing;
 
     /// <param name="askUnsaved">Asks about unsaved changes in the named document.</param>
     public DocumentSession(EditorEngine engine, IDocumentFiles files, string autosavePath, Func<string, Task<UnsavedChoice>> askUnsaved)
@@ -194,14 +195,26 @@ public sealed class DocumentSession
         }
     }
 
-    /// <summary>Write the autosave now; the page debounces the calls. Nothing is written once closing discarded the work.</summary>
+    /// <summary>
+    /// Write the autosave now; the page debounces the calls. Nothing is written once closing discarded the work. A write
+    /// that fails is reported when the failures start, not on every edit after; the next edit tries again.
+    /// </summary>
     public async Task AutosaveAsync()
     {
         if (_autosaveDropped) return;
         // Serialize on the UI thread (the document is UI-owned); write off it. The file and the dirty flag go with the
         // document, so a restart restores the session as it was, not as the last file had it.
         var json = Autosave.Serialize(_engine.Document, _engine.FilePath, _engine.IsDirty);
-        await File.WriteAllTextAsync(_autosavePath, json);
+        try
+        {
+            await File.WriteAllTextAsync(_autosavePath, json);
+            _autosaveFailing = false;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            if (!_autosaveFailing) _engine.Toast($"Autosave failed: {ex.Message.TrimEnd('.')}. Save to keep your work.");
+            _autosaveFailing = true;
+        }
     }
 
     private void DropAutosave()

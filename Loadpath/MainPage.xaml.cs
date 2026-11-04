@@ -748,20 +748,19 @@ public sealed partial class MainPage : Page
     private async void OnAutosaveTick(object? sender, object e)
     {
         _autosaveTimer?.Stop();
-        try
-        {
-            await _session.AutosaveAsync();
-        }
-        catch (Exception)
-        {
-            // Best effort: a failed autosave never interrupts editing; the next edit tries again.
-        }
+        // The session reports a failed write itself; anything else ends as a toast too, never as a crash.
+        await GuardAsync("Autosave", _session.AutosaveAsync);
     }
+
+    private bool _settingsSaveFailing;
 
     private void PersistSettings()
     {
         if (!_settingsLoaded) return;
         _settings.Capture(Engine.Options, _settingsModel);
-        _settings.Save(_settingsModel);
+        var error = _settings.Save(_settingsModel);
+        // Reported when the failures start: toggling a layer ten times does not raise ten toasts.
+        if (error is not null && !_settingsSaveFailing) ShowToast($"Settings not saved: {error}");
+        _settingsSaveFailing = error is not null;
     }
 }
