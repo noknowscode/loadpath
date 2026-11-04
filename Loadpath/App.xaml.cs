@@ -31,6 +31,10 @@ public partial class App : Application
     /// <summary>The one window's scope: the Extensions theme service is scoped to a window.</summary>
     private IServiceScope? _windowScope;
 
+    // The host's Build() is marked RequiresUnreferencedCode for configuration binding (TypeDescriptor converters). The
+    // app binds no configuration sections; its services are registered by type with constructor injection, which the
+    // generic registrations annotate for the trimmer. The trimmed WebAssembly publish is run in Chromium (README, Validation).
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode", Justification = "No configuration binding; see the comment above.")]
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
 #if __DESKTOP__
