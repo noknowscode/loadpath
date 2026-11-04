@@ -42,6 +42,34 @@ public class EditorEngineTests
         Assert.Equal(SupportKind.None, engine.Document.GetNode(4).Support);
     }
 
+    [Theory]
+    [InlineData("sample")]
+    [InlineData("preset")]
+    [InlineData("paste")]
+    public void Undoing_a_replacement_gives_the_document_its_file_back_and_redo_detaches_it_again(string how)
+    {
+        var engine = new EditorEngine();
+        engine.LoadSnapshot(SampleStructures.Build("warren"), "Open", "/docs/bridge.loadpath");
+
+        switch (how)
+        {
+            case "sample": engine.LoadSample("roof"); break;
+            case "preset": engine.LoadPreset("pratt", TrussPresets.Find("pratt").Defaults); break;
+            default: engine.ReplaceDocument(SampleStructures.Build("cantilever"), "Paste design"); break;
+        }
+        Assert.Null(engine.FilePath);
+
+        engine.History.Undo();
+        Assert.Equal("Warren truss", engine.Document.Name);
+        Assert.Equal("/docs/bridge.loadpath", engine.FilePath);
+        // Back at the save point: clean, and the next Save writes the file it came from.
+        Assert.False(engine.IsDirty);
+
+        engine.History.Redo();
+        Assert.Null(engine.FilePath);
+        Assert.True(engine.IsDirty);
+    }
+
     [Fact]
     public void Adding_a_node_from_the_canvas_menu_selects_it_and_is_one_undo_step()
     {

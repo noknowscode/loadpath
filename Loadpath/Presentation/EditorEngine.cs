@@ -129,15 +129,35 @@ public sealed class EditorEngine
     }
 
     /// <summary>
-    /// Replace the document as one undoable step, so Ctrl+Z brings back what was there. Samples, presets and pasted
-    /// designs land this way; the result is a new, unsaved document.
+    /// Replace the document as one undoable step, so Ctrl+Z brings back what was there, with the file it belongs to.
+    /// Samples, presets and pasted designs land this way; the result is a new, unsaved document with no file.
     /// </summary>
     public void ReplaceDocument(DocumentSnapshot snapshot, string label)
     {
         Interaction.CancelTool();
         Selection.Clear();
-        History.Do(new ReplaceDocumentEdit(snapshot, label));
-        FilePath = null;
+        History.Do(new ReplaceWithoutFileEdit(this, new ReplaceDocumentEdit(snapshot, label)));
+    }
+
+    /// <summary>A whole-document replacement that leaves the new document without a file; undo gives the old one its file back.</summary>
+    private sealed class ReplaceWithoutFileEdit(EditorEngine engine, ReplaceDocumentEdit replace) : IEdit
+    {
+        private string? _file;
+
+        public string Label => replace.Label;
+
+        public void Apply(StructureDocument doc)
+        {
+            _file = engine.FilePath;
+            engine.FilePath = null;
+            replace.Apply(doc);
+        }
+
+        public void Revert(StructureDocument doc)
+        {
+            engine.FilePath = _file;
+            replace.Revert(doc);
+        }
     }
 
     public void LoadPreset(string id, PresetParameters parameters)

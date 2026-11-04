@@ -269,6 +269,28 @@ public sealed class DocumentSessionTests : IDisposable
     }
 
     [Fact]
+    public async Task Undoing_a_sample_over_a_file_saves_to_that_file_again_and_the_autosave_records_it()
+    {
+        // The audit's repro: after Ctrl+Z the autosave read "dirty False, file None" and Save asked for a location.
+        PutOnDisk(FileA, "warren");
+        _files.PickToOpen = FileA;
+        var (engine, session) = Start();
+        await session.OpenAsync();
+        engine.LoadSample("roof");
+
+        engine.History.Undo();
+        await session.AutosaveAsync();
+        Edit(engine);
+        await session.SaveAsync(ask: false);
+
+        Assert.Equal(0, _files.SavePickerShown);
+        Assert.Equal(SupportKind.Pin, DocumentSerializer.Deserialize(_files.Disk[FileA]).Nodes.Single(n => n.Id == 4).Support);
+        var (after, afterSession) = Start();
+        await afterSession.RestoreAsync();
+        Assert.Equal(FileA, after.FilePath);
+    }
+
+    [Fact]
     public async Task Saving_refreshes_what_the_autosave_records()
     {
         var (before, beforeSession) = Start();
