@@ -75,7 +75,6 @@
   <Thickness x:Key="GapStart20">20,0,0,0</Thickness>
   <Thickness x:Key="GapEnd4">0,0,4,0</Thickness>
   <Thickness x:Key="GapEnd8">0,0,8,0</Thickness>
-  <Thickness x:Key="GapEnd10">0,0,10,0</Thickness>
 
   <!-- Shell strips (title, status): 16 px sides on the sheet, 12 on a phone. -->
   <Thickness x:Key="StripInset">16,0,16,0</Thickness>
@@ -150,7 +149,6 @@
   <Thickness x:Key="HairlineTop">0,1,0,0</Thickness>
   <Thickness x:Key="HairlineBottom">0,0,0,1</Thickness>
   <Thickness x:Key="HairlineStart">1,0,0,0</Thickness>
-  <Thickness x:Key="FocusStroke">1.5</Thickness>
 
   <!-- Line heights -->
   <x:Double x:Key="LineTight">13</x:Double>
@@ -158,7 +156,6 @@
   <x:Double x:Key="LineLabel">15</x:Double>
   <x:Double x:Key="LineCaption">16</x:Double>
   <x:Double x:Key="LineBody">18</x:Double>
-  <x:Double x:Key="LineTitle">20</x:Double>
   <x:Double x:Key="LineLoose">22</x:Double>
   <x:Double x:Key="LineDisplay">28</x:Double>
 
@@ -189,7 +186,6 @@
   <x:Double x:Key="SwitchKnobSize">12</x:Double>
   <x:Double x:Key="SwitchTrackRadius">8</x:Double>
   <x:Double x:Key="UtilizationTrackHeight">4</x:Double>
-  <x:Double x:Key="PillHeight">32</x:Double>
 
   <!-- Widths -->
   <x:Double x:Key="EmptyStateMaxWidth">440</x:Double>
@@ -212,8 +208,6 @@
   <x:Double x:Key="SketchHeight">52</x:Double>
   <x:Double x:Key="ChipMinWidth">68</x:Double>
   <x:Double x:Key="ChipMinHeight">24</x:Double>
-  <x:Double x:Key="ElementIdColumn">36</x:Double>
-  <x:Double x:Key="DisplacementBox">72</x:Double>
   <!-- The bottom sheet on a phone: tall enough for a section of the inspector, short enough to keep the structure in view. -->
   <x:Double x:Key="BottomSheetHeight">300</x:Double>
 </ResourceDictionary>

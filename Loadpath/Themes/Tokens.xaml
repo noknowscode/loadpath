@@ -239,7 +239,6 @@
   <!-- Type: Inter for UI, JetBrains Mono for every number. Static instances; the Skia text stack ignores wght axes. -->
   <FontFamily x:Key="UiFont">ms-appx:///Assets/Fonts/Inter-Regular.ttf#Inter</FontFamily>
   <FontFamily x:Key="UiFontMedium">ms-appx:///Assets/Fonts/Inter-Medium.ttf#Inter Medium</FontFamily>
-  <FontFamily x:Key="UiFontSemiBold">ms-appx:///Assets/Fonts/Inter-SemiBold.ttf#Inter SemiBold</FontFamily>
   <FontFamily x:Key="MonoFont">ms-appx:///Assets/Fonts/JetBrainsMono-Regular.ttf#JetBrains Mono</FontFamily>
   <FontFamily x:Key="MonoFontMedium">ms-appx:///Assets/Fonts/JetBrainsMono-Medium.ttf#JetBrains Mono Medium</FontFamily>
 
@@ -250,7 +249,6 @@
   <x:Double x:Key="TextBody">13</x:Double>
   <x:Double x:Key="TextValue">13</x:Double>
   <x:Double x:Key="TextWordmark">14</x:Double>
-  <x:Double x:Key="TextTitle">15</x:Double>
   <x:Double x:Key="TextDisplay">22</x:Double>
 
   <!-- Shell sizes -->

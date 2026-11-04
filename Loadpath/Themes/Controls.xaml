@@ -26,11 +26,6 @@
     <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
     <Setter Property="LineHeight" Value="{StaticResource LineLabel}" />
   </Style>
-  <Style x:Key="TitleText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
-    <Setter Property="FontFamily" Value="{StaticResource UiFontSemiBold}" />
-    <Setter Property="FontSize" Value="{StaticResource TextTitle}" />
-    <Setter Property="LineHeight" Value="{StaticResource LineTitle}" />
-  </Style>
   <Style x:Key="DisplayText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
     <Setter Property="FontFamily" Value="{StaticResource UiFontMedium}" />
     <Setter Property="FontSize" Value="{StaticResource TextDisplay}" />

@@ -84,7 +84,7 @@ Loadpath/           Uno single-project app
                     WrapStack, ThemeLookup, Converters (the utilization bar is a styled ProgressBar)
   Services/         FileService (IDocumentFiles), SettingsService (ISettingsStore), ThemeSwitcher (IThemeService),
                     CloseGuard, DispatcherUiThread
-  Themes/           Tokens (Light and Dark), Layout (spacing, sizes, the responsive layout), MotionTokens, Icons, Controls
+  Themes/           Tokens (Light and Dark), Layout (spacing, sizes, the responsive layout), Icons, Controls
 Loadpath.Tests/     xunit on Core and the app's net10.0 build: solver and LinearSolver, history, geometry, serializer and
                     malformed documents, the engine, tool cancellation, the document session and autosave, inspector fields,
                     the page model (EditorModel) and its bindable states, the container, settings, toasts, the close
