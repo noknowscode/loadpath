@@ -12,6 +12,14 @@ public static class DocumentSerializer
     public const int CurrentVersion = 1;
     public const string Extension = ".loadpath";
 
+    /// <summary>A document name made safe as a file name on this platform: invalid characters become '_'; blank is "Untitled".</summary>
+    public static string SafeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var clean = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
+        return clean.Length == 0 ? "Untitled" : clean;
+    }
+
     /// <summary>
     /// Source-generated metadata: trimmed heads (WebAssembly) turn reflection-based System.Text.Json off, so the
     /// reflection overloads would throw there. Indented for files, compact for share codes.

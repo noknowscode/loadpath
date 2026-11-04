@@ -17,6 +17,15 @@ public class ShareCodeTests
         return doc;
     }
 
+    /// <summary>Saved documents and share files are named after the document; '/' is invalid on every platform.</summary>
+    [Theory]
+    [InlineData("Warren truss", "Warren truss")]
+    [InlineData(" Bridge / v2 ", "Bridge _ v2")]
+    [InlineData("   ", "Untitled")]
+    [InlineData("", "Untitled")]
+    public void A_document_name_becomes_a_safe_file_name(string name, string expected) =>
+        Assert.Equal(expected, DocumentSerializer.SafeFileName(name));
+
     [Theory]
     [InlineData("warren")]
     [InlineData("cantilever")]

@@ -126,7 +126,7 @@ public sealed class DocumentSession
             _engine.Toast("No clipboard here, and no folder to save the share code to");
             return;
         }
-        var path = Path.Combine(folder, SafeName(_engine.Document.Name) + ShareFileSuffix);
+        var path = Path.Combine(folder, DocumentSerializer.SafeFileName(_engine.Document.Name) + ShareFileSuffix);
         await File.WriteAllTextAsync(path, code);
         _engine.Toast($"No clipboard here. Share code saved to {path}");
     }
@@ -151,13 +151,6 @@ public sealed class DocumentSession
         if (!ShareCode.TryDecode(text, out var snapshot, out var error)) { _engine.Toast(error); return; }
         _engine.ReplaceDocument(snapshot!, "Paste design");
         _engine.Toast($"Pasted {_engine.Document.Name} · Ctrl+Z to undo");
-    }
-
-    private static string SafeName(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        var clean = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
-        return clean.Length == 0 ? "Untitled" : clean;
     }
 
     /// <summary>

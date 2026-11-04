@@ -410,9 +410,9 @@ public sealed partial class MainPage : Page
     // xaml-lint: allow codebehind - editor-wide shortcut routing (handledEventsToo), tools get first refusal
     private async void OnRootKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        var ctrl = IsDown(VirtualKey.Control);
-        var shift = IsDown(VirtualKey.Shift);
-        var alt = IsDown(VirtualKey.Menu);
+        var ctrl = KeyboardState.IsDown(VirtualKey.Control);
+        var shift = KeyboardState.IsDown(VirtualKey.Shift);
+        var alt = KeyboardState.IsDown(VirtualKey.Menu);
         var key = e.Key;
 #if DEBUG
         if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } tracePath)
@@ -468,23 +468,6 @@ public sealed partial class MainPage : Page
 
     // xaml-lint: allow codebehind - releases held keys (Space pan, Shift axis lock) in the interaction engine
     private void OnRootKeyUp(object sender, KeyRoutedEventArgs e) => Engine.Interaction.KeyUp(e.Key);
-
-    /// <summary>
-    /// Modifier state for shortcut routing. WinAppSDK answers from the OS; every Uno head (desktop, WebAssembly,
-    /// Android, iOS) answers from the key state Uno tracks as key events arrive, so a hardware keyboard on a tablet
-    /// or in a browser gets the same shortcuts. With no keyboard nothing is ever down, and touch never reaches here.
-    /// </summary>
-    private static bool IsDown(VirtualKey key)
-    {
-        try
-        {
-            return Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-    }
 
     // ---- context menu ----
 

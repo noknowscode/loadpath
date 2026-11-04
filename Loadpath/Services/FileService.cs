@@ -99,12 +99,12 @@ public sealed class FileService : IDocumentFiles
             return existingPath;
         }
 
-        var (file, unavailable) = PickersAvailable ? await PickSaveAsync(Sanitize(doc.Name)) : (null, true);
+        var (file, unavailable) = PickersAvailable ? await PickSaveAsync(DocumentSerializer.SafeFileName(doc.Name)) : (null, true);
         if (file is null)
         {
             if (!unavailable) return null; // cancelled
             var folder = FallbackFolder ?? throw new IOException("there is no file picker or local folder on this device");
-            file = await CreateFileAsync(Path.Combine(folder, Sanitize(doc.Name) + DocumentSerializer.Extension));
+            file = await CreateFileAsync(Path.Combine(folder, DocumentSerializer.SafeFileName(doc.Name) + DocumentSerializer.Extension));
         }
 
         await WriteTextAsync(file, json);
@@ -198,13 +198,6 @@ public sealed class FileService : IDocumentFiles
         }
         var status = await CachedFileManager.CompleteUpdatesAsync(file);
         if (status == FileUpdateStatus.Failed) throw new IOException($"{file.Name} could not be written");
-    }
-
-    private static string Sanitize(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        var clean = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
-        return string.IsNullOrEmpty(clean) ? "Untitled" : clean;
     }
 
     private void InitializeWithWindow(object picker)

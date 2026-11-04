@@ -99,7 +99,7 @@ public sealed partial class NumberField : Control
                 break;
             case VirtualKey.Up:
             case VirtualKey.Down:
-                var shift = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+                var shift = KeyboardState.IsDown(VirtualKey.Shift);
                 var delta = (e.Key == VirtualKey.Up ? 1 : -1) * Step * (shift ? 10 : 1);
                 _editing = false;
                 Value = Math.Round(Value + delta, Math.Max(Decimals, 3));

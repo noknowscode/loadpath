@@ -32,21 +32,8 @@ public sealed partial class OutlinePanel : UserControl
     {
         if (sender is FrameworkElement { Tag: string key } && Engine is not null)
         {
-            var extend = IsDown(Windows.System.VirtualKey.Shift) || IsDown(Windows.System.VirtualKey.Control) || Engine.Options.MultiSelect;
+            var extend = KeyboardState.IsDown(Windows.System.VirtualKey.Shift) || KeyboardState.IsDown(Windows.System.VirtualKey.Control) || Engine.Options.MultiSelect;
             Engine.SelectByKey(key, extend);
-        }
-    }
-
-    /// <summary>Modifier state from the key events Uno tracks (every head) or the OS (WinAppSDK); false without a keyboard.</summary>
-    private static bool IsDown(Windows.System.VirtualKey key)
-    {
-        try
-        {
-            return Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
-        }
-        catch (Exception)
-        {
-            return false;
         }
     }
 
