@@ -32,8 +32,13 @@ public sealed partial class TitleStrip : UserControl
     // xaml-lint: allow codebehind - Flyout has no bindable IsOpen; Done closes it (light dismiss also does)
     private void OnNoiseDone(object sender, RoutedEventArgs e) => NoiseFlyout.Hide();
 
+    /// <summary>
+    /// The sheet closes after the tile's command has run, not before. A button raises Click and then executes its
+    /// command; hiding the flyout inside Click unloads the sheet at once on Uno, the tile loses its DataContext, its
+    /// CommandParameter (the preset id) drops to null, and LoadPreset refuses a null id, so nothing loaded.
+    /// </summary>
     // xaml-lint: allow codebehind - a chosen preset closes its flyout; the bound command does the work
-    private void OnPresetClick(object sender, RoutedEventArgs e) => PresetsFlyout.Hide();
+    private void OnPresetClick(object sender, RoutedEventArgs e) => DispatcherQueue.TryEnqueue(PresetsFlyout.Hide);
 
     /// <summary>
     /// A sheet never grows past the window: on a phone the 380 px presets sheet and the 318 px layer sheet shrink to the

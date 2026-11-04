@@ -356,6 +356,7 @@ public partial record EditorModel
     public async ValueTask LoadPreset(string id, CancellationToken ct)
     {
         var p = await ReadPresetParametersAsync(ct);
+        Trace($"preset {id} span={p.Span} panels={p.Panels} depth={p.Depth}");
         Ui(() => _engine.LoadPreset(id, p));
     }
 
