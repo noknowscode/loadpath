@@ -16,6 +16,9 @@
     Each panel is one element moved by utu:Responsive (Grid.Column, alignment, size), so its state (scroll position,
     a field being edited) survives a resize. Whether the inspector shows is InspectorShown: the docked toggle in the
     docked layouts, the sheet in the others; the title strip's inspector button and Ctrl+\ flip whichever applies.
+    Phones draw edge to edge: utu:SafeArea keeps the title strip below the status bar, the status strip above the
+    gesture bar and the work area clear of a side cutout in landscape (margins, so the page's paper shows behind the
+    system bars). Desktop and the browser have no unsafe area, so the margins are zero there.
   -->
   <Grid x:Name="Root" Background="{ThemeResource CanvasBrush}">
     <Grid.RowDefinitions>
@@ -27,9 +30,9 @@
     <!-- Tells the page which layout is active (docked or sheet inspector, tab reset): the same breakpoints, no second copy. -->
     <Border x:Name="LayoutProbe" Visibility="Collapsed" Tag="{utu:Responsive Narrow=Narrow, Normal=Normal, Wide=Wide, Widest=Widest}" />
 
-    <v:TitleStrip x:Name="Title" />
+    <v:TitleStrip x:Name="Title" utu:SafeArea.Insets="Left,Top,Right" utu:SafeArea.Mode="Margin" />
 
-    <Grid x:Name="Work" Grid.Row="1">
+    <Grid x:Name="Work" Grid.Row="1" utu:SafeArea.Insets="Left,Right" utu:SafeArea.Mode="Margin">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" />
@@ -211,9 +214,10 @@
       </Grid>
     </Grid>
 
-    <v:StatusBar Grid.Row="2" />
+    <v:StatusBar Grid.Row="2" utu:SafeArea.Insets="Left,Right,Bottom" utu:SafeArea.Mode="Margin" />
 
     <!-- Command palette overlay -->
-    <v:CommandPalette x:Name="Palette" Grid.RowSpan="3" Visibility="{Binding IsPaletteOpen, Converter={StaticResource Vis}}" />
+    <v:CommandPalette x:Name="Palette" Grid.RowSpan="3" Visibility="{Binding IsPaletteOpen, Converter={StaticResource Vis}}"
+                      utu:SafeArea.Insets="Left,Top,Right,Bottom" utu:SafeArea.Mode="Margin" />
   </Grid>
 </Page>
