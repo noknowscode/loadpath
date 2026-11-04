@@ -223,6 +223,34 @@ public sealed class EditorEngine
     /// <summary>The selected nodes, and the ends of selected members, in canvas pixels. Empty when nothing is selected.</summary>
     public Bounds SelectionOnScreen() => OnScreen(SelectedNodeIdsIncludingMemberEnds());
 
+    /// <summary>Room a load arrow's label takes past the arrow's tail, and a support symbol under its node, in pixels.</summary>
+    private const double LoadLabelPx = 18, SupportPx = 24;
+
+    /// <summary>
+    /// What is drawn on the canvas, as screen segments an overlay should keep clear of: every member, every load arrow
+    /// (to past its tail, where the label sits), every support symbol, and every node as a point.
+    /// </summary>
+    public IReadOnlyList<(Vec2 A, Vec2 B)> DrawingOnScreen()
+    {
+        var segments = new List<(Vec2, Vec2)>(Document.Members.Count + Document.Nodes.Count * 2);
+        foreach (var m in Document.Members)
+        {
+            if (Document.FindNode(m.StartNodeId) is { } a && Document.FindNode(m.EndNodeId) is { } b) segments.Add((Viewport.ToScreen(a.Position), Viewport.ToScreen(b.Position)));
+        }
+        foreach (var n in Document.Nodes)
+        {
+            var at = Viewport.ToScreen(n.Position);
+            segments.Add((at, at));
+            if (n.HasLoad)
+            {
+                var tail = HitTester.LoadHandleScreen(n, Viewport);
+                segments.Add((at, tail + (tail - at).Normalized() * LoadLabelPx));
+            }
+            if (n.HasSupport) segments.Add((at, at + new Vec2(0, SupportPx)));
+        }
+        return segments;
+    }
+
     private Bounds OnScreen(IEnumerable<int> nodeIds)
     {
         var bounds = Bounds.Empty;

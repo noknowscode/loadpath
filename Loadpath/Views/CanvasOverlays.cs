@@ -88,7 +88,7 @@ public sealed class CanvasOverlays
         if (selection.IsEmpty) { HideBar(); return; }
         // xaml-lint: allow responsive - "has the bar measured yet", not a layout breakpoint
         var size = _bar.ActualWidth > 0 ? new Vec2(_bar.ActualWidth, _bar.ActualHeight) : new Vec2(150, 32);
-        var at = CanvasLayout.FloatingBar(selection, size, Uncovered());
+        var at = CanvasLayout.FloatingBar(selection, _engine.DrawingOnScreen(), size, Uncovered());
         _bar.Margin = new Thickness(at.X, at.Y, 0, 0);
         if (!_barShown)
         {
