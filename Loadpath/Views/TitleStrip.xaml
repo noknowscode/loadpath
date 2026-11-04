@@ -192,8 +192,9 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                   <DataTemplate>
+                    <!-- A press does not take focus, so a value still being typed is not committed (and the tiles rebuilt) under the pointer; OnPresetClick commits it. -->
                     <Button Style="{StaticResource QuietButton}" HorizontalAlignment="Stretch" Height="{StaticResource PresetTileHeight}" Padding="{StaticResource PresetTileInset}"
-                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Click="OnPresetClick"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Click="OnPresetClick" AllowFocusOnInteraction="False"
                             Command="{Binding DataContext.LoadPreset, ElementName=Strip}" CommandParameter="{Binding Id}"
                             AutomationProperties.Name="{Binding AutomationName}" ToolTipService.ToolTip="{Binding Description}">
                       <StackPanel Spacing="{StaticResource Space4}">

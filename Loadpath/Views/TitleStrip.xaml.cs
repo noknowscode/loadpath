@@ -1,3 +1,4 @@
+using Loadpath.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace Loadpath.Views;
@@ -32,12 +33,19 @@ public sealed partial class TitleStrip : UserControl
     private void OnNoiseDone(object sender, RoutedEventArgs e) => NoiseFlyout.Hide();
 
     /// <summary>
+    /// A value typed in a sheet field without Enter is committed first, so the tile loads with it. The tile does not take
+    /// focus on a press (AllowFocusOnInteraction), because a press that blurred the field committed it there and then,
+    /// the commit rebuilt the tiles under the pointer, and the press never became a click.
     /// The sheet closes after the tile's command has run, not before. A button raises Click and then executes its
     /// command; hiding the flyout inside Click unloads the sheet at once on Uno, the tile loses its DataContext, its
     /// CommandParameter (the preset id) drops to null, and LoadPreset refuses a null id, so nothing loaded.
     /// </summary>
-    // xaml-lint: allow codebehind - a chosen preset closes its flyout; the bound command does the work
-    private void OnPresetClick(object sender, RoutedEventArgs e) => DispatcherQueue.TryEnqueue(PresetsFlyout.Hide);
+    // xaml-lint: allow codebehind - a chosen preset commits the typed value and closes its flyout; the bound command does the work
+    private void OnPresetClick(object sender, RoutedEventArgs e)
+    {
+        if (XamlRoot is { } root) NumberField.CommitFocused(root);
+        DispatcherQueue.TryEnqueue(PresetsFlyout.Hide);
+    }
 
     /// <summary>
     /// A sheet never grows past the window: on a phone the 380 px presets sheet and the 318 px layer sheet shrink to the
