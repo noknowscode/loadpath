@@ -53,7 +53,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
         MarkDirty();
     }
 
-    private readonly WorkspaceRenderer _renderer = new();
+    private readonly WorkspaceRenderer _renderer;
     private volatile RenderSnapshot _snapshot = RenderSnapshot.Empty;
     private EditorEngine? _editor;
     private ViewportAnimation? _animation;
@@ -72,7 +72,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
         SizeChanged += (_, e) => OnSizeChanged(e.NewSize);
         Unloaded += (_, _) => _animation?.Stop();
         // The canvas palette follows the theme: read once now (the theme the page starts in), then on every change.
-        _renderer.SetPalette(SkiaPalette.FromResources(ThemeBrushes.Theme));
+        _renderer = new WorkspaceRenderer(SkiaPalette.FromResources(ThemeBrushes.Theme));
         Loaded += (_, _) => ApplyThemePalette();
         ActualThemeChanged += (_, _) => ApplyThemePalette();
         PointerPressed += OnPointerPressed;

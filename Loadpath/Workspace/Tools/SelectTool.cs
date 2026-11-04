@@ -76,9 +76,9 @@ public sealed class SelectTool : Tool
     {
         switch (_phase)
         {
-            case Phase.PressedElement:
+            case Phase.PressedElement when _pressedRef is { } pressed:
                 if ((p.Screen - _pressScreen).Length < DragThresholdPx) return;
-                BeginNodeDrag(ctx, p);
+                BeginNodeDrag(ctx, pressed);
                 goto case Phase.DraggingNodes;
             case Phase.DraggingNodes:
                 DragNodes(ctx, p);
@@ -99,12 +99,11 @@ public sealed class SelectTool : Tool
         }
     }
 
-    private void BeginNodeDrag(IToolContext ctx, PointerState p)
+    private void BeginNodeDrag(IToolContext ctx, ElementRef r)
     {
         _phase = Phase.DraggingNodes;
         _gesture = ctx.NextGesture();
         _undoDepthAtDrag = ctx.History.UndoDepth;
-        var r = _pressedRef!.Value;
         // Dragging something already selected moves the whole selection; otherwise just the pressed element.
         var refs = ctx.Selection.Contains(r) ? ctx.Selection.Items : new[] { r };
         _dragNodes = new HashSet<int>();

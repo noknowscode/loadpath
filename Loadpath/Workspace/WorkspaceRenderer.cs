@@ -43,8 +43,10 @@ public sealed class WorkspaceRenderer : IDisposable
     /// <summary>The drawing frame of this frame; annotations that would cross it are left out rather than clipped.</summary>
     private SKRect _frame;
 
-    public WorkspaceRenderer()
+    /// <param name="palette">The palette of the theme the canvas starts in; <see cref="SetPalette"/> replaces it.</param>
+    public WorkspaceRenderer(SkiaPalette palette)
     {
+        _pal = palette;
         // Fallback faces for the first frames, until the bundled fonts arrive through SetTypefaces.
         var mono = SKTypeface.FromFamilyName("monospace") ?? SKTypeface.Default;
         var ui = SKTypeface.Default;
@@ -63,7 +65,7 @@ public sealed class WorkspaceRenderer : IDisposable
     private volatile SkiaPalette? _pendingPalette;
 
     /// <summary>The palette of the frame being drawn; swapped in from <see cref="SetPalette"/> at the start of a frame.</summary>
-    private SkiaPalette _pal = null!;
+    private SkiaPalette _pal;
 
     /// <summary>Hands over the palette for the current theme; it takes effect on the next frame, on the drawing thread.</summary>
     public void SetPalette(SkiaPalette palette) => _pendingPalette = palette;
@@ -91,7 +93,6 @@ public sealed class WorkspaceRenderer : IDisposable
     {
         ApplyPendingTypefaces();
         if (_pendingPalette is { } palette) { _pal = palette; _pendingPalette = null; }
-        if (_pal is null) return;
         canvas.Clear(_pal.Canvas);
         _labelRects.Clear();
         _frame = new SKRect(FrameInset, FrameInset, s.Width - FrameInset, s.Height - FrameInset);
