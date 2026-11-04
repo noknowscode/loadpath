@@ -1,5 +1,4 @@
 using Loadpath.Controls;
-using Loadpath.Core.Geometry;
 using Loadpath.Core.Input;
 using Loadpath.Core.Viewport;
 using Loadpath.Presentation;

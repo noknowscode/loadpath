@@ -1,7 +1,5 @@
 using System.Globalization;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Windows.System;
 
 namespace Loadpath.Controls;

@@ -1,6 +1,5 @@
 using Loadpath.Controls;
 using Loadpath.Presentation;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 
 namespace Loadpath.Views;

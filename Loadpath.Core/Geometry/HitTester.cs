@@ -35,7 +35,6 @@ public static class HitTester
     public const double NodeRadiusPx = 9;
     public const double LoadHandleRadiusPx = 8;
     public const double MemberTolerancePx = 6;
-    public const double LoadArrowPxPerKn = 4; // 10 kN = 40 px at 100%
 
     /// <summary>
     /// Screen position of the tail of a node's load arrow (the drag handle).

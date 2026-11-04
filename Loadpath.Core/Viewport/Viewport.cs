@@ -53,9 +53,6 @@ public sealed class Viewport
     public Vec2 ToScreen(Vec2 world) => new(world.X * _scale + _offset.X, -world.Y * _scale + _offset.Y);
     public Vec2 ToWorld(Vec2 screen) => new((screen.X - _offset.X) / _scale, -(screen.Y - _offset.Y) / _scale);
     public double ToWorldLength(double pixels) => pixels / _scale;
-    public double ToScreenLength(double meters) => meters * _scale;
-
-    public Bounds VisibleWorldBounds() => Bounds.FromPoints(ToWorld(Vec2.Zero), ToWorld(new Vec2(ScreenWidth, ScreenHeight)));
 
     /// <summary>Set both at once, raising one change.</summary>
     public void Set(double scale, Vec2 offset)

@@ -1,7 +1,6 @@
 using System.Text;
 using Loadpath.Core.Editing;
 using Loadpath.Core.Serialization;
-using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Provider;
 

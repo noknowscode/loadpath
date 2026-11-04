@@ -45,9 +45,6 @@ public sealed class StructureDocument
         return b;
     }
 
-    public int PeekNextNodeId() => _nextNodeId;
-    public int PeekNextMemberId() => _nextMemberId;
-
     // ---- mutation surface (used by edits and the serializer) ----
 
     internal Node AddNode(Vec2 position, int? id = null)

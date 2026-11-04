@@ -59,7 +59,6 @@ public sealed class MoveNodesEdit : ICoalescingEdit
         _gesture = gesture;
     }
     public string Label => _nodeIds.Length == 1 ? "Move node" : $"Move {_nodeIds.Length} nodes";
-    public Vec2 Delta => _delta;
 
     public void Apply(StructureDocument doc) => Shift(doc, _delta);
     public void Revert(StructureDocument doc) => Shift(doc, -_delta);

@@ -85,8 +85,6 @@ public sealed class EditHistory
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    public bool IsInTransaction => _openTransaction is not null;
-
     public void Undo()
     {
         if (_undo.Count == 0) return;
