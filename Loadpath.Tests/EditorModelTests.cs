@@ -22,7 +22,7 @@ public class EditorModelTests
 
     public EditorModelTests()
     {
-        _model = new EditorModel(_engine, new TestUiThread(), Logs.For<EditorModel>());
+        _model = Models.Editor(_engine, new TestUiThread());
         _engine.ToastRequested += (_, t) => _toasts.Add(t);
     }
 

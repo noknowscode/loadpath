@@ -1,17 +1,15 @@
-using System.Collections.Immutable;
 using Uno.Extensions.Reactive.Commands;
 using Uno.Extensions.Reactive.Config;
-using Loadpath.Core.Analysis;
-using Loadpath.Core.Editing;
-using Loadpath.Core.Samples;
 using Microsoft.Extensions.Logging;
 
 namespace Loadpath.Presentation;
 
 /// <summary>
-/// MVUX presentation model. Every value the views bind to is a state or feed here; every button binds a command.
-/// The engine raises events; this record projects them into immutable records and pushes them into states.
-/// The generated EditorViewModel is the DataContext of the page; both are singletons in the app's container.
+/// The page's MVUX model: the binding surface and the commands the views send. The engine raises events; the pieces
+/// project them into states (<see cref="StatusProjection"/>, <see cref="OptionMirror"/>, <see cref="InspectorProjection"/>,
+/// <see cref="OutlineProjection"/>, <see cref="PaletteSearch"/>, <see cref="PresetGallery"/>), and this record exposes
+/// their states for the generated EditorViewModel, the page's DataContext. It keeps the tool rail and the inspector's
+/// tabs itself. Every piece is a singleton in the app's container.
 /// </summary>
 [ImplicitCommands(false)]
 public partial record EditorModel
@@ -19,38 +17,31 @@ public partial record EditorModel
     private readonly EditorEngine _engine;
     private readonly IUiThread _ui;
     private readonly ILogger _log;
-    private bool _syncingOptions;
-    private readonly Projection _optionsProjection = new(), _interactionProjection = new(), _failuresProjection = new(),
-        _statusProjection = new(), _inspectorProjection = new(), _outlineProjection = new();
+    private readonly StatusProjection _status;
+    private readonly OptionMirror _options;
+    private readonly InspectorProjection _inspector;
+    private readonly OutlineProjection _outline;
+    private readonly PaletteSearch _palette;
+    private readonly PresetGallery _presets;
+    private readonly Projection _interactionProjection = new();
 
-    /// <summary>
-    /// Each engine event starts a projection, so projections of one kind can run at the same time, and MVUX does not
-    /// apply concurrent state updates in the order they were made: an older projection could land after a newer one and
-    /// leave the view stale (a status still reading "Undo open" after an edit). A projection takes a ticket when it
-    /// starts; its updates apply only while it is still the latest of its kind, and keep what is there otherwise.
-    /// </summary>
-    private sealed class Projection
-    {
-        private long _latest;
-
-        public Ticket Start() => new(this, Interlocked.Increment(ref _latest));
-
-        public readonly record struct Ticket(Projection Kind, long Number)
-        {
-            public bool IsLatest => Interlocked.Read(ref Kind._latest) == Number;
-        }
-    }
-
-    public EditorModel(EditorEngine engine, IUiThread ui, ILogger<EditorModel> log)
+    public EditorModel(EditorEngine engine, IUiThread ui, ILogger<EditorModel> log, StatusProjection status, OptionMirror options,
+        InspectorProjection inspector, OutlineProjection outline, PaletteSearch palette, PresetGallery presets)
     {
         _engine = engine;
         _ui = ui;
         _log = log;
+        _status = status;
+        _options = options;
+        _inspector = inspector;
+        _outline = outline;
+        _palette = palette;
+        _presets = presets;
         engine.AnalysisChanged += (_, _) => Fire(RefreshAllAsync());
         engine.SelectionChanged += (_, _) => Fire(RefreshSelectionAsync());
-        engine.HistoryChanged += (_, _) => Fire(RefreshStatusAsync());
-        engine.SavedStateChanged += (_, _) => Fire(RefreshStatusAsync());
-        engine.OptionsChanged += (_, name) => Fire(PullOptionsAsync());
+        engine.HistoryChanged += (_, _) => Fire(status.RefreshStatusAsync());
+        engine.SavedStateChanged += (_, _) => Fire(status.RefreshStatusAsync());
+        engine.OptionsChanged += (_, _) => Fire(options.PullAsync());
         engine.Interaction.StateChanged += (_, _) => Fire(RefreshInteractionAsync());
         engine.ViewportChanged += (_, _) => Fire(RefreshInteractionAsync());
         engine.PaletteRequested += (_, _) => Fire(TogglePalette(default));
@@ -79,52 +70,68 @@ public partial record EditorModel
         _ = task.AsTask().ContinueWith(t => ReportFailure("Refresh", t.Exception!.GetBaseException()), TaskContinuationOptions.OnlyOnFaulted);
     }
 
-    // ---- status and banners ----
+    private async ValueTask RefreshAllAsync()
+    {
+        await _status.RefreshStatusAsync();
+        await _inspector.RefreshAsync();
+        await _outline.RefreshAsync();
+        await _status.RefreshFailuresAsync();
+    }
 
-    public IState<EditorStatus> Status => State.Value(this, () => EditorStatus.Initial);
+    private async ValueTask RefreshSelectionAsync()
+    {
+        await _inspector.RefreshAsync();
+        await _outline.RefreshAsync();
+    }
 
-    // ---- view options (two-way bound; mirrored into engine.Options for the renderer) ----
+    // ---- status, failures and layer counts (StatusProjection) ----
 
-    public IState<bool> IsForces => State.Value(this, () => _engine.Options.DisplayMode == DisplayMode.Forces);
-    public IState<bool> IsUtilization => State.Value(this, () => _engine.Options.DisplayMode == DisplayMode.Utilization);
-    public IState<string> ExaggerationText => State.Value(this, () => ExaggerationLabel());
-    public IState<bool> SnapEnabled => State.Value(this, () => _engine.Options.SnapEnabled);
-    public IState<string> SnapText => State.Value(this, () => SnapLabel());
-    public IState<bool> InspectorVisible => State.Value(this, () => _engine.Options.InspectorVisible);
-    /// <summary>Whether the inspector shows in the current layout (docked column or sheet).</summary>
-    public IState<bool> InspectorShown => State.Value(this, () => _engine.Options.InspectorShown);
-    public IState<bool> MultiSelect => State.Value(this, () => _engine.Options.MultiSelect).ForEach(async (v, ct) => Push(o => o.MultiSelect = v));
-    public IState<bool> FreePlacement => State.Value(this, () => _engine.Options.FreePlacement);
-    public IState<bool> IsThemeSystem => State.Value(this, () => _engine.Options.Theme == ThemeChoice.System);
-    public IState<bool> IsThemeLight => State.Value(this, () => _engine.Options.Theme == ThemeChoice.Light);
-    public IState<bool> IsThemeDark => State.Value(this, () => _engine.Options.Theme == ThemeChoice.Dark);
+    public IState<EditorStatus> Status => _status.Status;
+    public IState<LayerCounts> Counts => _status.Counts;
+    public IListState<FailureItem> Failures => _status.Failures;
+    public IState<bool> HasFailures => _status.HasFailures;
+    public IState<bool> CanLighten => _status.CanLighten;
+    public IState<string> FailuresHeader => _status.FailuresHeader;
 
-    // ---- reduce noise: the toggle, which layers stay, and what the panels show ----
+    // ---- view options (OptionMirror) ----
 
-    public IState<bool> ReduceNoise => State.Value(this, () => _engine.Options.ReduceNoise).ForEach(async (v, ct) => Push(o => o.ReduceNoise = v));
-    public IState<bool> KeepGrid => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.Grid) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.Grid, v)));
-    public IState<bool> KeepDimensions => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.Dimensions) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.Dimensions, v)));
-    public IState<bool> KeepSupports => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.Supports) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.Supports, v)));
-    public IState<bool> KeepLoads => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.Loads) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.Loads, v)));
-    public IState<bool> KeepOverCapacity => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.OverCapacity) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.OverCapacity, v)));
-    public IState<bool> KeepMemberForces => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.MemberForces) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.MemberForces, v)));
-    public IState<bool> KeepReactions => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.Reactions) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.Reactions, v)));
-    public IState<bool> KeepDeflection => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.Deflection) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.Deflection, v)));
-    public IState<bool> KeepPartNames => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.PartNames) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.PartNames, v)));
-    public IState<bool> KeepLegend => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.Legend) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.Legend, v)));
-    public IState<bool> KeepStructureList => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.StructureList) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.StructureList, v)));
-    public IState<bool> KeepResultDetails => State.Value(this, () => (_engine.Options.Keep & NoiseLayer.ResultDetails) != 0).ForEach(async (v, ct) => Push(o => o.SetKeep(NoiseLayer.ResultDetails, v)));
-    public IState<string> NoiseSummary => State.Value(this, () => NoiseSummaryText());
-    public IState<string> NoiseStatus => State.Value(this, () => NoiseStatusText());
-    public IState<bool> ShowStructureList => State.Value(this, () => _engine.Options.IsVisible(NoiseLayer.StructureList));
-    public IState<bool> ShowResultDetails => State.Value(this, () => _engine.Options.IsVisible(NoiseLayer.ResultDetails));
-    public IState<LayerCounts> Counts => State.Value(this, () => LayerCounts.Empty);
+    public IState<bool> IsForces => _options.IsForces;
+    public IState<bool> IsUtilization => _options.IsUtilization;
+    public IState<string> ExaggerationText => _options.ExaggerationText;
+    public IState<string> SnapText => _options.SnapText;
+    public IState<bool> InspectorShown => _options.InspectorShown;
+    public IState<bool> MultiSelect => _options.MultiSelect;
+    public IState<bool> FreePlacement => _options.FreePlacement;
+    public IState<bool> IsThemeSystem => _options.IsThemeSystem;
+    public IState<bool> IsThemeLight => _options.IsThemeLight;
+    public IState<bool> IsThemeDark => _options.IsThemeDark;
+    public IState<bool> ReduceNoise => _options.ReduceNoise;
+    public IState<bool> KeepGrid => _options.KeepGrid;
+    public IState<bool> KeepDimensions => _options.KeepDimensions;
+    public IState<bool> KeepSupports => _options.KeepSupports;
+    public IState<bool> KeepLoads => _options.KeepLoads;
+    public IState<bool> KeepOverCapacity => _options.KeepOverCapacity;
+    public IState<bool> KeepMemberForces => _options.KeepMemberForces;
+    public IState<bool> KeepReactions => _options.KeepReactions;
+    public IState<bool> KeepDeflection => _options.KeepDeflection;
+    public IState<bool> KeepPartNames => _options.KeepPartNames;
+    public IState<bool> KeepLegend => _options.KeepLegend;
+    public IState<bool> KeepStructureList => _options.KeepStructureList;
+    public IState<bool> KeepResultDetails => _options.KeepResultDetails;
+    public IState<string> NoiseSummary => _options.NoiseSummary;
+    public IState<string> NoiseStatus => _options.NoiseStatus;
+    public IState<bool> ShowStructureList => _options.ShowStructureList;
+    public IState<bool> ShowResultDetails => _options.ShowResultDetails;
 
-    // One declaration per layer: MVUX keys each state by its declaring member, so a shared factory would merge them.
-
-    [Command] public void ShowAll() => Ui(() => _engine.Options.ReduceNoise = false);
-    [Command] public void ToggleInspector() => Ui(() => _engine.Options.ToggleInspector());
-    [Command] public void ToggleFreePlacement() => Ui(() => _engine.Options.FreePlacement = !_engine.Options.FreePlacement);
+    [Command] public void ShowAll() => _options.Set(o => o.ReduceNoise = false);
+    [Command] public void ToggleInspector() => _options.Set(o => o.ToggleInspector());
+    [Command] public void ToggleFreePlacement() => _options.Set(o => o.FreePlacement = !o.FreePlacement);
+    [Command] public void ThemeSystem() => _options.Set(o => o.Theme = ThemeChoice.System);
+    [Command] public void ThemeLight() => _options.Set(o => o.Theme = ThemeChoice.Light);
+    [Command] public void ThemeDark() => _options.Set(o => o.Theme = ThemeChoice.Dark);
+    [Command] public void ResetNoiseLayers() => _options.Set(o => o.Keep = ViewOptions.DefaultKeep);
+    [Command] public void ShowForces() => _options.Set(o => o.DisplayMode = DisplayMode.Forces);
+    [Command] public void ShowUtilization() => _options.Set(o => o.DisplayMode = DisplayMode.Utilization);
 
     // ---- inspector tabs (below 1240 px the structure outline is the inspector's second tab) ----
 
@@ -137,73 +144,6 @@ public partial record EditorModel
     {
         await InspectorTabSelected.SetAsync(!outline);
         await OutlineTabSelected.SetAsync(outline);
-    }
-
-    [Command] public void ThemeSystem() => Ui(() => _engine.Options.Theme = ThemeChoice.System);
-    [Command] public void ThemeLight() => Ui(() => _engine.Options.Theme = ThemeChoice.Light);
-    [Command] public void ThemeDark() => Ui(() => _engine.Options.Theme = ThemeChoice.Dark);
-    [Command] public void ResetNoiseLayers() => Ui(() => _engine.Options.Keep = ViewOptions.DefaultKeep);
-
-    private void Push(Action<ViewOptions> apply)
-    {
-        if (_syncingOptions) return;
-        Ui(() => apply(_engine.Options));
-    }
-
-    private string SnapLabel() => _engine.Options.SnapEnabled ? $"{_engine.Options.GridStep:0.##} m" : "OFF";
-    private string ExaggerationLabel() => $"×{_engine.Options.Exaggeration:0.0}";
-
-    private string NoiseSummaryText()
-    {
-        var o = _engine.Options;
-        var hidden = ViewOptions.LayerCount - System.Numerics.BitOperations.PopCount((uint)o.Keep);
-        return $"{(o.ReduceNoise ? "ON" : "OFF")} · {hidden} {(hidden == 1 ? "LAYER" : "LAYERS")} HIDDEN";
-    }
-
-    private string NoiseStatusText()
-    {
-        var n = _engine.Options.HiddenLayerCount;
-        return $"NOISE REDUCED · {n} {(n == 1 ? "LAYER" : "LAYERS")} HIDDEN";
-    }
-
-    private async ValueTask PullOptionsAsync()
-    {
-        var t = _optionsProjection.Start();
-        _syncingOptions = true;
-        try
-        {
-            var o = _engine.Options;
-            await IsForces.UpdateAsync(current => t.IsLatest ? (o.DisplayMode == DisplayMode.Forces) : current);
-            await IsUtilization.UpdateAsync(current => t.IsLatest ? (o.DisplayMode == DisplayMode.Utilization) : current);
-            await ExaggerationText.UpdateAsync(current => t.IsLatest ? (ExaggerationLabel()) : current);
-            await SnapEnabled.UpdateAsync(current => t.IsLatest ? (o.SnapEnabled) : current);
-            await SnapText.UpdateAsync(current => t.IsLatest ? (SnapLabel()) : current);
-            await InspectorVisible.UpdateAsync(current => t.IsLatest ? (o.InspectorVisible) : current);
-            await InspectorShown.UpdateAsync(current => t.IsLatest ? (o.InspectorShown) : current);
-            await MultiSelect.UpdateAsync(current => t.IsLatest ? (o.MultiSelect) : current);
-            await FreePlacement.UpdateAsync(current => t.IsLatest ? (o.FreePlacement) : current);
-            await IsThemeSystem.UpdateAsync(current => t.IsLatest ? (o.Theme == ThemeChoice.System) : current);
-            await IsThemeLight.UpdateAsync(current => t.IsLatest ? (o.Theme == ThemeChoice.Light) : current);
-            await IsThemeDark.UpdateAsync(current => t.IsLatest ? (o.Theme == ThemeChoice.Dark) : current);
-            await ReduceNoise.UpdateAsync(current => t.IsLatest ? (o.ReduceNoise) : current);
-            await KeepGrid.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Grid) != 0) : current);
-            await KeepDimensions.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Dimensions) != 0) : current);
-            await KeepSupports.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Supports) != 0) : current);
-            await KeepLoads.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Loads) != 0) : current);
-            await KeepOverCapacity.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.OverCapacity) != 0) : current);
-            await KeepMemberForces.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.MemberForces) != 0) : current);
-            await KeepReactions.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Reactions) != 0) : current);
-            await KeepDeflection.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Deflection) != 0) : current);
-            await KeepPartNames.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.PartNames) != 0) : current);
-            await KeepLegend.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Legend) != 0) : current);
-            await KeepStructureList.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.StructureList) != 0) : current);
-            await KeepResultDetails.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.ResultDetails) != 0) : current);
-            await NoiseSummary.UpdateAsync(current => t.IsLatest ? (NoiseSummaryText()) : current);
-            await NoiseStatus.UpdateAsync(current => t.IsLatest ? (NoiseStatusText()) : current);
-            await ShowStructureList.UpdateAsync(current => t.IsLatest ? (o.IsVisible(NoiseLayer.StructureList)) : current);
-            await ShowResultDetails.UpdateAsync(current => t.IsLatest ? (o.IsVisible(NoiseLayer.ResultDetails)) : current);
-        }
-        finally { _syncingOptions = false; }
     }
 
     // ---- interaction (tool, hint, cursor, zoom) ----
@@ -240,12 +180,10 @@ public partial record EditorModel
     [Command] public void SupportTool() => Ui(() => _engine.Interaction.SetTool(ToolKind.Support));
     [Command] public void PanTool() => Ui(() => _engine.Interaction.SetTool(ToolKind.Pan));
 
-    // ---- commands bound by buttons ----
+    // ---- edits (the engine) ----
 
     public IAsyncCommand Undo => Command.Create(b => b.Given(Status).When(s => s.CanUndo).Then(async (s, ct) => Ui(() => _engine.Commands.TryExecute("edit.undo"))));
     public IAsyncCommand Redo => Command.Create(b => b.Given(Status).When(s => s.CanRedo).Then(async (s, ct) => Ui(() => _engine.Commands.TryExecute("edit.redo"))));
-    [Command] public void ShowForces() => Ui(() => _engine.Options.DisplayMode = DisplayMode.Forces);
-    [Command] public void ShowUtilization() => Ui(() => _engine.Options.DisplayMode = DisplayMode.Utilization);
     [Command] public void JumpToCritical() => Ui(() => _engine.JumpToCritical());
     [Command] public void SplitMember() => Ui(() => _engine.SplitSelectedMember());
     [Command] public void DeleteSelection() => Ui(() => _engine.DeleteSelection());
@@ -267,8 +205,6 @@ public partial record EditorModel
     [Command] public void SaveFile() => Ui(() => _engine.Commands.TryExecute("file.save"));
     [Command] public void ShareDesign() => Ui(() => _engine.Commands.TryExecute("file.share"));
     [Command] public void PasteDesign() => Ui(() => _engine.Commands.TryExecute("file.paste"));
-    [Command] public void ToggleNodes() => Fire(NodesExpanded.UpdateAsync(v => !v));
-    [Command] public void ToggleMembers() => Fire(MembersExpanded.UpdateAsync(v => !v));
 
     /// <summary>Apply a section to the selected members, by section id (used by the bulk list).</summary>
     [Command] public void ApplySection(string sectionId) => Ui(() => _engine.SetSectionOnSelection(Section.FindById(sectionId)));
@@ -278,487 +214,52 @@ public partial record EditorModel
         var sel = _engine.Selection;
         if (sel.Single is { IsNode: true } r)
         {
-            if (_engine.Document.GetNode(r.Id).Support != kind) _engine.History.Do(new SetSupportEdit(r.Id, kind));
+            if (_engine.Document.GetNode(r.Id).Support != kind) _engine.History.Do(new Core.Editing.SetSupportEdit(r.Id, kind));
         }
         else _engine.SetSupportOnSelection(kind);
     }
 
-    // ---- inspector ----
+    // ---- inspector (InspectorProjection) ----
 
-    public IState<InspectorContent> Inspector => State.Value(this, () => InspectorContent.Empty);
-    // The fields bind to X and Y (or Index) of these records; each record also names its element, so the callbacks,
-    // which run after the edit, commit to the element the value was typed for and not to whatever is selected by then.
-    public IState<NodeVector> NodePosition => State.Value(this, () => NodeVector.None).ForEach(async (v, ct) => CommitPosition(v));
-    public IState<NodeVector> NodeLoad => State.Value(this, () => NodeVector.None).ForEach(async (v, ct) => CommitLoad(v));
-    public IState<SectionPick> MemberSection => State.Value(this, () => SectionPick.None).ForEach(async (v, ct) => CommitSection(v));
-    public IListState<ConnectedItem> ConnectedMembers => ListState<ConnectedItem>.Empty(this);
-    public IListFeed<SectionChoice> Sections => ListFeed.Async(async ct => (IImmutableList<SectionChoice>)Section.Library.Select(s => new SectionChoice(s.Id, s.Name, s.ShortName)).ToImmutableList());
+    public IState<InspectorContent> Inspector => _inspector.Inspector;
+    public IState<NodeVector> NodePosition => _inspector.NodePosition;
+    public IState<NodeVector> NodeLoad => _inspector.NodeLoad;
+    public IState<SectionPick> MemberSection => _inspector.MemberSection;
+    public IListState<ConnectedItem> ConnectedMembers => _inspector.ConnectedMembers;
+    public IListFeed<SectionChoice> Sections => _inspector.Sections;
 
-    private int? SelectedNodeId => _engine.Selection.Single is { IsNode: true } r ? r.Id : null;
-    private int? SelectedMemberId => _engine.Selection.Single is { IsMember: true } r ? r.Id : null;
+    // ---- outline (OutlineProjection) ----
 
-    // The element comes with the value (see NodeVector). A value the inspector itself pushed matches the document, so
-    // committing it changes nothing.
-    private void CommitPosition(NodeVector? v)
-    {
-        if (v is not null) Ui(() => _engine.SetNodePosition(v.NodeId, new Vec2(v.X, v.Y)));
-    }
+    public IListState<OutlineItem> OutlineNodes => _outline.OutlineNodes;
+    public IListState<OutlineItem> OutlineMembers => _outline.OutlineMembers;
+    public IState<string> NodesHeader => _outline.NodesHeader;
+    public IState<string> MembersHeader => _outline.MembersHeader;
+    public IState<bool> OutlineIsEmpty => _outline.OutlineIsEmpty;
+    public IState<bool> NodesExpanded => _outline.NodesExpanded;
+    public IState<bool> MembersExpanded => _outline.MembersExpanded;
+    [Command] public void ToggleNodes() => Fire(NodesExpanded.UpdateAsync(v => !v));
+    [Command] public void ToggleMembers() => Fire(MembersExpanded.UpdateAsync(v => !v));
 
-    private void CommitLoad(NodeVector? v)
-    {
-        if (v is not null) Ui(() => _engine.SetNodeLoad(v.NodeId, new Vec2(v.X, v.Y)));
-    }
+    // ---- presets sheet (PresetGallery) ----
 
-    private void CommitSection(SectionPick? v)
-    {
-        if (v is not null && v.Index >= 0 && v.Index < Section.Library.Count) Ui(() => _engine.SetMemberSection(v.MemberId, Section.Library[v.Index]));
-    }
+    public IState<double> PresetSpan => _presets.PresetSpan;
+    public IState<double> PresetPanels => _presets.PresetPanels;
+    public IState<double> PresetDepth => _presets.PresetDepth;
+    public IListState<PresetItem> Presets => _presets.Presets;
 
-    // ---- failures (summary inspector) ----
+    /// <summary>Load a preset with the sheet's values the tile hands over (see <see cref="PresetGallery.LoadAsync"/>).</summary>
+    [Command] public async ValueTask LoadPreset(PresetChoice choice, CancellationToken ct) => await _presets.LoadAsync(choice, ct);
 
-    public IListState<FailureItem> Failures => ListState<FailureItem>.Empty(this);
-    public IState<bool> HasFailures => State.Value(this, () => false);
-    /// <summary>Solved with nothing failing: the moment "Lighten members" applies.</summary>
-    public IState<bool> CanLighten => State.Value(this, () => false);
-    public IState<string> FailuresHeader => State.Value(this, () => "");
+    // ---- command palette (PaletteSearch) ----
 
-    private async ValueTask RefreshFailuresAsync()
-    {
-        var t = _failuresProjection.Start();
-        var doc = _engine.Document;
-        var failures = _engine.Analysis.Failures;
-        var items = failures.Select(f =>
-        {
-            var verb = EditorEngine.FailureVerb(f.Failure);
-            var m = doc.FindMember(f.MemberId);
-            var detail = m is null ? "" : f.Failure == FailureMode.Buckling
-                ? $"{Math.Abs(f.AxialForceKn):0.0} kN on Pcr {m.Section.CriticalBucklingLoadN(f.LengthM) / 1000:0.0} kN"
-                : $"{Math.Abs(f.StressMPa):0} MPa on fy {m.Section.Material.YieldStrengthMPa:0} MPa";
-            return new FailureItem($"m{f.MemberId}", $"M{f.MemberId}", verb.ToUpperInvariant(), $"{f.Utilization * 100:0}%", detail,
-                $"Select member M{f.MemberId}, {verb} at {f.Utilization * 100:0} percent");
-        }).ToImmutableList();
-        await Failures.UpdateAsync(current => t.IsLatest ? (items) : current);
-        await HasFailures.UpdateAsync(current => t.IsLatest ? (items.Count > 0) : current);
-        var canLighten = _engine.Analysis.IsSolved && items.Count == 0 && _engine.Document.Members.Count > 0;
-        await CanLighten.UpdateAsync(current => t.IsLatest ? canLighten : current);
-        await FailuresHeader.UpdateAsync(current => t.IsLatest ? (items.Count == 1 ? "1 MEMBER" : $"{items.Count} MEMBERS") : current);
-    }
+    public IState<bool> IsPaletteOpen => _palette.IsPaletteOpen;
+    public IState<string> PaletteQuery => _palette.PaletteQuery;
+    public IListState<PaletteItem> PaletteItems => _palette.PaletteItems;
 
-    // ---- presets ----
-
-    private static readonly PresetParameters StartParameters = new(12, 6, 2);
-    public IState<double> PresetSpan => State.Value(this, () => StartParameters.Span).ForEach(async (v, ct) => await RebuildPresetsAsync(ct));
-    public IState<double> PresetPanels => State.Value(this, () => (double)StartParameters.Panels).ForEach(async (v, ct) => await RebuildPresetsAsync(ct));
-    public IState<double> PresetDepth => State.Value(this, () => StartParameters.Depth).ForEach(async (v, ct) => await RebuildPresetsAsync(ct));
-    public IListState<PresetItem> Presets => ListState.Value(this, () => BuildPresetItems(StartParameters));
-
-    private async ValueTask<PresetParameters> ReadPresetParametersAsync(CancellationToken ct)
-    {
-        var raw = new PresetParameters(await PresetSpan, (int)Math.Round(await PresetPanels), await PresetDepth);
-        var p = raw.Clamped();
-        // Write clamped values back so the fields show what will be built. Equal values do not re-fire ForEach.
-        if (p.Span != raw.Span) await PresetSpan.SetAsync(p.Span, ct);
-        if (p.Panels != await PresetPanels) await PresetPanels.SetAsync(p.Panels, ct);
-        if (p.Depth != raw.Depth) await PresetDepth.SetAsync(p.Depth, ct);
-        return p;
-    }
-
-    private async ValueTask RebuildPresetsAsync(CancellationToken ct)
-    {
-        var p = await ReadPresetParametersAsync(ct);
-        await Presets.UpdateAsync(_ => BuildPresetItems(p), ct);
-    }
-
-    /// <summary>
-    /// Load a preset with the parameters the tile hands over: the sheet's fields as they were when the tile was clicked,
-    /// a value still being typed included (the tile commits it first; the states may not have caught up yet). The
-    /// fields then show the clamped values that were built.
-    /// </summary>
-    [Command]
-    public async ValueTask LoadPreset(PresetChoice choice, CancellationToken ct)
-    {
-        var p = new PresetParameters(choice.Span, (int)Math.Round(choice.Panels), choice.Depth).Clamped();
-        _log.LogDebug("preset {Id} span={Span} panels={Panels} depth={Depth}", choice.Id, p.Span, p.Panels, p.Depth);
-        Ui(() => _engine.LoadPreset(choice.Id, p));
-        await PresetSpan.SetAsync(p.Span, ct);
-        await PresetPanels.SetAsync(p.Panels, ct);
-        await PresetDepth.SetAsync(p.Depth, ct);
-    }
-
-    private const double SketchWidth = 156, SketchHeight = 52, SketchPad = 3;
-
-    private static IImmutableList<PresetItem> BuildPresetItems(PresetParameters p) =>
-        TrussPresets.Catalog.Select(preset =>
-        {
-            var snapshot = TrussPresets.Build(preset.Id, p);
-            var k = snapshot.Members.Count;
-            var size = preset.UsesPanels ? $"{p.Span:0.#} m · {snapshot.Nodes.Count} N · {k} M" : $"{p.Span:0.#} m · rise {p.Depth:0.#} m";
-            return new PresetItem(preset.Id, preset.Title.ToUpperInvariant(), preset.Description, Sketch(snapshot), size, $"Load {preset.Title} preset",
-                new PresetChoice(preset.Id, p.Span, p.Panels, p.Depth));
-        }).ToImmutableList();
-
-    /// <summary>Fit the geometry into the thumbnail box, y up, and emit its members as pixel segments.</summary>
-    private static string Sketch(DocumentSnapshot s)
-    {
-        if (s.Nodes.Count == 0) return "";
-        var pos = s.Nodes.ToDictionary(n => n.Id, n => n.Position);
-        double minX = pos.Values.Min(v => v.X), maxX = pos.Values.Max(v => v.X), minY = pos.Values.Min(v => v.Y), maxY = pos.Values.Max(v => v.Y);
-        var scale = Math.Min((SketchWidth - 2 * SketchPad) / Math.Max(maxX - minX, 1e-6), (SketchHeight - 2 * SketchPad) / Math.Max(maxY - minY, 1e-6));
-        var ox = (SketchWidth - (maxX - minX) * scale) / 2;
-        var oy = (SketchHeight + (maxY - minY) * scale) / 2;
-        var ci = System.Globalization.CultureInfo.InvariantCulture;
-        string P(Vec2 v) => string.Create(ci, $"{ox + (v.X - minX) * scale:0.#},{oy - (v.Y - minY) * scale:0.#}");
-        return string.Join(";", s.Members.Select(m => $"{P(pos[m.Start])},{P(pos[m.End])}"));
-    }
-
-    // ---- outline ----
-
-    public IListState<OutlineItem> OutlineNodes => ListState<OutlineItem>.Empty(this);
-    public IListState<OutlineItem> OutlineMembers => ListState<OutlineItem>.Empty(this);
-    public IState<string> NodesHeader => State.Value(this, () => "Nodes");
-    public IState<string> MembersHeader => State.Value(this, () => "Members");
-    public IState<bool> OutlineIsEmpty => State.Value(this, () => true);
-    public IState<bool> NodesExpanded => State.Value(this, () => true);
-    public IState<bool> MembersExpanded => State.Value(this, () => true);
-
-    // ---- palette ----
-
-    public IState<bool> IsPaletteOpen => State.Value(this, () => false);
-    public IState<string> PaletteQuery => State.Value(this, () => "").ForEach(async (q, ct) => await RebuildPaletteAsync(q ?? "", 0, ct));
-    public IListState<PaletteItem> PaletteItems => ListState<PaletteItem>.Empty(this);
-    private int _paletteHighlight;
-    private List<Commands.AppCommand> _paletteMatches = new();
-
-    [Command]
-    public async ValueTask TogglePalette(CancellationToken ct)
-    {
-        var open = !await IsPaletteOpen;
-        if (open)
-        {
-            await PaletteQuery.SetAsync("", ct);
-            await RebuildPaletteAsync("", 0, ct);
-        }
-        await IsPaletteOpen.SetAsync(open, ct);
-    }
-
-    [Command] public async ValueTask ClosePalette(CancellationToken ct) => await IsPaletteOpen.SetAsync(false, ct);
-
-    public async ValueTask MovePaletteHighlight(int delta, CancellationToken ct)
-    {
-        if (_paletteMatches.Count == 0) return;
-        _paletteHighlight = (_paletteHighlight + delta + _paletteMatches.Count) % _paletteMatches.Count;
-        await PublishPaletteAsync(ct);
-    }
-
-    public async ValueTask HighlightPaletteItem(string id, CancellationToken ct)
-    {
-        var i = _paletteMatches.FindIndex(c => c.Id == id);
-        if (i < 0 || i == _paletteHighlight) return;
-        _paletteHighlight = i;
-        await PublishPaletteAsync(ct);
-    }
-
+    [Command] public async ValueTask TogglePalette(CancellationToken ct) => await _palette.ToggleAsync(ct);
+    [Command] public async ValueTask ClosePalette(CancellationToken ct) => await _palette.CloseAsync(ct);
     /// <summary>Run a palette entry: a row's command (its id) or Enter in the query (the highlighted entry).</summary>
-    [Command]
-    public async ValueTask RunPalette(string? id, CancellationToken ct)
-    {
-        _log.LogDebug("palette run id={Id} highlight={Highlight} matches={Matches}", id, _paletteHighlight, _paletteMatches.Count);
-        var command = id is null
-            ? (_paletteHighlight >= 0 && _paletteHighlight < _paletteMatches.Count ? _paletteMatches[_paletteHighlight] : null)
-            : _paletteMatches.FirstOrDefault(c => c.Id == id);
-        await IsPaletteOpen.SetAsync(false, ct);
-        if (command is null) return;
-        Ui(() => { if (!command.TryExecute()) _engine.Toast($"{command.Title} is not available right now"); });
-    }
-
-    private async ValueTask RebuildPaletteAsync(string query, int highlight, CancellationToken ct)
-    {
-        var q = query.Trim();
-        _paletteMatches = _engine.Commands.All
-            .Select(c => (c, score: Score(c.Title, c.Category, q)))
-            .Where(x => x.score > 0)
-            .OrderByDescending(x => x.score).ThenBy(x => x.c.Category).ThenBy(x => x.c.Title)
-            .Take(40)
-            .Select(x => x.c)
-            .ToList();
-        _paletteHighlight = highlight;
-        await PublishPaletteAsync(ct);
-    }
-
-    private async ValueTask PublishPaletteAsync(CancellationToken ct)
-    {
-        var items = _paletteMatches.Select((c, i) => new PaletteItem(
-            c.Id, c.Title, c.Category, c.ShortcutDisplay.Replace("|", " · "), c.Icon ?? "chevron-right", c.Icon is not null,
-            !c.CanExecute, i == _paletteHighlight ?"SurfaceHoverBrush" : "TransparentBrush")).ToImmutableList();
-        await PaletteItems.UpdateAsync(_ => items, ct);
-    }
-
-    private static int Score(string title, string category, string q)
-    {
-        if (q.Length == 0) return 1;
-        var t = title.ToLowerInvariant();
-        var ql = q.ToLowerInvariant();
-        if (t.StartsWith(ql)) return 100;
-        if (t.Contains(ql)) return 60;
-        if (category.ToLowerInvariant().Contains(ql)) return 30;
-        var i = 0;
-        foreach (var ch in t) { if (i < ql.Length && ch == ql[i]) i++; }
-        return i == ql.Length ? 10 : 0;
-    }
-
-    // ---- projections ----
-
-    private async ValueTask RefreshAllAsync()
-    {
-        await RefreshStatusAsync();
-        await RefreshInspectorAsync();
-        await RefreshOutlineAsync();
-        await RefreshFailuresAsync();
-    }
-
-    private async ValueTask RefreshSelectionAsync()
-    {
-        await RefreshInspectorAsync();
-        await RefreshOutlineAsync();
-    }
-
-    private async ValueTask RefreshStatusAsync()
-    {
-        var t = _statusProjection.Start();
-        var a = _engine.Analysis;
-        var h = _engine.History;
-        string text, detail, tone, mechanismText = "";
-        var mechanism = false;
-        switch (a.Status)
-        {
-            case AnalysisStatus.Empty: text = "Empty"; detail = "Place a node to begin"; tone = "InkTertiaryBrush"; break;
-            case AnalysisStatus.NoLoads: text = "No loads"; detail = "Add a load (L) to see forces"; tone = "InkTertiaryBrush"; break;
-            case AnalysisStatus.Unsupported:
-                text = "Unsupported"; detail = "A pin and a roller are needed"; tone = "DangerBrush"; mechanism = true;
-                mechanismText = "Unsupported — the structure can move freely. Add a pin and a roller (S)."; break;
-            case AnalysisStatus.Mechanism:
-                text = "Mechanism"; detail = "The structure can move freely"; tone = "DangerBrush"; mechanism = true;
-                mechanismText = "Mechanism — the structure can move freely. Triangulate it or add a support."; break;
-            default:
-                text = a.MaxUtilization >= 1 ? "Overstressed" : "Solved";
-                detail = $"{a.SolveMilliseconds:0.0} ms";
-                tone = a.MaxUtilization >= 1 ? "DangerBrush" : "OkBrush";
-                break;
-        }
-        var d = a.DetachedNodeIds.Count;
-        var over = a.IsSolved ? a.Members.Values.Count(m => m.IsOverstressed) : 0;
-        var pillText = over > 0 ? $"{over} OVER CAPACITY"
-            : a.IsSolved ? "WITHIN CAPACITY" : $"{text} · {detail}".ToUpperInvariant();
-        var status = new EditorStatus(
-            _engine.Document.Name, _engine.IsDirty, tone, mechanism, mechanismText,
-            a.HasDetached && !mechanism,
-            d == 1 ? "1 node is not connected to a support and carries nothing." : $"{d} nodes are not connected to a support and carry nothing.",
-            a.IsSolved ? $"{a.MaxUtilization * 100:0}%" : "—", UtilTone(a.MaxUtilization),
-            _engine.Document.Nodes.Count == 0, h.CanUndo, h.CanRedo,
-            h.UndoLabel is { } u ? $"Undo {u.ToLowerInvariant()}" : "Nothing to undo",
-            h.RedoLabel is { } r ? $"Redo {r.ToLowerInvariant()}" : "Nothing to redo",
-            pillText, over > 0 || mechanism,
-            a.IsSolved ? $"{a.SolveMilliseconds:0.0} ms" : "—", over > 0);
-        await Status.UpdateAsync(current => t.IsLatest ? (status) : current);
-
-        var doc = _engine.Document;
-        var supports = doc.Nodes.Count(n => n.HasSupport);
-        await Counts.UpdateAsync(current => !t.IsLatest ? current : new LayerCounts(
-            $"{_engine.Options.GridStep:0.##} m",
-            supports.ToString(),
-            doc.Nodes.Count(n => n.HasLoad).ToString(),
-            over.ToString(),
-            (a.IsSolved ? doc.Members.Count - over : 0).ToString(),
-            (a.IsSolved ? supports : 0).ToString()));
-    }
-
-    private static string UtilTone(double util) => util >= 1 ? "DangerBrush" : util >= 0.75 ? "WarnBrush" : "InkBrush";
-    private static string ForceTone(bool tension, bool compression, bool danger) => danger ? "DangerBrush" : tension ? "TensionBrush" : compression ? "CompressionBrush" : "InkTertiaryBrush";
-    private static string SignedKn(double v) => (v >= 0 ? "+" : "−") + $"{Math.Abs(v):0.0}";
-
-    /// <summary>Nearest of eight arrows for a load direction (screen convention: +y is up).</summary>
-    private static string Arrow(Vec2 v)
-    {
-        if (v.LengthSquared < 1e-12) return "";
-        var deg = Math.Atan2(v.Y, v.X) * 180 / Math.PI;
-        var i = (int)Math.Round(((deg % 360) + 360) % 360 / 45) % 8;
-        return "→↗↑↖←↙↓↘"[i].ToString();
-    }
-
-    private static string SupportWord(SupportKind k) => k switch
-    {
-        SupportKind.Pin => "PIN",
-        SupportKind.RollerY => "ROLLER",
-        SupportKind.RollerX => "ROLLER Y",
-        _ => "",
-    };
-    private static string Plural(int n, string noun) => n == 1 ? $"1 {noun}" : $"{n} {noun}s";
-
-    private static string Fmt(double v) => (Math.Round(v, 1) >= 0 ? "+" : "−") + $"{Math.Abs(v),6:0.0}";
-
-    private async ValueTask RefreshInspectorAsync()
-    {
-        var t = _inspectorProjection.Start();
-        var doc = _engine.Document;
-        var a = _engine.Analysis;
-        var sel = _engine.Selection;
-        var c = InspectorContent.Empty;
-
-        if (sel.IsEmpty)
-        {
-            var pins = doc.Nodes.Count(n => n.Support == SupportKind.Pin);
-            var rollers = doc.Nodes.Count(n => n.Support is SupportKind.RollerY or SupportKind.RollerX);
-            var total = doc.Nodes.Aggregate(Vec2.Zero, (acc, n) => acc + n.Load);
-            var mass = doc.Members.Sum(m => m.Section.MassPerMeter * doc.MemberLength(m));
-            var reactions = a.IsSolved ? string.Join("\n", doc.Nodes.Where(n => n.HasSupport).Select(n => { var r = a.ForNode(n.Id)?.Reaction ?? Vec2.Zero; return $"N{n.Id}  {Fmt(r.X)}  {Fmt(r.Y)} kN"; })) : "";
-            c = c with
-            {
-                IsSummary = true,
-                Title = doc.Name,
-                Subtitle = doc.Nodes.Count == 0 ? "Nothing here yet" : "Nothing selected",
-                NodeCountText = doc.Nodes.Count.ToString(),
-                MemberCountText = doc.Members.Count.ToString(),
-                SupportsText = pins + rollers == 0 ? "none" : $"{pins} pin · {rollers} roller",
-                TotalLoadText = total.LengthSquared < 1e-12 ? "none" : $"{total.Length:0.#} kN",
-                MassText = doc.Members.Count == 0 ? "—" : $"{mass:0} kg",
-                MaxUtil = a.IsSolved ? Math.Clamp(a.MaxUtilization, 0, 1) : 0,
-                MaxUtilText = a.IsSolved ? $"{a.MaxUtilization * 100:0}%" : "—",
-                MaxUtilToneKey = UtilTone(a.MaxUtilization),
-                MaxDeflectionText = a.IsSolved ? $"{a.MaxDisplacementM * 1000:0.0} mm" : "—",
-                HasCritical = a.IsSolved && a.CriticalMemberId is not null,
-                CriticalText = a.Failures.Count > 0 ? $"Step through failures · J" : a.CriticalMemberId is { } cid ? $"M{cid} governs" : "",
-                ReactionsText = reactions,
-                SummaryHint = a.Status switch
-                {
-                    AnalysisStatus.Empty => "Press N and click to place nodes. M connects them.",
-                    AnalysisStatus.NoLoads => "Add a load with L to see forces.",
-                    AnalysisStatus.Unsupported => "Add a pin and a roller with S.",
-                    AnalysisStatus.Mechanism => "Triangulate the structure or add a support.",
-                    _ => a.MaxUtilization >= 1 ? "A member is over its limit. Select it to change its section." : "Drag any node to watch the load path change.",
-                },
-            };
-        }
-        else if (SelectedNodeId is { } nid && doc.FindNode(nid) is { } node)
-        {
-            var r = a.ForNode(node.Id);
-            var members = doc.MembersAt(node.Id).ToList();
-            var disp = a.IsSolved && r is { } dn ? dn.Displacement * 1000 : Vec2.Zero;
-            var hasDisp = a.IsSolved && r is not null;
-            // Mini diagram: 72 px box, direction of travel drawn at a fixed 24 px so small motions still read.
-            var dotX = 36.0; var dotY = 36.0;
-            if (hasDisp && disp.Length > 1e-6) { dotX = 36 + disp.X / disp.Length * 24; dotY = 36 - disp.Y / disp.Length * 24; }
-            var kindText = node.Support switch
-            {
-                SupportKind.Pin => "Pinned support",
-                SupportKind.RollerY => "Roller support, free in x",
-                SupportKind.RollerX => "Roller support, free in y",
-                _ => "Free node",
-            };
-            c = c with
-            {
-                NodeDescription = kindText + (node.HasLoad ? $" with a {node.Load.Length:0.#} kN point load" : ""),
-                DispXText = hasDisp ? $"{disp.X:+0.00;−0.00} mm" : "—",
-                DispYText = hasDisp ? $"{disp.Y:+0.00;−0.00} mm" : "—",
-                DispMagText = hasDisp ? $"{disp.Length:0.00} mm" : "—",
-                DispDotX = dotX, DispDotY = dotY,
-                ConnectedCountText = members.Count.ToString(),
-                IsSummary = false, IsNode = true, SelectionHasNodes = true, SelectionLabel = $"N{node.Id}",
-                Title = $"Node N{node.Id}",
-                Subtitle = node.Support.Label() + (node.HasLoad ? $" · {node.Load.Length:0.#} kN" : ""),
-                IsPin = node.Support == SupportKind.Pin, IsRoller = node.Support == SupportKind.RollerY,
-                IsRollerX = node.Support == SupportKind.RollerX, IsFree = node.Support == SupportKind.None,
-                HasReaction = a.IsSolved && node.HasSupport && r is not null,
-                ReactionText = a.IsSolved && node.HasSupport && r is { } rr ? $"{Fmt(rr.Reaction.X)}  {Fmt(rr.Reaction.Y)} kN" : "",
-            };
-            var connected = members.Select(m =>
-            {
-                var mr = a.IsSolved ? a.For(m.Id) : null;
-                return new ConnectedItem($"m{m.Id}", $"M{m.Id}", $"N{m.StartNodeId}–N{m.EndNodeId}",
-                    mr is { } f ? (Math.Abs(f.AxialForceKn) < 0.05 ? "0.0" : SignedKn(f.AxialForceKn)) : "—",
-                    mr is { } t && t.IsOverstressed ? "DangerBrush" : "InkBrush",
-                    mr is { } u ? $"{u.Utilization * 100:0}%" : "",
-                    mr is { IsOverstressed: true });
-            }).ToImmutableList();
-            await ConnectedMembers.UpdateAsync(current => t.IsLatest ? (connected) : current);
-            await NodePosition.UpdateAsync(current => t.IsLatest ? (new NodeVector(node.Id, node.Position.X, node.Position.Y)) : current);
-            await NodeLoad.UpdateAsync(current => t.IsLatest ? (new NodeVector(node.Id, node.Load.X, node.Load.Y)) : current);
-        }
-        else if (SelectedMemberId is { } mid && doc.FindMember(mid) is { } member)
-        {
-            var res = a.For(member.Id);
-            var solved = a.IsSolved && res is not null;
-            var mr = res ?? default;
-            c = c with
-            {
-                IsSummary = false, IsMember = true, SelectionLabel = $"M{member.Id}",
-                Title = $"Member M{member.Id}",
-                Subtitle = member.Section.Name,
-                EndpointsText = $"N{member.StartNodeId} → N{member.EndNodeId}",
-                LengthText = $"{doc.MemberLength(member):0.000} m",
-                MaterialText = $"{member.Section.Material.Name} · E {member.Section.Material.ElasticModulusGPa:0} GPa · fy {member.Section.Material.YieldStrengthMPa:0} MPa",
-                AreaText = $"A {member.Section.AreaMm2:0} mm²  ·  I {member.Section.SecondMomentMm4 / 1e4:0.#} cm⁴",
-                ForceKindText = solved ? (mr.IsTension ? "Tension" : mr.IsCompression ? "Compression" : "Zero force") : "Not solved",
-                ForceToneKey = solved ? ForceTone(mr.IsTension, mr.IsCompression, mr.IsOverstressed) : "InkTertiaryBrush",
-                ForceText = solved ? $"{Math.Abs(mr.AxialForceKn):0.00} kN" : "—",
-                StressText = solved ? $"{Math.Abs(mr.StressMPa):0.0} MPa" : "—",
-                Util = solved ? Math.Clamp(mr.Utilization, 0, 1) : 0,
-                UtilText = solved ? $"{mr.Utilization * 100:0}%" : "—",
-                UtilToneKey = solved ? UtilTone(mr.Utilization) : "OkBrush",
-                GovernsText = solved ? mr.Failure switch
-                {
-                    FailureMode.Buckling => "Fails by buckling: the strut bows out",
-                    FailureMode.Yield => mr.IsTension ? "Fails by yield: the tie stretches" : "Fails by yield: the strut crushes",
-                    _ => mr.BucklingGoverns ? "Buckling governs" : "Yield governs",
-                } : "",
-                BucklingText = solved ? (mr.IsCompression ? $"Pcr {member.Section.CriticalBucklingLoadN(mr.LengthM) / 1000:0.0} kN · {mr.UtilizationBuckling * 100:0}%" : "n/a (tension)") : "—",
-            };
-            await MemberSection.UpdateAsync(current => t.IsLatest ? (new SectionPick(member.Id, Math.Max(0, Section.Library.ToList().IndexOf(member.Section)))) : current);
-        }
-        else
-        {
-            c = c with
-            {
-                IsSummary = false, IsMixed = true, SelectionHasNodes = sel.NodeCount > 0, SelectionLabel = $"{sel.Count} selected",
-                Title = $"{sel.Count} selected",
-                Subtitle = $"{Plural(sel.NodeCount, "node")} · {Plural(sel.MemberCount, "member")}",
-                MixedHasNodes = sel.NodeCount > 0,
-                MixedHasMembers = sel.MemberCount > 0,
-                MixedText = "Bulk actions apply to every selected element.",
-            };
-        }
-        await Inspector.UpdateAsync(current => t.IsLatest ? (c) : current);
-    }
-
-    private async ValueTask RefreshOutlineAsync()
-    {
-        var t = _outlineProjection.Start();
-        var doc = _engine.Document;
-        var a = _engine.Analysis;
-        var sel = _engine.Selection;
-        var nodes = doc.Nodes.Select(n =>
-        {
-            var selected = sel.Contains(n.Ref);
-            // Round, then add +0.0: -0.0 + 0.0 is +0.0, so a node at x = -1e-12 reads "0" instead of "-0".
-            return new OutlineItem($"n{n.Id}", $"N{n.Id}", $"{Math.Round(n.Position.X, 2) + 0.0:0.##}, {Math.Round(n.Position.Y, 2) + 0.0:0.##}",
-                n.HasLoad ? $"{Arrow(n.Load)} {n.Load.Length:0.#} kN" : "",
-                "InkBrush", selected ? "SelectionBrush" : "TransparentBrush", n.HasSupport, SupportWord(n.Support), false, "");
-        }).ToImmutableList();
-        var members = doc.Members.Select(m =>
-        {
-            var selected = sel.Contains(m.Ref);
-            var r = a.For(m.Id);
-            var solved = a.IsSolved && r is { } rr;
-            var res = r ?? default;
-            return new OutlineItem($"m{m.Id}", $"M{m.Id}", $"N{m.StartNodeId}-N{m.EndNodeId}",
-                solved ? (Math.Abs(res.AxialForceKn) < 0.05 ? "0.0" : SignedKn(res.AxialForceKn)) : "",
-                solved ? (res.IsOverstressed ? "DangerBrush" : "InkBrush") : "InkTertiaryBrush",
-                selected ? "SelectionBrush" : "TransparentBrush", false, "",
-                solved && res.IsOverstressed, solved ? $"{res.Utilization * 100:0}%" : "");
-        }).ToImmutableList();
-        await OutlineNodes.UpdateAsync(current => t.IsLatest ? (nodes) : current);
-        await OutlineMembers.UpdateAsync(current => t.IsLatest ? (members) : current);
-        await NodesHeader.UpdateAsync(current => t.IsLatest ? (doc.Nodes.Count.ToString()) : current);
-        await MembersHeader.UpdateAsync(current => t.IsLatest ? (doc.Members.Count.ToString()) : current);
-        await OutlineIsEmpty.UpdateAsync(current => t.IsLatest ? (doc.Nodes.Count == 0) : current);
-    }
+    [Command] public async ValueTask RunPalette(string? id, CancellationToken ct) => await _palette.RunAsync(id, ct);
+    public async ValueTask MovePaletteHighlight(int delta, CancellationToken ct) => await _palette.MoveHighlightAsync(delta, ct);
+    public async ValueTask HighlightPaletteItem(string id, CancellationToken ct) => await _palette.HighlightAsync(id, ct);
 }

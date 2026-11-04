@@ -26,6 +26,13 @@ public static class AppServices
         services.AddSingleton<DocumentSession>();
         services.AddSingleton<CloseGuard>();
         services.AddScoped<ThemeSwitcher>();
+        // The page model's pieces: each projects one part of the editor into MVUX states.
+        services.AddSingleton<StatusProjection>();
+        services.AddSingleton<OptionMirror>();
+        services.AddSingleton<InspectorProjection>();
+        services.AddSingleton<OutlineProjection>();
+        services.AddSingleton<PaletteSearch>();
+        services.AddSingleton<PresetGallery>();
         // The generated view model builds the model; the page binds the view model, code that needs the model gets it here.
         // EditorModel captures nothing thread-bound, but the page resolves both on the UI thread anyway.
         services.AddSingleton<EditorViewModel>();

@@ -105,6 +105,21 @@ public class PresetTests
 
     [Theory]
     [MemberData(nameof(Cases))]
+    public void A_tile_thumbnail_draws_every_member_inside_its_box(string id, double span, int panels, double depth)
+    {
+        var snapshot = TrussPresets.Build(id, new PresetParameters(span, panels, depth));
+
+        var segments = Loadpath.Presentation.PresetSketch.Of(snapshot).Split(';');
+
+        Assert.Equal(snapshot.Members.Count, segments.Length);
+        var values = segments.SelectMany(s => s.Split(',')).Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        Assert.Equal(4 * segments.Length, values.Count);
+        Assert.All(values.Where((_, i) => i % 2 == 0), x => Assert.InRange(x, 0, 156));
+        Assert.All(values.Where((_, i) => i % 2 == 1), y => Assert.InRange(y, 0, 52));
+    }
+
+    [Theory]
+    [MemberData(nameof(Cases))]
     public void Every_preset_is_stable_and_loaded(string id, double span, int panels, double depth)
     {
         var doc = new StructureDocument();
