@@ -70,6 +70,24 @@ public class GeometryTests
     }
 
     [Fact]
+    public void A_snapped_point_on_a_node_names_that_node_unless_it_is_excluded()
+    {
+        var doc = new StructureDocument();
+        var h = new EditHistory(doc);
+        h.Do(new AddNodeEdit(new Vec2(0, 0)));
+        var vp = new Viewport();
+        vp.Resize(1000, 800);
+        var snap = new SnapEngine { GridStep = 0.5 };
+        // 0.2 m away is well outside the node tolerance; the grid rounds it onto the node.
+        var r = snap.Snap(doc, vp, new Vec2(-0.2, 0.1), allowNodeSnap: false);
+
+        Assert.Equal(new Vec2(0, 0), r.Point);
+        Assert.Equal(1, r.SnappedNodeId);
+        Assert.Null(snap.Snap(doc, vp, new Vec2(-0.2, 0.1), allowNodeSnap: false, exclude: new HashSet<int> { 1 }).SnappedNodeId);
+        Assert.Null(snap.Snap(doc, vp, new Vec2(-0.4, 0.1), allowNodeSnap: false).SnappedNodeId);
+    }
+
+    [Fact]
     public void Marquee_contained_vs_touching()
     {
         var doc = new StructureDocument();

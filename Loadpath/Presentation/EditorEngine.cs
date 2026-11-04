@@ -191,9 +191,10 @@ public sealed class EditorEngine
         if (Document.FindMember(memberId) is { } m && m.Section != section) History.Do(new SetSectionEdit(new[] { memberId }, section));
     }
 
-    /// <summary>Add a node at a world point and select it (the canvas menu's "Add node here").</summary>
+    /// <summary>Add a node at a world point and select it (the canvas menu's "Add node here"); a node already there is selected instead.</summary>
     public void AddNodeAt(Vec2 world)
     {
+        if (Document.FindNodeAt(world) is { } there) { Selection.Set(there.Ref); return; }
         var add = new AddNodeEdit(world);
         History.Do(add);
         Selection.Set(ElementRef.Node(add.NodeId));

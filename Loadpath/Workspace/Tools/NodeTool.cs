@@ -5,7 +5,7 @@ using Windows.System;
 
 namespace Loadpath.Workspace.Tools;
 
-/// <summary>Click places a node on the snapped point. Clicking a member splits it there.</summary>
+/// <summary>Click places a node on the snapped point, or selects the node already there. Clicking a member splits it there.</summary>
 public sealed class NodeTool : Tool
 {
     public override ToolKind Kind => ToolKind.Node;
@@ -25,8 +25,12 @@ public sealed class NodeTool : Tool
         else if (hit.Kind != HitKind.Node)
         {
             var snap = ctx.SnapPoint(p.World, allowNodeSnap: false, disableSnap: p.NoSnap);
-            var s = ctx.Viewport.ToScreen(snap.Point);
-            ctx.Overlay.GhostNode = new SKPoint((float)s.X, (float)s.Y);
+            // On a node already there: no ghost, as when the pointer is on the node itself (a click selects it).
+            if (snap.SnappedNodeId is null)
+            {
+                var s = ctx.Viewport.ToScreen(snap.Point);
+                ctx.Overlay.GhostNode = new SKPoint((float)s.X, (float)s.Y);
+            }
             ctx.Overlay.Guides.AddRange(snap.Guides);
         }
         ctx.SetCursor(CursorKind.Cross);
@@ -49,6 +53,7 @@ public sealed class NodeTool : Tool
             return;
         }
         var snap = ctx.SnapPoint(p.World, allowNodeSnap: false, disableSnap: p.NoSnap);
+        if (snap.SnappedNodeId is { } existing) { ctx.Selection.Set(ElementRef.Node(existing)); return; }
         var add = new AddNodeEdit(snap.Point);
         ctx.History.Do(add);
         ctx.Selection.Set(ElementRef.Node(add.NodeId));

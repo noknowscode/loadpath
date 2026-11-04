@@ -11,7 +11,9 @@ public readonly record struct SnapResult(Vec2 Point, int? SnappedNodeId, IReadOn
 
 /// <summary>
 /// Snap order: existing node (when allowed) → alignment guides to other nodes → grid.
-/// Tolerances are in pixels and converted with the viewport scale.
+/// Tolerances are in pixels and converted with the viewport scale. A point that guides and the grid put exactly on a
+/// node (outside the node tolerance, or with node snapping off) is that node: SnappedNodeId names it, so a tool connects
+/// to it or selects it instead of placing a second node on top of it.
 /// </summary>
 public sealed class SnapEngine
 {
@@ -76,6 +78,7 @@ public sealed class SnapEngine
             p = new Vec2(x, y);
         }
 
+        if (doc.FindNodeAt(p, exclude) is { } there) return new SnapResult(there.Position, there.Id, guides, gridSnapped);
         return new SnapResult(p, null, guides, gridSnapped);
     }
 }
