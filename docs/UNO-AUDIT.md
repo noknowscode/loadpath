@@ -139,29 +139,12 @@ Re-check of the allow comments:
 
 ## Remaining
 
-1. **Dependency injection and the MainPage split (owner-approved for the next pass), about 2 days, ~800 lines touched.**
-   **Done in the A pass** (`cd5c094`, follow-ups `bacd11f`, `22d21be`): as planned below, with two differences. The
-   generated view model needs the UI dispatcher, so the tests resolve `EditorModel` directly; and the Extensions theme
-   service is registered per scope (it needs the window and an `IDispatcher`), so `App` opens one scope for the window and
-   `ThemeSwitcher` is scoped. `MainPage.xaml.cs` is 186 lines; the overlay geometry is `Presentation/CanvasLayout` (pure,
-   tested) applied by `Views/CanvasOverlays`. Tests 190 -> 261.
-   - Hosting: add `Hosting;Logging;ThemeService` to `UnoFeatures`; `App.OnLaunched` builds
-     `this.CreateBuilder(args).Configure(h => h.UseLogging().UseThemeSwitching().ConfigureServices(...))` and keeps
-     `Host`. Register `EditorEngine`, `IDocumentFiles -> FileService` (window from the builder), `ISettingsStore ->
-     SettingsService`, `IUnsavedPrompt` (the ContentDialog, replacing the `Func` the session takes today),
-     `DocumentSession` and `EditorModel`, all singletons. `MainPage` resolves `EditorViewModel` on the UI thread
-     (`EditorModel` captures the dispatcher in its constructor, so no navigation-created view model).
-   - Out of `MainPage.xaml.cs` (764 lines, about 550 move): the debug fixtures (`SeedFixture`, `ApplyThemeFixture`,
-     `ApplyFixtureHooks`, 90 lines) to `Presentation/DebugFixtures.cs` under `#if DEBUG`; window sizing and the close
-     guard (90) to `App`/`Platforms/Desktop`; the theme root (20) to `IThemeService` after `Loaded` (gotcha: SetThemeAsync
-     during model construction never completes); autosave debounce (25) into `DocumentSession`; settings capture and
-     persist (20) into a settings service subscribed to `ViewOptions.Changed`; the toast (20) to a model `Toast` state with
-     a small `ToastHost` view; the floating bar placement (60) to a pure, tested `FloatingBarPlacement` with the page only
-     applying it; the sheet coverage math (45) next to it; the canvas menu (65) to `Views/CanvasMenu.cs` built from
-     `AppCommand` (make `AppCommand` an `ICommand`); the section drag (50) to `Views/SectionDragController.cs`. What stays:
-     construction, keyboard routing and layout-probe wiring, about 200 lines.
-   - Logging replaces `EditorModel.Trace` file appends; add `UnhandledException` and `UnobservedTaskException` handlers
-     that log and toast (COMPLETENESS Failure handling minor).
+1. **Dependency injection and the MainPage split: done.** A pass (`cd5c094`, follow-ups `bacd11f`, `22d21be`): the app's
+   services live in one container (Hosting, Logging, ThemeService) and `MainPage.xaml.cs` is 187 lines. A pass 2: the
+   page model is split into its projections (`EditorModel` 282 lines, each piece under 200; `ee96479`, with
+   `e7ea608` giving the pieces the model's `SourceContext` so the view can write their states), and `WorkspaceView`
+   (623 lines) into the canvas (390), `TouchInput`, `RenderSnapshotBuilder`, `ViewportAnimation` and `ViewFitting`
+   (`4453b3f`). Edits from the views go through the model and the engine (`9f2d325`, `3206304`).
 2. Status banners -> `InfoBar` with lightweight keys (`MainPage.xaml:59,71`): a visual change (glyph icon, chrome),
    0.5 day with both themes and four widths re-captured.
 3. Reduce-noise frame -> `ToggleSplitButton` (`Views/TitleStrip.xaml:64`): 0.5 day, same re-capture.
@@ -169,8 +152,10 @@ Re-check of the allow comments:
    (`Views/CommandPalette.xaml.cs:81,95`); check focus return to the key sink. 0.5 day.
 5. `ToolTip` and `MenuFlyoutSeparator` templates (`Themes/Controls.xaml:933,950`) restyle colour, radius and padding only:
    `BasedOn` the Fluent style plus lightweight keys, after confirming the keys on Uno 7. 2 hours.
-6. Functional items from `docs/COMPLETENESS.md` stay there (the exaggeration control, coincident nodes, refit on resize,
-   iOS/WinAppSDK runtime proof). SafeArea on phones is done (`e4a02e0`).
+6. Functional items from `docs/COMPLETENESS.md`: coincident nodes (`a4f1f63`), the file path an undone sample drops
+   (`9ec6346`) and the refit after a width change (`f091e39`) are fixed; the exaggeration stays a palette command
+   (proposed decision, README); iOS and WinAppSDK runtime proof stays a head Major there. SafeArea on phones is done
+   (`e4a02e0`).
 7. Package bumps in `Directory.Packages.props` (Test.Sdk 18.11.0, runner 4.0.1): one line each, owner call.
 
 ## Proposed decisions
