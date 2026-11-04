@@ -16,12 +16,12 @@ internal sealed class ViewFitting(EditorEngine editor, ViewportAnimation animati
     private static readonly TimeSpan FitDuration = TimeSpan.FromMilliseconds(280);
 
     /// <summary>True from a fit until the user pans or zooms.</summary>
-    public bool IsFitted { get; private set; }
+    private bool _fitted;
 
     /// <summary>Ease the view to frame the structure, and keep it framed.</summary>
     public void Fit()
     {
-        IsFitted = true;
+        _fitted = true;
         var (scale, offset) = Target();
         animation.To(scale, offset, FitDuration);
     }
@@ -29,7 +29,7 @@ internal sealed class ViewFitting(EditorEngine editor, ViewportAnimation animati
     /// <summary>The user moved the view (pan, zoom, pinch, or a sheet panned clear of the selection): it is theirs now.</summary>
     public void Release()
     {
-        IsFitted = false;
+        _fitted = false;
         animation.Stop();
     }
 
@@ -39,16 +39,16 @@ internal sealed class ViewFitting(EditorEngine editor, ViewportAnimation animati
         var bounds = editor.Document.GetBounds();
         var wasInView = viewport.Shows(bounds);
         viewport.Resize(width, height);
-        if (editor.Document.Nodes.Count == 0 || !(IsFitted || wasInView && !viewport.Shows(bounds))) return;
+        if (editor.Document.Nodes.Count == 0 || !(_fitted || wasInView && !viewport.Shows(bounds))) return;
         animation.Stop();
-        IsFitted = true;
+        _fitted = true;
         Refit();
     }
 
     /// <summary>The insets or the covered part changed: a fitted view re-frames at once.</summary>
     public void LayoutChanged()
     {
-        if (IsFitted && editor.Document.Nodes.Count > 0) Refit();
+        if (_fitted && editor.Document.Nodes.Count > 0) Refit();
     }
 
     private void Refit()

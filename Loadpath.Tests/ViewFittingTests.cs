@@ -49,7 +49,6 @@ public class ViewFittingTests
         _fitting.Resize(1000, 800);
 
         Assert.Equal(before, View);
-        Assert.False(_fitting.IsFitted);
     }
 
     [Fact]
@@ -59,9 +58,11 @@ public class ViewFittingTests
 
         _fitting.Resize(700, 800);
 
-        Assert.True(_fitting.IsFitted);
         Assert.Equal(SheetFit(700, 800), View);
         Assert.True(_engine.Viewport.Shows(_engine.Document.GetBounds()));
+        // Framed again, it is fitted again: the next resize follows.
+        _fitting.Resize(1000, 800);
+        Assert.Equal(SheetFit(1000, 800), View);
     }
 
     [Fact]
@@ -73,7 +74,6 @@ public class ViewFittingTests
         _fitting.Resize(700, 800);
 
         Assert.Equal(before, View);
-        Assert.False(_fitting.IsFitted);
     }
 
     [Fact]
@@ -88,7 +88,6 @@ public class ViewFittingTests
         var released = View;
         _fitting.Resize(1100, 800);
 
-        Assert.False(_fitting.IsFitted);
         Assert.Equal(released, View);
     }
 
