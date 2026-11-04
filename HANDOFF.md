@@ -1,5 +1,5 @@
-# HANDOFF — Loadpath A pass 2
-Updated: 2026-11-04 20:10
+# HANDOFF — Loadpath A pass 2, cleanup and showcase info file
+Updated: 2026-11-04 21:30
 
 ## Where we are
 A pass 2 (closed scope: the code review's list for Loadpath, `docs/production-readiness/reviews/2026-11-04-a-pass/loadpath.json` in the uno-lab repo) is done on
@@ -41,12 +41,32 @@ every `IState` the model exposes as the generated code does.
 
 ## Decisions proposed (README, Architecture)
 - A view the user moved is refit only when a narrower window would cut the structure off.
+- A custom app icon in place of the template's.
+- The `.studiolive` URLs point at Uno.Samples (resolve after the move; relative paths asked in uno-private#2444).
 - Still awaiting the owner from the A pass: unhandled exceptions keep the app running; the exaggeration stays a palette
   command.
 
+## Pre-transfer cleanup (after A pass 2)
+- Analyzer pass (IDE0005/0051/0052/0060, CA1823, IDE0035 raised for one local build, not committed): 9 usings, a never-read
+  field and an unused parameter removed (`10f7397`), the two null-forgiving operators in app code gone (`dea4964`).
+- Dead members `IconLibrary.Names`, `Viewport.Fit` (`4aad1f4`); unused resources: `Themes/MotionTokens.xaml`, the
+  TitleText style and 8 tokens, `Inter-SemiBold.ttf` (`ed2150e`); template leftovers and `tools/capture.sh` (`24ee866`).
+- Stale comments and banners (`e2230cd`); SPEC's module tree marked as the plan (`37eb336`); doc references (`e53dff4`).
+- Kept on purpose: `FileService._window` (read under `#if WINDOWS`), `CloseGuard.CloseWhenConfirmedAsync` (desktop only),
+  event-handler and `Main` parameters, the WinUI lightweight-styling keys in Tokens.xaml, `docs/shot*.png` (README's gallery).
+- Secret scan over tracked files: nothing found (CI references GitHub secrets by name only).
+- C# 14,774 → 14,743 lines (app and Core 10,604 → 10,574); XAML 2,787 → 2,755. Tests 325. Lint 0 gating; 25.4 names per
+  1,000 XAML lines. Desktop, WebAssembly (Release) and Android (Release) build with 0 warnings.
+
+## Showcase info file
+- `.studiolive/` (sample id `loadpath`): `sample.json`, `agent-context.json`, `user-conversation.json`, `icon.png`, four
+  screenshots; the validator prints OK (`62c4d7a`).
+- Custom icon in place of the template's: a roof truss on a pin and a roller, white on the accent #3446D6; splash the
+  same mark on white (`64e1d63`).
+
 ## Next actions
-1. Pre-transfer cleanup pass (dead code, comments, hygiene), then the `.studiolive` info file.
-2. Owner calls on the proposed decisions.
+1. Owner calls on the proposed decisions (README: refit rule, custom icon, `.studiolive` URLs; and the A pass's two).
+2. The move to `unoplatform/uno.labs/samples-staging` (one pull request).
 
 ## Notes
 - `EditorEngine.cs` is 499 lines (474 at the review): one job, not on the review's list.
