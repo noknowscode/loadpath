@@ -1,5 +1,6 @@
 using Uno.Extensions.Reactive.Commands;
 using Uno.Extensions.Reactive.Config;
+using Uno.Extensions.Reactive.Core;
 using Microsoft.Extensions.Logging;
 
 namespace Loadpath.Presentation;
@@ -37,6 +38,11 @@ public partial record EditorModel
         _outline = outline;
         _palette = palette;
         _presets = presets;
+        // The pieces declare their states with themselves as owner. The generated view model binds a state two-way only
+        // when it belongs to the model's SourceContext (another context's state comes back wrapped and read-only, and
+        // typing into it changes nothing), so the pieces share the model's context.
+        var context = SourceContext.GetOrCreate(this);
+        foreach (var piece in new object[] { status, options, inspector, outline, palette, presets }) SourceContext.Set(piece, context);
         engine.AnalysisChanged += (_, _) => Fire(RefreshAllAsync());
         engine.SelectionChanged += (_, _) => Fire(RefreshSelectionAsync());
         engine.HistoryChanged += (_, _) => Fire(status.RefreshStatusAsync());
