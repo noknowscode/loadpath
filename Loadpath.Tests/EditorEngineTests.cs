@@ -1,4 +1,5 @@
 using Loadpath.Core.Editing;
+using Loadpath.Core.Geometry;
 using Loadpath.Core.Model;
 using Loadpath.Core.Samples;
 using Loadpath.Presentation;
@@ -39,6 +40,42 @@ public class EditorEngineTests
         Assert.Equal(SupportKind.Pin, engine.Document.GetNode(4).Support);
         engine.History.Undo();
         Assert.Equal(SupportKind.None, engine.Document.GetNode(4).Support);
+    }
+
+    [Fact]
+    public void Adding_a_node_from_the_canvas_menu_selects_it_and_is_one_undo_step()
+    {
+        var engine = new EditorEngine();
+
+        engine.AddNodeAt(new Vec2(2, 1.5));
+
+        var node = Assert.Single(engine.Document.Nodes);
+        Assert.Equal(new Vec2(2, 1.5), node.Position);
+        Assert.Equal(ElementRef.Node(node.Id), engine.Selection.Single);
+        engine.History.Undo();
+        Assert.Empty(engine.Document.Nodes);
+    }
+
+    [Fact]
+    public void A_dropped_section_lands_on_its_member_selects_it_and_says_so()
+    {
+        var engine = new EditorEngine();
+        engine.LoadSnapshot(SampleStructures.Build("warren"), "Open", null);
+        var member = engine.Document.Members[0];
+        var section = Section.Library.First(s => s != member.Section);
+        var toasts = new List<string>();
+        engine.ToastRequested += (_, message) => toasts.Add(message);
+
+        engine.DropSection(member.Id, section);
+
+        Assert.Equal(section, engine.Document.GetMember(member.Id).Section);
+        Assert.Equal(ElementRef.Member(member.Id), engine.Selection.Single);
+        Assert.Equal($"{section.Name} applied to member {member.Id}", Assert.Single(toasts));
+        Assert.True(engine.History.CanUndo);
+
+        engine.History.Undo();
+        engine.DropSection(member.Id, member.Section);
+        Assert.False(engine.History.CanUndo);
     }
 
     [Fact]

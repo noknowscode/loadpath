@@ -521,7 +521,7 @@ public sealed partial class MainPage : Page
                 var addNode = new MenuFlyoutItem { Text = "Add node here", KeyboardAcceleratorTextOverride = "N" };
                 if (touchStyle is not null) addNode.Style = touchStyle;
                 var world = Engine.Interaction.SnapPoint(Engine.Viewport.ToWorld(new Vec2(args.Position.X, args.Position.Y)), false).Point;
-                addNode.Click += (_, _) => { var add = new AddNodeEdit(world); Engine.History.Do(add); Engine.Selection.Set(ElementRef.Node(add.NodeId)); };
+                addNode.Click += (_, _) => Engine.AddNodeAt(world);
                 menu.Items.Add(addNode);
                 Add("edit.selectAll");
                 Sep();
@@ -685,12 +685,7 @@ public sealed partial class MainPage : Page
         // xaml-lint: allow codebehind - drag ghost ends with the drag
         DragGhost.Visibility = Visibility.Collapsed;
         Engine.Interaction.Overlay.HighlightMember = null;
-        if (drop && _dropTargetMember is { } id)
-        {
-            Engine.History.Do(new SetSectionEdit(new[] { id }, section));
-            Engine.Selection.Set(ElementRef.Member(id));
-            ShowToast($"{section.Name} applied to member {id}");
-        }
+        if (drop && _dropTargetMember is { } id) Engine.DropSection(id, section);
         _dropTargetMember = null;
         Engine.Interaction.Hint = "";
         Engine.RequestRender();

@@ -189,6 +189,22 @@ public sealed class EditorEngine
         if (Document.FindMember(memberId) is { } m && m.Section != section) History.Do(new SetSectionEdit(new[] { memberId }, section));
     }
 
+    /// <summary>Add a node at a world point and select it (the canvas menu's "Add node here").</summary>
+    public void AddNodeAt(Vec2 world)
+    {
+        var add = new AddNodeEdit(world);
+        History.Do(add);
+        Selection.Set(ElementRef.Node(add.NodeId));
+    }
+
+    /// <summary>A section dropped from the inspector onto a member: apply it, select the member and say so.</summary>
+    public void DropSection(int memberId, Section section)
+    {
+        SetMemberSection(memberId, section);
+        Selection.Set(ElementRef.Member(memberId));
+        Toast($"{section.Name} applied to member {memberId}");
+    }
+
     public IEnumerable<int> SelectedNodeIdsIncludingMemberEnds()
     {
         var set = new HashSet<int>(Selection.NodeIds);
