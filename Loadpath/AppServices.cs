@@ -2,6 +2,7 @@ using Loadpath.Presentation;
 using Loadpath.Services;
 using Loadpath.Views;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Uno.Extensions;
 
@@ -21,7 +22,7 @@ public static class AppServices
         services.AddSingleton<ToastQueue>();
         services.AddSingleton<ISettingsStore, SettingsService>();
         services.AddSingleton<SettingsSync>();
-        services.AddSingleton<IDocumentFiles>(new FileService(() => window));
+        services.AddSingleton<IDocumentFiles>(sp => new FileService(() => window, sp.GetRequiredService<ILogger<FileService>>()));
         services.AddSingleton<IUnsavedPrompt>(new UnsavedChangesDialog(window));
         services.AddSingleton<DocumentSession>();
         services.AddSingleton<CloseGuard>();

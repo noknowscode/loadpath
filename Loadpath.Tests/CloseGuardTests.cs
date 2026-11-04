@@ -28,8 +28,8 @@ public sealed class CloseGuardTests : IDisposable
 
     private sealed class NoFiles : IDocumentFiles
     {
-        public Task<(DocumentSnapshot Snapshot, string Path)?> OpenAsync() => Task.FromResult<(DocumentSnapshot, string)?>(null);
-        public Task<string?> SaveAsync(StructureDocument doc, string? existingPath, bool forceAsk) => Task.FromResult<string?>(null);
+        public Task<OpenedDocument?> OpenAsync() => Task.FromResult<OpenedDocument?>(null);
+        public Task<SavedDocument?> SaveAsync(StructureDocument doc, string? existingPath, bool forceAsk) => Task.FromResult<SavedDocument?>(null);
         public string? FallbackFolder => null;
         public string? LatestInFallbackFolder(string pattern) => null;
     }

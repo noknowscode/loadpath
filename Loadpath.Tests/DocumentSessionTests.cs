@@ -23,20 +23,29 @@ public sealed class DocumentSessionTests : IDisposable
         /// <summary>What the save picker returns next; null cancels.</summary>
         public string? PickToSave { get; set; }
         public int SavePickerShown { get; private set; }
+        /// <summary>The host has no picker: what opens or is saved comes from or goes to the fallback folder.</summary>
+        public bool NoPicker { get; set; }
+        /// <summary>Set to make the picker fail with this message.</summary>
+        public string? PickerFails { get; set; }
 
-        public Task<(DocumentSnapshot Snapshot, string Path)?> OpenAsync() =>
-            Task.FromResult(PickToOpen is { } path ? (DocumentSerializer.Deserialize(Disk[path]), path) : ((DocumentSnapshot, string)?)null);
+        public Task<OpenedDocument?> OpenAsync()
+        {
+            if (PickerFails is { } failure && !NoPicker) throw new IOException($"the file picker failed ({failure})");
+            return Task.FromResult(PickToOpen is { } path ? new OpenedDocument(DocumentSerializer.Deserialize(Disk[path]), path, NoPicker) : null);
+        }
 
-        public Task<string?> SaveAsync(StructureDocument doc, string? existingPath, bool forceAsk)
+        public Task<SavedDocument?> SaveAsync(StructureDocument doc, string? existingPath, bool forceAsk)
         {
             var path = existingPath;
+            var toFallback = false;
             if (forceAsk || path is null)
             {
                 SavePickerShown++;
-                path = PickToSave;
+                toFallback = NoPicker || PickerFails is not null;
+                path = toFallback ? Path.Combine(fallbackFolder, DocumentSerializer.SafeFileName(doc.Name) + DocumentSerializer.Extension) : PickToSave;
             }
             if (path is not null) Disk[path] = DocumentSerializer.Serialize(doc);
-            return Task.FromResult(path);
+            return Task.FromResult(path is null ? null : new SavedDocument(path, toFallback, toFallback && !NoPicker ? PickerFails : null));
         }
 
         public string? FallbackFolder => fallbackFolder;
@@ -288,6 +297,57 @@ public sealed class DocumentSessionTests : IDisposable
         var (after, afterSession) = Start();
         await afterSession.RestoreAsync();
         Assert.Equal(FileA, after.FilePath);
+    }
+
+    [Fact]
+    public async Task Without_a_picker_open_says_it_opened_the_newest_file_in_the_folder()
+    {
+        PutOnDisk(FileA, "warren");
+        _files.PickToOpen = FileA;
+        _files.NoPicker = true;
+        var (engine, session) = Start();
+
+        await session.OpenAsync();
+
+        Assert.Equal(FileA, engine.FilePath);
+        Assert.Equal("No file picker here: opened the newest file, docs/bridge.loadpath", Assert.Single(_toasts));
+    }
+
+    [Fact]
+    public async Task A_failing_open_picker_is_reported_and_opens_nothing()
+    {
+        PutOnDisk(FileA, "warren");
+        _files.PickToOpen = FileA;
+        _files.PickerFails = "the portal did not answer";
+        var errors = new List<ToastMessage>();
+        var (engine, session) = Start();
+        engine.ToastRequested += (_, t) => errors.Add(t);
+
+        await session.OpenAsync();
+
+        Assert.Empty(engine.Document.Nodes);
+        Assert.Null(engine.FilePath);
+        Assert.Equal(new ToastMessage("Could not open: the file picker failed (the portal did not answer)", true), Assert.Single(errors));
+    }
+
+    [Fact]
+    public async Task A_save_that_falls_back_to_the_folder_says_where_and_why()
+    {
+        var (engine, session) = Start();
+        var toasts = new List<ToastMessage>();
+        engine.ToastRequested += (_, t) => toasts.Add(t);
+        engine.LoadSample("roof");
+
+        _files.NoPicker = true;
+        await session.SaveAsync(ask: false);
+        _files.NoPicker = false;
+        _files.PickerFails = "no owner window";
+        await session.SaveAsync(ask: true);
+
+        var folder = Path.GetFileName(_folder);
+        Assert.Equal(new ToastMessage($"No file picker here: saved to {folder}/Howe roof truss.loadpath", false), toasts[^2]);
+        Assert.Equal(new ToastMessage($"The file picker failed (no owner window). Saved to {folder}/Howe roof truss.loadpath instead", true), toasts[^1]);
+        Assert.False(engine.IsDirty);
     }
 
     [Fact]

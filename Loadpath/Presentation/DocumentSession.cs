@@ -78,10 +78,12 @@ public sealed class DocumentSession
         if (!await ConfirmDiscardAsync()) return;
         try
         {
-            var result = await _files.OpenAsync();
-            if (result is null) { _engine.Toast("Nothing opened"); return; }
-            _engine.LoadSnapshot(result.Value.Snapshot, "Open", result.Value.Path);
-            _engine.Toast($"Opened {ToastText.FileName(result.Value.Path)}");
+            var opened = await _files.OpenAsync();
+            if (opened is null) { _engine.Toast("Nothing opened"); return; }
+            _engine.LoadSnapshot(opened.Snapshot, "Open", opened.Path);
+            _engine.Toast(opened.FromFallbackFolder
+                ? $"No file picker here: opened the newest file, {ToastText.FileInFolder(opened.Path)}"
+                : $"Opened {ToastText.FileName(opened.Path)}");
         }
         catch (Exception ex)
         {
@@ -95,13 +97,16 @@ public sealed class DocumentSession
     {
         try
         {
-            var path = await _files.SaveAsync(_engine.Document, _engine.FilePath, ask);
-            if (path is null) return;
+            var saved = await _files.SaveAsync(_engine.Document, _engine.FilePath, ask);
+            if (saved is null) return;
+            var path = saved.Path;
             _engine.FilePath = path;
             _engine.Document.Name = Path.GetFileNameWithoutExtension(path);
             _engine.MarkSaved();
             _log.LogInformation("Saved {Path}", path);
-            _engine.Toast($"Saved {ToastText.FileName(path)}");
+            if (saved.PickerError is { } error) _engine.ToastError($"The file picker failed ({error}). Saved to {ToastText.FileInFolder(path)} instead");
+            else if (saved.ToFallbackFolder) _engine.Toast($"No file picker here: saved to {ToastText.FileInFolder(path)}");
+            else _engine.Toast($"Saved {ToastText.FileName(path)}");
         }
         catch (Exception ex)
         {
@@ -132,9 +137,10 @@ public sealed class DocumentSession
             _engine.Toast($"Share code copied ({size}). Paste it in Loadpath with Ctrl+Shift+V.");
             return;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // No clipboard on this host: fall through to the share file.
+            // No clipboard on this host: the code goes to the share file, and the toast says so.
+            _log.LogInformation(ex, "No clipboard for the share code");
         }
         if (_files.FallbackFolder is not { } folder)
         {
@@ -158,9 +164,10 @@ public sealed class DocumentSession
             var content = Windows.ApplicationModel.DataTransfer.Clipboard.GetContent();
             if (content.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.Text)) text = await content.GetTextAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // No clipboard on this host: read the most recent share file written by ShareAsync.
+            _log.LogInformation(ex, "No clipboard to paste from; reading the newest share file");
             var file = _files.LatestInFallbackFolder("*" + ShareFileSuffix);
             if (file is not null) text = await File.ReadAllTextAsync(file);
         }
