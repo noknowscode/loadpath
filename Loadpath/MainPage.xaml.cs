@@ -38,8 +38,9 @@ public sealed partial class MainPage : Page
         var viewModel = services.GetRequiredService<EditorViewModel>();
         Model = viewModel.Model;
         DataContext = viewModel;
-        Workspace.Editor = Engine;
         Workspace.Log = services.GetRequiredService<ILogger<global::Loadpath.Workspace.WorkspaceView>>();
+        Workspace.Ui = services.GetRequiredService<IUiThread>();
+        Workspace.Editor = Engine;
         Outline.Model = Model;
         OutlineTab.Model = Model;
         Palette.Model = Model;

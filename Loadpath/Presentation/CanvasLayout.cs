@@ -43,6 +43,25 @@ public static class CanvasLayout
     }
 
     /// <summary>
+    /// The scale and offset that frame <paramref name="world"/> on a <paramref name="width"/> x <paramref name="height"/>
+    /// canvas: inside <paramref name="fit"/> (clear of the floating tool rail on the left, the banners on top and the band
+    /// that holds the dimension chain and the legend at the bottom) and out from under an open sheet. Under a bottom sheet
+    /// the dimension band is hidden anyway, so the structure keeps as far above the sheet as it is below the title.
+    /// </summary>
+    public static (double Scale, Vec2 Offset) SheetFit(Bounds world, double width, double height,
+        (double Left, double Top, double Right, double Bottom) fit, (double Right, double Bottom) covered)
+    {
+        double left = fit.Left, top = fit.Top, right = fit.Right + covered.Right;
+        var bottom = covered.Bottom > 0 ? covered.Bottom + fit.Top : fit.Bottom;
+        var areaW = Math.Max(120, width - left - right);
+        var areaH = Math.Max(120, height - top - bottom);
+        var scale = Math.Clamp(Math.Min(areaW * 0.9 / Math.Max(world.Width, 1.0), areaH * 0.9 / Math.Max(world.Height, 1.0)),
+            Core.Viewport.Viewport.MinScale, Core.Viewport.Viewport.MaxScale);
+        var c = world.Center;
+        return (scale, new Vec2(left + areaW / 2 - c.X * scale, top + areaH / 2 + c.Y * scale));
+    }
+
+    /// <summary>
     /// The floating bar's top-left corner. It sits up and to the right of the selection (left when the right runs out
     /// of canvas), above the selection, and never over the drawing when the canvas has room for it: a bar above a
     /// bottom-chord node would cover the truss and its load arrows (on a phone its 44 px targets make it as wide as the
