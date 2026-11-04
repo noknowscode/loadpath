@@ -245,6 +245,53 @@ public class EditorModelTests
     }
 
     [Fact]
+    public void A_row_picked_in_the_outline_selects_its_element_and_a_modifier_or_multi_select_adds_it()
+    {
+        Warren();
+
+        _model.SelectFromOutline("n2", extend: false);
+        Assert.Equal(ElementRef.Node(2), _engine.Selection.Single);
+
+        _model.SelectFromOutline("m3", extend: true);
+        Assert.Equal(2, _engine.Selection.Count);
+
+        _engine.Options.MultiSelect = true;
+        _model.SelectFromOutline("n2", extend: false);
+        Assert.Equal(ElementRef.Member(3), _engine.Selection.Single);
+
+        _model.HoverFromOutline("m5");
+        Assert.Equal(ElementRef.Member(5), _engine.Interaction.Hover);
+        _model.HoverFromOutline(null);
+        Assert.Null(_engine.Interaction.Hover);
+    }
+
+    [Fact]
+    public void The_canvas_menu_and_the_section_drop_edit_through_the_model()
+    {
+        Warren();
+        var section = Section.Library.First(s => s != _engine.Document.GetMember(1).Section);
+
+        _model.DropSection(1, section);
+        _model.AddNodeAt(new Vec2(3, 4));
+
+        Assert.Equal(section, _engine.Document.GetMember(1).Section);
+        Assert.Equal(new Vec2(3, 4), _engine.Document.GetNode(_engine.Selection.Single!.Value.Id).Position);
+        Assert.Equal(2, _engine.History.UndoDepth);
+    }
+
+    [Fact]
+    public async Task The_layout_docks_the_inspector_through_the_model()
+    {
+        _model.SetInspectorDocked(false);
+
+        Assert.False(_engine.Options.InspectorDocked);
+        // Undocked, the inspector is a sheet, closed until the user opens it.
+        await When(_model.InspectorShown, v => !v);
+        _model.SetInspectorDocked(true);
+        await When(_model.InspectorShown, v => v);
+    }
+
+    [Fact]
     public async Task Overloaded_members_are_listed_as_failures_with_their_mode()
     {
         _engine.LoadSnapshot(TrussPresets.Build("pratt", new PresetParameters(24, 6, 1.6)), "Load preset", null);

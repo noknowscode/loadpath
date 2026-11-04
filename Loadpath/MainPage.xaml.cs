@@ -40,13 +40,13 @@ public sealed partial class MainPage : Page
         DataContext = viewModel;
         Workspace.Editor = Engine;
         Workspace.Log = services.GetRequiredService<ILogger<global::Loadpath.Workspace.WorkspaceView>>();
-        Outline.Engine = Engine;
-        OutlineTab.Engine = Engine;
+        Outline.Model = Model;
+        OutlineTab.Model = Model;
         Palette.Model = Model;
         Toasts.Queue = services.GetRequiredService<ToastQueue>();
-        _sectionDrag = new SectionDragController(Engine, Root, WorkspaceHost, Workspace, DragGhost, DragGhostText);
+        _sectionDrag = new SectionDragController(Engine, Model, Root, WorkspaceHost, Workspace, DragGhost, DragGhostText);
         Inspector.SectionDragStarted += (_, section) => _sectionDrag.Start(section);
-        Workspace.ContextMenuRequested += (_, request) => CanvasMenu.Show(Engine, Workspace, request);
+        Workspace.ContextMenuRequested += (_, request) => CanvasMenu.Show(Engine, Model, Workspace, request);
 
         // MVUX runs state callbacks off the UI thread: the palette's entrance and the focus move are posted back to it.
         Model.IsPaletteOpen.ForEach(async (open, ct) => DispatcherQueue.TryEnqueue(() =>
@@ -96,7 +96,7 @@ public sealed partial class MainPage : Page
     private void OnLayoutChanged()
     {
         var layout = LayoutProbe.Tag as string ?? "Widest";
-        Engine.Options.InspectorDocked = layout is "Wide" or "Widest";
+        Model.SetInspectorDocked(layout is "Wide" or "Widest");
         _overlays.OnLayoutChanged(narrow: layout == "Narrow");
         if (layout == "Widest") _ = GuardAsync("Inspector tab", () => Model.SelectTabAsync(outline: false).AsTask());
         _log.LogDebug("layout={Layout} width={Width:0}", layout, XamlRoot?.Size.Width ?? 0);

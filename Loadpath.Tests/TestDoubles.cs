@@ -94,7 +94,7 @@ public sealed class ScriptedPrompt(UnsavedChoice answer) : IUnsavedPrompt
 public static class Models
 {
     public static EditorModel Editor(EditorEngine engine, IUiThread ui) => new(engine, ui, Logs.For<EditorModel>(),
-        new StatusProjection(engine), new OptionMirror(engine, ui), new InspectorProjection(engine, ui), new OutlineProjection(engine),
+        new StatusProjection(engine), new OptionMirror(engine, ui), new InspectorProjection(engine, ui), new OutlineProjection(engine, ui),
         new PaletteSearch(engine, ui, Logs.For<PaletteSearch>()), new PresetGallery(engine, ui, Logs.For<PresetGallery>()));
 }
 

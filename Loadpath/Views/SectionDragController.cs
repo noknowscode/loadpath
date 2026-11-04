@@ -8,11 +8,12 @@ namespace Loadpath.Views;
 /// Dragging a section chip from the inspector onto a member on the canvas. The drag crosses two views (the chip's
 /// press in the inspector, the hit test on the canvas), so it is tracked on the page root with handled events too
 /// (the canvas marks its pointer events handled); there is no XAML drag source for this. A ghost with the section's
-/// name follows the pointer and the member under it is highlighted; release applies it, Esc cancels.
+/// name follows the pointer and the member under it is highlighted; release applies it (through the model), Esc cancels.
 /// </summary>
 public sealed class SectionDragController
 {
     private readonly EditorEngine _engine;
+    private readonly EditorModel _model;
     private readonly FrameworkElement _host;
     private readonly WorkspaceView _canvas;
     private readonly FrameworkElement _ghost;
@@ -22,9 +23,10 @@ public sealed class SectionDragController
 
     /// <param name="root">Where the pointer is tracked: the page root.</param>
     /// <param name="host">The canvas host the ghost is positioned in.</param>
-    public SectionDragController(EditorEngine engine, UIElement root, FrameworkElement host, WorkspaceView canvas, FrameworkElement ghost, TextBlock ghostText)
+    public SectionDragController(EditorEngine engine, EditorModel model, UIElement root, FrameworkElement host, WorkspaceView canvas, FrameworkElement ghost, TextBlock ghostText)
     {
         _engine = engine;
+        _model = model;
         _host = host;
         _canvas = canvas;
         _ghost = ghost;
@@ -72,7 +74,7 @@ public sealed class SectionDragController
         // xaml-lint: allow codebehind - the ghost ends with the drag
         _ghost.Visibility = Visibility.Collapsed;
         _engine.Interaction.Overlay.HighlightMember = null;
-        if (drop && _target is { } id) _engine.DropSection(id, section);
+        if (drop && _target is { } id) _model.DropSection(id, section);
         _target = null;
         _engine.Interaction.Hint = "";
         _engine.RequestRender();

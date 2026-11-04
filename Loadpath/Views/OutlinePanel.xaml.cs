@@ -6,16 +6,16 @@ namespace Loadpath.Views;
 
 public sealed partial class OutlinePanel : UserControl
 {
-    public static readonly DependencyProperty EngineProperty = DependencyProperty.Register(
-        nameof(Engine), typeof(EditorEngine), typeof(OutlinePanel), new PropertyMetadata(null));
+    public static readonly DependencyProperty ModelProperty = DependencyProperty.Register(
+        nameof(Model), typeof(EditorModel), typeof(OutlinePanel), new PropertyMetadata(null));
 
     public OutlinePanel() => InitializeComponent();
 
-    /// <summary>Pointer gestures on rows (press, hover) talk to the engine directly; rows carry their element key in Tag.</summary>
-    public EditorEngine? Engine
+    /// <summary>The page model: a row's press and hover go to it with the element key the row carries in Tag.</summary>
+    public EditorModel? Model
     {
-        get => (EditorEngine?)GetValue(EngineProperty);
-        set => SetValue(EngineProperty, value);
+        get => (EditorModel?)GetValue(ModelProperty);
+        set => SetValue(ModelProperty, value);
     }
 
     /// <summary>Element keys that have already had their entrance, so a row re-prepared for a value change stays still.</summary>
@@ -30,19 +30,16 @@ public sealed partial class OutlinePanel : UserControl
     // xaml-lint: allow codebehind - Shift/Ctrl-aware selection reads the key state on the UI thread at the click; generated commands run off it
     private void OnRowClick(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { Tag: string key } && Engine is not null)
-        {
-            var extend = KeyboardState.IsDown(Windows.System.VirtualKey.Shift) || KeyboardState.IsDown(Windows.System.VirtualKey.Control) || Engine.Options.MultiSelect;
-            Engine.SelectByKey(key, extend);
-        }
+        if (sender is FrameworkElement { Tag: string key } && Model is { } model)
+            model.SelectFromOutline(key, KeyboardState.IsDown(Windows.System.VirtualKey.Shift) || KeyboardState.IsDown(Windows.System.VirtualKey.Control));
     }
 
     // xaml-lint: allow codebehind - row hover highlights the element on the canvas
     private void OnRowEntered(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is FrameworkElement { Tag: string key }) Engine?.HoverByKey(key);
+        if (sender is FrameworkElement { Tag: string key }) Model?.HoverFromOutline(key);
     }
 
     // xaml-lint: allow codebehind - clears the canvas hover highlight
-    private void OnRowExited(object sender, PointerRoutedEventArgs e) => Engine?.HoverByKey(null);
+    private void OnRowExited(object sender, PointerRoutedEventArgs e) => Model?.HoverFromOutline(null);
 }

@@ -4,9 +4,9 @@ namespace Loadpath.Presentation;
 
 /// <summary>
 /// The structure outline as MVUX states: a row per node and per member with the selection marked, the section headers
-/// and whether each section is expanded.
+/// and whether each section is expanded. A row picked or hovered in the view selects or highlights its element.
 /// </summary>
-public sealed class OutlineProjection(EditorEngine engine)
+public sealed class OutlineProjection(EditorEngine engine, IUiThread ui)
 {
     private readonly Projection _projection = new();
 
@@ -17,6 +17,15 @@ public sealed class OutlineProjection(EditorEngine engine)
     public IState<bool> OutlineIsEmpty => State.Value(this, () => true);
     public IState<bool> NodesExpanded => State.Value(this, () => true);
     public IState<bool> MembersExpanded => State.Value(this, () => true);
+
+    /// <summary>
+    /// A row was picked: select its element. <paramref name="extend"/> (Shift or Ctrl held), or the touch multi-select
+    /// toggle, adds it to the selection or takes it out instead.
+    /// </summary>
+    public void Select(string key, bool extend) => ui.Run(() => engine.SelectByKey(key, extend || engine.Options.MultiSelect));
+
+    /// <summary>The pointer is over a row, or left the rows (null): highlight its element on the canvas.</summary>
+    public void Hover(string? key) => ui.Run(() => engine.HoverByKey(key));
 
     public async ValueTask RefreshAsync()
     {

@@ -215,6 +215,17 @@ public partial record EditorModel
     /// <summary>Apply a section to the selected members, by section id (used by the bulk list).</summary>
     [Command] public void ApplySection(string sectionId) => Ui(() => _engine.SetSectionOnSelection(Section.FindById(sectionId)));
 
+    // Edits the canvas overlays ask for (internal, so the generator makes no commands of them).
+
+    /// <summary>The canvas menu's "Add node here", at the point the node tool would use.</summary>
+    internal void AddNodeAt(Vec2 world) => Ui(() => _engine.AddNodeAt(world));
+
+    /// <summary>A section chip dropped from the inspector onto a member.</summary>
+    internal void DropSection(int memberId, Section section) => Ui(() => _engine.DropSection(memberId, section));
+
+    /// <summary>The responsive layout docks the inspector (Wide and up) or makes it a sheet.</summary>
+    internal void SetInspectorDocked(bool docked) => _options.Set(o => o.InspectorDocked = docked);
+
     // ---- inspector (InspectorProjection) ----
 
     public IState<InspectorContent> Inspector => _inspector.Inspector;
@@ -235,6 +246,10 @@ public partial record EditorModel
     public IState<bool> MembersExpanded => _outline.MembersExpanded;
     [Command] public void ToggleNodes() => Fire(NodesExpanded.UpdateAsync(v => !v));
     [Command] public void ToggleMembers() => Fire(MembersExpanded.UpdateAsync(v => !v));
+
+    // A row press reads Shift and Ctrl on the UI thread, so the view calls these, not a generated command (which runs off it).
+    internal void SelectFromOutline(string key, bool extend) => _outline.Select(key, extend);
+    internal void HoverFromOutline(string? key) => _outline.Hover(key);
 
     // ---- presets sheet (PresetGallery) ----
 
