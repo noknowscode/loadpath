@@ -44,7 +44,7 @@ public sealed partial class CommandPalette : UserControl
     // Handled is set before the first await: routing reads it synchronously.
     // These are event handlers, so they are async void; each one catches and reports, so a failure is a toast.
 
-    // xaml-lint: allow codebehind - arrow/Enter/Esc routing inside the search box
+    // xaml-lint: allow codebehind - Up/Down/Enter/Esc in the search box; utu:CommandExtensions covers Enter only
     private async void OnQueryKeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (Model is not { } model) return;
@@ -78,7 +78,7 @@ public sealed partial class CommandPalette : UserControl
         }
     }
 
-    // xaml-lint: allow codebehind - a press outside the panel closes it
+    // xaml-lint: allow codebehind - a press outside the panel closes it; a light-dismiss Popup is the platform route (docs/UNO-AUDIT.md, Remaining)
     private async void OnScrimPressed(object sender, PointerRoutedEventArgs e)
     {
         if (Model is not { } model) return;

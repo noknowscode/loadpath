@@ -16,7 +16,6 @@ public sealed partial class TitleStrip : UserControl
     /// The document name gets the width the strip has left once both command clusters are in, up to its token maximum,
     /// and trims with an ellipsis below that. A fit, not a breakpoint: which commands show is the responsive layout's job.
     /// </summary>
-    // xaml-lint: allow responsive - sizes the name to the room left over, no layout decision
     private void FitDocumentName()
     {
         if (DocumentName.Visibility != Visibility.Visible) return;

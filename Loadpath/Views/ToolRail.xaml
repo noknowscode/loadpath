@@ -8,7 +8,7 @@
     drawing with 44 px targets (it scrolls sideways on the narrowest phones rather than clipping).
     The last tool is the touch stand-in for Alt: free placement, no snapping.
   -->
-  <!-- xaml-lint: allow card - floating tool palette / bottom tool strip -->
+  <!-- xaml-lint: allow card - tool palette chrome (a strip on phones), not a card; no Toolkit card theme under Fluent (README) -->
   <Border Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}"
           BorderThickness="{utu:Responsive Narrow={StaticResource HairlineTop}, Normal={StaticResource Hairline}}"
           CornerRadius="{utu:Responsive Narrow={StaticResource RadiusNone}, Normal={StaticResource RadiusPopover}}"

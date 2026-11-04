@@ -41,7 +41,6 @@
                Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}" />
 
     <!-- Capacity at a glance (moved here from the title strip, where it did not fit beside the commands). -->
-    <!-- xaml-lint: allow card - status pill -->
     <Border x:Name="StatusPill" Grid.Column="3" Style="{StaticResource StatusPill}" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}"
             Background="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=DangerSoftBrush|SurfaceRaisedBrush}">
       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}" VerticalAlignment="Center">
@@ -64,7 +63,6 @@
     <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="{StaticResource Space10}" VerticalAlignment="Center"
                 c:Motion.Reveal="True" Visibility="{Binding ReduceNoise, Converter={StaticResource Vis}, ConverterParameter=invert}">
       <TextBlock Text="{utu:Responsive Narrow='MAX UTIL', Normal='MAX UTILIZATION'}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
-      <!-- xaml-lint: allow card - utilization pill, not a card -->
       <Border Style="{StaticResource PillBorder}" BorderThickness="{StaticResource Inset0}"
               Background="{Binding Status.IsOverCapacity, Converter={StaticResource Pick}, ConverterParameter=DangerSoftBrush|TransparentBrush}">
         <TextBlock Text="{Binding Status.MaxUtilizationText}" Style="{StaticResource MonoCaption}" Foreground="{Binding Status.MaxUtilizationToneKey, Converter={StaticResource Brush}}" />

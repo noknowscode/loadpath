@@ -56,7 +56,7 @@
 
         <!-- Mechanism / unsupported banner -->
 
-        <!-- xaml-lint: allow card - status banner over the drawing -->
+        <!-- xaml-lint: allow card - status banner, not a card; InfoBar is the Fluent match (docs/UNO-AUDIT.md, Remaining) -->
         <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{utu:Responsive Narrow={StaticResource BannerMarginNarrow}, Normal={StaticResource BannerMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}"
                 Background="{ThemeResource DangerSoftBrush}" BorderBrush="{ThemeResource DangerBorderBrush}" BorderThickness="{StaticResource Hairline}"
                 c:Motion.Reveal="True" Visibility="{Binding Status.IsMechanism, Converter={StaticResource Vis}}" IsHitTestVisible="False">
@@ -68,7 +68,7 @@
 
         <!-- Detached parts notice (warning, not failure) -->
 
-        <!-- xaml-lint: allow card - status banner over the drawing -->
+        <!-- xaml-lint: allow card - status banner, not a card; InfoBar is the Fluent match (docs/UNO-AUDIT.md, Remaining) -->
         <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{utu:Responsive Narrow={StaticResource BannerMarginNarrow}, Normal={StaticResource BannerMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}"
                 Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="{StaticResource Hairline}"
                 c:Motion.Reveal="True" Visibility="{Binding Status.HasDetached, Converter={StaticResource Vis}}" IsHitTestVisible="False">
@@ -115,7 +115,7 @@
 
         <!-- Floating selection bar, positioned by code above the selection. On a phone its targets grow to 44 px. -->
 
-        <!-- xaml-lint: allow card - popover chrome -->
+        <!-- xaml-lint: allow card - selection toolbar that follows the viewport, not a card; CommandBarFlyout cannot track a moving anchor -->
         <Border x:Name="FloatingBar" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed"
                 Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusPopover}" Padding="{StaticResource FloatingBarInset}">
           <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
@@ -147,7 +147,7 @@
 
         <!-- Section drag ghost -->
 
-        <!-- xaml-lint: allow card - drag ghost chip -->
+        <!-- xaml-lint: allow card - drag ghost that follows the pointer, not a card -->
         <Border x:Name="DragGhost" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed" IsHitTestVisible="False"
                 Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource AccentBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusField}" Padding="{StaticResource Inset6x3}">
           <TextBlock x:Name="DragGhostText" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" />
@@ -155,7 +155,7 @@
 
         <!-- Toast -->
 
-        <!-- xaml-lint: allow card - transient toast -->
+        <!-- xaml-lint: allow card - toast, not a card; Fluent ships no toast control -->
         <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="{utu:Responsive Narrow={StaticResource ToastMarginNarrow}, Normal={StaticResource ToastMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}" Opacity="0" IsHitTestVisible="False"
                 Background="{ThemeResource InkBrush}">
           <Border.RenderTransform>
@@ -195,7 +195,6 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
-          <!-- xaml-lint: allow card - segmented control frame -->
           <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
             <StackPanel Orientation="Horizontal">
               <ToggleButton Style="{StaticResource SegmentToggle}" Height="{utu:Responsive Narrow={StaticResource TouchTarget}, Normal={StaticResource ControlHeight}}"

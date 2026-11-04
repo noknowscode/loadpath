@@ -21,13 +21,13 @@ public sealed partial class OutlinePanel : UserControl
     /// <summary>Element keys that have already had their entrance, so a row re-prepared for a value change stays still.</summary>
     private readonly HashSet<string> _entered = new();
 
-    // xaml-lint: allow codebehind - a new row fades and rises in once; ItemsRepeater has no per-item add transition on Uno
+    // A new row fades and rises in once: ItemsRepeater has no per-item add transition on Uno.
     private void OnRowPrepared(ItemsRepeater sender, ItemsRepeaterElementPreparedEventArgs args)
     {
         if (args.Element is FrameworkElement { Tag: string key } row && _entered.Add(key)) Motion.Enter(row);
     }
 
-    // xaml-lint: allow codebehind - Shift/Ctrl-aware selection by element key; click covers pointer, Enter and Space
+    // xaml-lint: allow codebehind - Shift/Ctrl-aware selection reads the key state on the UI thread at the click; generated commands run off it
     private void OnRowClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string key } && Engine is not null)

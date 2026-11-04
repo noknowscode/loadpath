@@ -47,7 +47,6 @@
           <c:Icon Kind="redo" Foreground="{ThemeResource InkBrush}" />
         </Button>
       </StackPanel>
-      <!-- xaml-lint: allow card - segmented control frame -->
       <Border Style="{StaticResource SegmentGroup}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}">
         <StackPanel Orientation="Horizontal">
           <ToggleButton Style="{StaticResource SegmentToggle}" Content="FORCES" IsChecked="{Binding IsForces}" Command="{Binding ShowForces}"
@@ -62,7 +61,7 @@
     <!-- Right: reduce noise, search, files, inspector, more -->
     <StackPanel x:Name="RightCluster" Grid.Column="2" Orientation="Horizontal" Spacing="{utu:Responsive Narrow={StaticResource Space4}, Normal={StaticResource Space12}}" HorizontalAlignment="Right" VerticalAlignment="Center">
       <!-- Reduce noise: the switch (F) and, split off, the layer chooser -->
-      <!-- xaml-lint: allow card - split-button frame -->
+      <!-- xaml-lint: allow card - one frame around a toggle and its flyout chevron, not a card; ToggleSplitButton is the Fluent match (docs/UNO-AUDIT.md, Remaining) -->
       <Border BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusHairline}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}"
               Background="{Binding ReduceNoise, Converter={StaticResource Pick}, ConverterParameter=AccentSoftBrush|SurfaceBrush}"
               BorderBrush="{Binding ReduceNoise, Converter={StaticResource Pick}, ConverterParameter=AccentBrush|HairlineStrongBrush}">

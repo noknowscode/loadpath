@@ -185,7 +185,6 @@ public sealed partial class MainPage : Page
     }
 
 #if __DESKTOP__ || WINDOWS
-    // xaml-lint: allow codebehind - the close prompt needs the window's closing event and a dialog
     private void OnWindowClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
     {
         if (!Engine.IsDirty || _closeConfirmed) return;
@@ -610,7 +609,6 @@ public sealed partial class MainPage : Page
         var x = bounds.Max.X + 24;
         // The bar stays on the part of the canvas no sheet covers.
         var area = UncoveredCanvas();
-        // xaml-lint: allow responsive - clamps the popover inside the canvas; not a layout breakpoint
         if (x + w > area.Right - 8) x = bounds.Min.X - 24 - w;
         // Keep 32 px off the sheet's left edge when there is room; a phone-wide bar may use the 8 px gutter instead.
         var minX = Math.Min(32, Math.Max(8, area.Right - w - 8));
