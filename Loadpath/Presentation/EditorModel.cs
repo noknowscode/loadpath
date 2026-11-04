@@ -345,12 +345,20 @@ public partial record EditorModel
         await Presets.UpdateAsync(_ => BuildPresetItems(p), ct);
     }
 
+    /// <summary>
+    /// Load a preset with the parameters the tile hands over: the sheet's fields as they were when the tile was clicked,
+    /// a value still being typed included (the tile commits it first; the states may not have caught up yet). The
+    /// fields then show the clamped values that were built.
+    /// </summary>
     [Command]
-    public async ValueTask LoadPreset(string id, CancellationToken ct)
+    public async ValueTask LoadPreset(PresetChoice choice, CancellationToken ct)
     {
-        var p = await ReadPresetParametersAsync(ct);
-        _log.LogDebug("preset {Id} span={Span} panels={Panels} depth={Depth}", id, p.Span, p.Panels, p.Depth);
-        Ui(() => _engine.LoadPreset(id, p));
+        var p = new PresetParameters(choice.Span, (int)Math.Round(choice.Panels), choice.Depth).Clamped();
+        _log.LogDebug("preset {Id} span={Span} panels={Panels} depth={Depth}", choice.Id, p.Span, p.Panels, p.Depth);
+        Ui(() => _engine.LoadPreset(choice.Id, p));
+        await PresetSpan.SetAsync(p.Span, ct);
+        await PresetPanels.SetAsync(p.Panels, ct);
+        await PresetDepth.SetAsync(p.Depth, ct);
     }
 
     private const double SketchWidth = 156, SketchHeight = 52, SketchPad = 3;
@@ -361,7 +369,8 @@ public partial record EditorModel
             var snapshot = TrussPresets.Build(preset.Id, p);
             var k = snapshot.Members.Count;
             var size = preset.UsesPanels ? $"{p.Span:0.#} m · {snapshot.Nodes.Count} N · {k} M" : $"{p.Span:0.#} m · rise {p.Depth:0.#} m";
-            return new PresetItem(preset.Id, preset.Title.ToUpperInvariant(), preset.Description, Sketch(snapshot), size, $"Load {preset.Title} preset");
+            return new PresetItem(preset.Id, preset.Title.ToUpperInvariant(), preset.Description, Sketch(snapshot), size, $"Load {preset.Title} preset",
+                new PresetChoice(preset.Id, p.Span, p.Panels, p.Depth));
         }).ToImmutableList();
 
     /// <summary>Fit the geometry into the thumbnail box, y up, and emit its members as pixel segments.</summary>

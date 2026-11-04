@@ -105,5 +105,11 @@ public partial record SectionChoice(string Id, string Name, string ShortName)
 /// <summary>A member over capacity, as listed in the summary inspector. Mode is the failure verb ("BUCKLES", "YIELDS").</summary>
 public partial record FailureItem(string Key, string Label, string Mode, string Util, string Detail, string AutomationName);
 
-/// <summary>A preset tile. Sketch is the generated geometry as pixel-space segments "x1,y1,x2,y2;…" for the thumbnail.</summary>
-public partial record PresetItem(string Id, string Title, string Description, string Sketch, string Size, string AutomationName);
+/// <summary>
+/// A preset tile. Sketch is the generated geometry as pixel-space segments "x1,y1,x2,y2;…" for the thumbnail; Choice is
+/// what the tile loads, with the parameters it was drawn for.
+/// </summary>
+public partial record PresetItem(string Id, string Title, string Description, string Sketch, string Size, string AutomationName, PresetChoice Choice);
+
+/// <summary>A preset to load and the sheet's span, panels and depth for it, as the tile's command receives them.</summary>
+public partial record PresetChoice(string Id, double Span, double Panels, double Depth);

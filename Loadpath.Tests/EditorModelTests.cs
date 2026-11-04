@@ -256,7 +256,7 @@ public class EditorModelTests
         var tiles = await When(_model.Presets, p => p.First(t => t.Id == "pratt").Size.StartsWith("24 m"));
         Assert.Equal("24 m · 16 N · 29 M", tiles.First(t => t.Id == "pratt").Size);
 
-        await _model.LoadPreset("pratt", CancellationToken.None);
+        await _model.LoadPreset(tiles.First(t => t.Id == "pratt").Choice, CancellationToken.None);
 
         Assert.Equal("Pratt truss", _engine.Document.Name);
         Assert.Equal(16, _engine.Document.Nodes.Count);
@@ -264,15 +264,15 @@ public class EditorModelTests
     }
 
     [Fact]
-    public async Task Preset_parameters_out_of_range_are_clamped_and_shown_clamped()
+    public async Task A_tile_loads_with_the_values_it_is_handed_clamped_and_the_fields_show_them()
     {
-        await _model.PresetPanels.SetAsync(1000, CancellationToken.None);
-        await When(_model.PresetPanels, v => v != 6);
+        // What the sheet hands over when a value was typed without Enter: the fields' values, not yet in the states.
+        await _model.LoadPreset(new PresetChoice("warren", 12, 1000, 2), CancellationToken.None);
 
-        await _model.LoadPreset("warren", CancellationToken.None);
-
-        Assert.Equal(PresetParameters.MaxPanels, await When(_model.PresetPanels, v => v < 1000));
+        Assert.Equal(PresetParameters.MaxPanels, await When(_model.PresetPanels, v => v == PresetParameters.MaxPanels));
         Assert.Equal(TrussPresets.Build("warren", new PresetParameters(12, PresetParameters.MaxPanels, 2)).Nodes.Count, _engine.Document.Nodes.Count);
+        var tiles = await When(_model.Presets, p => p.First(t => t.Id == "warren").Choice.Panels == PresetParameters.MaxPanels);
+        Assert.Equal(new PresetChoice("pratt", 12, PresetParameters.MaxPanels, 2), tiles.First(t => t.Id == "pratt").Choice);
     }
 
     [Fact]

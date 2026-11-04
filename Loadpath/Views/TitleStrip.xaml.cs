@@ -1,4 +1,5 @@
 using Loadpath.Controls;
+using Loadpath.Presentation;
 using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace Loadpath.Views;
@@ -33,17 +34,21 @@ public sealed partial class TitleStrip : UserControl
     private void OnNoiseDone(object sender, RoutedEventArgs e) => NoiseFlyout.Hide();
 
     /// <summary>
-    /// A value typed in a sheet field without Enter is committed first, so the tile loads with it. The tile does not take
-    /// focus on a press (AllowFocusOnInteraction), because a press that blurred the field committed it there and then,
-    /// the commit rebuilt the tiles under the pointer, and the press never became a click.
+    /// A value typed in a sheet field without Enter is committed first, and the tile's command gets the fields' values
+    /// with it, so the tile loads with what the sheet shows: the states the fields are bound to update asynchronously and
+    /// may not have caught up by the time the command runs (they had not on WebAssembly). The tile does not take focus on
+    /// a press (AllowFocusOnInteraction), because a press that blurred the field committed it there and then, the commit
+    /// rebuilt the tiles under the pointer, and the press never became a click.
     /// The sheet closes after the tile's command has run, not before. A button raises Click and then executes its
     /// command; hiding the flyout inside Click unloads the sheet at once on Uno, the tile loses its DataContext, its
-    /// CommandParameter (the preset id) drops to null, and LoadPreset refuses a null id, so nothing loaded.
+    /// CommandParameter drops to null, and nothing loads.
     /// </summary>
-    // xaml-lint: allow codebehind - a chosen preset commits the typed value and closes its flyout; the bound command does the work
+    // xaml-lint: allow codebehind - a chosen preset commits the typed value, hands the sheet's values to the bound command and closes its flyout
     private void OnPresetClick(object sender, RoutedEventArgs e)
     {
         if (XamlRoot is { } root) NumberField.CommitFocused(root);
+        if (sender is Button { CommandParameter: PresetChoice choice } tile)
+            tile.CommandParameter = choice with { Span = SpanField.Value, Panels = PanelsField.Value, Depth = DepthField.Value };
         DispatcherQueue.TryEnqueue(PresetsFlyout.Hide);
     }
 

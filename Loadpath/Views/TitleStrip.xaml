@@ -173,15 +173,15 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <StackPanel>
                   <TextBlock Text="SPAN" Style="{StaticResource FieldLabel}" />
-                  <c:NumberField Value="{Binding PresetSpan, Mode=TwoWay}" Unit="m" Decimals="1" Step="1" AutomationProperties.Name="Preset span" />
+                  <c:NumberField x:Name="SpanField" Value="{Binding PresetSpan, Mode=TwoWay}" Unit="m" Decimals="1" Step="1" AutomationProperties.Name="Preset span" />
                 </StackPanel>
                 <StackPanel Grid.Column="1">
                   <TextBlock Text="PANELS" Style="{StaticResource FieldLabel}" />
-                  <c:NumberField Value="{Binding PresetPanels, Mode=TwoWay}" Decimals="0" Step="1" AutomationProperties.Name="Preset panels" />
+                  <c:NumberField x:Name="PanelsField" Value="{Binding PresetPanels, Mode=TwoWay}" Decimals="0" Step="1" AutomationProperties.Name="Preset panels" />
                 </StackPanel>
                 <StackPanel Grid.Column="2">
                   <TextBlock Text="DEPTH / RISE" Style="{StaticResource FieldLabel}" />
-                  <c:NumberField Value="{Binding PresetDepth, Mode=TwoWay}" Unit="m" Decimals="1" Step="0.5" AutomationProperties.Name="Preset depth or rise" />
+                  <c:NumberField x:Name="DepthField" Value="{Binding PresetDepth, Mode=TwoWay}" Unit="m" Decimals="1" Step="0.5" AutomationProperties.Name="Preset depth or rise" />
                 </StackPanel>
               </Grid>
               <Rectangle Style="{StaticResource DashedRule}" />
@@ -192,10 +192,10 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                   <DataTemplate>
-                    <!-- A press does not take focus, so a value still being typed is not committed (and the tiles rebuilt) under the pointer; OnPresetClick commits it. -->
+                    <!-- A press does not take focus, so a value still being typed is not committed (and the tiles rebuilt) under the pointer; OnPresetClick commits it and hands it to the command. -->
                     <Button Style="{StaticResource QuietButton}" HorizontalAlignment="Stretch" Height="{StaticResource PresetTileHeight}" Padding="{StaticResource PresetTileInset}"
                             HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Click="OnPresetClick" AllowFocusOnInteraction="False"
-                            Command="{Binding DataContext.LoadPreset, ElementName=Strip}" CommandParameter="{Binding Id}"
+                            Command="{Binding DataContext.LoadPreset, ElementName=Strip}" CommandParameter="{Binding Choice}"
                             AutomationProperties.Name="{Binding AutomationName}" ToolTipService.ToolTip="{Binding Description}">
                       <StackPanel Spacing="{StaticResource Space4}">
                         <!-- The thumbnail is drawn for a 156 x 52 box; it scales down when two tiles share a phone-width sheet. -->
