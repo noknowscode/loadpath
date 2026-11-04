@@ -103,9 +103,10 @@ public sealed partial class WorkspaceView : SKCanvasElement
             _renderer.SetTypefaces(await CanvasTypefaces.LoadAsync());
             Invalidate();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Cosmetic: the canvas keeps its fallback faces.
+            Log.LogWarning(ex, "The canvas fonts did not load; drawing with the fallback faces");
         }
     }
 
@@ -367,7 +368,8 @@ public sealed partial class WorkspaceView : SKCanvasElement
             CursorKind.Move => InputSystemCursorShape.SizeAll,
             _ => InputSystemCursorShape.Arrow,
         };
-        try { ProtectedCursor = InputSystemCursor.Create(shape); } catch { /* cursor shapes are cosmetic */ }
+        try { ProtectedCursor = InputSystemCursor.Create(shape); }
+        catch (Exception ex) { Log.LogDebug(ex, "Cursor {Shape} not set; the shape is cosmetic", shape); }
 #endif
     }
 
