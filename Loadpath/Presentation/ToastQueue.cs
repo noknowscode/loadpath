@@ -24,9 +24,6 @@ public sealed class ToastQueue
     /// <summary>The toast on screen, or null when there is none.</summary>
     public ToastMessage? Current { get; private set; }
 
-    /// <summary>Messages waiting behind a failure, oldest first.</summary>
-    public IReadOnlyList<ToastMessage> Waiting => _waiting;
-
     /// <summary>Raised when <see cref="Current"/> changes, including to the same text again (the view restarts its timer).</summary>
     public event EventHandler? CurrentChanged;
 

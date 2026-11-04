@@ -47,7 +47,7 @@ public class GeometryTests
         var onMember = vp.ToScreen(new Vec2(1, 0)) + new Vec2(0, 3);
         Assert.Equal(HitKind.Member, HitTester.Test(doc, vp, onMember).Kind);
         var far = vp.ToScreen(new Vec2(1, 1));
-        Assert.True(HitTester.Test(doc, vp, far).IsNone);
+        Assert.Equal(HitKind.None, HitTester.Test(doc, vp, far).Kind);
     }
 
     [Fact]

@@ -27,7 +27,7 @@ public class TouchTests
     {
         var (doc, vp) = TwoNodesAndAMember();
         var near = vp.ToScreen(new Vec2(0, 0)) + new Vec2(0, -18); // 18 px above node 1, off the member
-        Assert.True(HitTester.Test(doc, vp, near, HitRadii.Mouse).IsNone);
+        Assert.Equal(HitKind.None, HitTester.Test(doc, vp, near, HitRadii.Mouse).Kind);
         var touch = HitTester.Test(doc, vp, near, HitRadii.Touch);
         Assert.Equal(HitKind.Node, touch.Kind);
         Assert.Equal(1, touch.Id);
@@ -38,7 +38,7 @@ public class TouchTests
     {
         var (doc, vp) = TwoNodesAndAMember();
         var beside = vp.ToScreen(new Vec2(2, 0)) + new Vec2(0, 15); // mid-member, 15 px below it
-        Assert.True(HitTester.Test(doc, vp, beside, HitRadii.Mouse).IsNone);
+        Assert.Equal(HitKind.None, HitTester.Test(doc, vp, beside, HitRadii.Mouse).Kind);
         Assert.Equal(HitKind.Member, HitTester.Test(doc, vp, beside, HitRadii.Touch).Kind);
     }
 
@@ -65,7 +65,16 @@ public class TouchTests
         Assert.Equal(TouchSignal.None, t.Move(1, new Vec2(103, 102))); // inside the slop
         Assert.Equal(TouchSignal.Tap, t.Up(1, new Vec2(103, 102)));
         Assert.Equal(new Vec2(100, 100), t.PressPoint);
-        Assert.Equal(0, t.ContactCount);
+        AssertNoFingerLeft(t);
+    }
+
+    /// <summary>Every finger is up: the next one starts a fresh press, not a pinch with a finger left behind.</summary>
+    private static void AssertNoFingerLeft(TouchTracker t)
+    {
+        Assert.Equal(TouchSignal.None, t.Down(9, new Vec2(300, 300), 10_000));
+        Assert.True(t.IsPending);
+        Assert.False(t.IsPinching);
+        Assert.Equal(new Vec2(300, 300), t.PressPoint);
     }
 
     [Fact]
@@ -131,7 +140,7 @@ public class TouchTests
         t.Down(1, new Vec2(0, 0), 0);
         t.Move(1, new Vec2(0, 50));
         Assert.Equal(TouchSignal.EndDrag, t.Cancel(1));
-        Assert.Equal(0, t.ContactCount);
+        AssertNoFingerLeft(t);
     }
 
     [Fact]

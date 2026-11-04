@@ -13,6 +13,18 @@ public class ToastQueueTests
 
     private static ToastQueue Queue() => new(new EditorEngine());
 
+    /// <summary>The toast on screen and every one after it, as the host shows them when each has had its time.</summary>
+    private static List<ToastMessage> InTurn(ToastQueue q)
+    {
+        var shown = new List<ToastMessage>();
+        while (q.Current is { } toast)
+        {
+            shown.Add(toast);
+            q.Expire();
+        }
+        return shown;
+    }
+
     [Fact]
     public void A_newer_note_replaces_the_note_on_screen()
     {
@@ -20,8 +32,7 @@ public class ToastQueueTests
         q.Show(NoteA);
         q.Show(NoteB);
 
-        Assert.Equal(NoteB, q.Current);
-        Assert.Empty(q.Waiting);
+        Assert.Equal(new[] { NoteB }, InTurn(q));
     }
 
     [Fact]
@@ -46,8 +57,7 @@ public class ToastQueueTests
         q.Show(SettingsFailed);
         q.Show(NoteB);
 
-        Assert.Equal(SettingsFailed, q.Current);
-        Assert.Equal(new[] { NoteB }, q.Waiting);
+        Assert.Equal(new[] { SettingsFailed, NoteB }, InTurn(q));
     }
 
     [Fact]
@@ -61,7 +71,7 @@ public class ToastQueueTests
         q.Show(SettingsFailed);
         q.Show(AutosaveFailed);
 
-        Assert.Equal(new[] { AutosaveFailed, NoteB }, q.Waiting);
+        Assert.Equal(new[] { SettingsFailed, AutosaveFailed, NoteB }, InTurn(q));
     }
 
     [Fact]
@@ -87,8 +97,7 @@ public class ToastQueueTests
         engine.ToastError("Could not save: Access to the path '/home/ann/Documents/Loadpath/Bridge.loadpath' is denied.");
         engine.Toast("Saved Bridge.loadpath");
 
-        Assert.Equal(new ToastMessage("Could not save: Access to the path 'Bridge.loadpath' is denied.", true), q.Current);
-        Assert.Equal("Saved Bridge.loadpath", Assert.Single(q.Waiting).Text);
+        Assert.Equal(new[] { new ToastMessage("Could not save: Access to the path 'Bridge.loadpath' is denied.", true), new ToastMessage("Saved Bridge.loadpath", false) }, InTurn(q));
     }
 
     [Fact]

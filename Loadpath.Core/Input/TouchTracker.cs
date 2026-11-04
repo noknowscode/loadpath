@@ -39,7 +39,6 @@ public sealed class TouchTracker
 
     /// <summary>Where the first finger landed.</summary>
     public Vec2 PressPoint { get; private set; }
-    public int ContactCount => _contacts.Count;
     public bool IsPinching => _phase == Phase.Pinching;
     /// <summary>True while a finger is down and its press has not been resolved yet (tap, drag or long press).</summary>
     public bool IsPending => _phase == Phase.Pending;

@@ -7,7 +7,6 @@ public enum HitKind { None, Node, Member, LoadHandle }
 public readonly record struct HitResult(HitKind Kind, int Id)
 {
     public static readonly HitResult None = new(HitKind.None, 0);
-    public bool IsNone => Kind == HitKind.None;
     public ElementRef? Ref => Kind switch
     {
         HitKind.Node => ElementRef.Node(Id),
