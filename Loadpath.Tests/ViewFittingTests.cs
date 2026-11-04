@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Loadpath.Tests;
 
-/// <summary>A fitted view keeps the structure framed through resizes and layout changes until the user moves it.</summary>
+/// <summary>The view keeps the structure framed through resizes: always while fitted, and when a resize would cut it off.</summary>
 public class ViewFittingTests
 {
     private readonly EditorEngine _engine = new();
@@ -27,6 +27,54 @@ public class ViewFittingTests
 
     /// <summary>The 12 m Warren at 40 px/m, its left end <paramref name="left"/> px from the canvas edge.</summary>
     private void MoveViewTo(double left) => _engine.Viewport.Set(40, new Vec2(left, 500));
+
+    [Fact]
+    public void Shows_is_true_only_when_all_of_the_structure_is_on_the_canvas()
+    {
+        var bounds = _engine.Document.GetBounds();
+        MoveViewTo(300);
+        Assert.True(_engine.Viewport.Shows(bounds));
+
+        MoveViewTo(-10);
+        Assert.False(_engine.Viewport.Shows(bounds));
+        Assert.False(_engine.Viewport.Shows(Bounds.Empty));
+    }
+
+    [Fact]
+    public void A_moved_view_stays_put_through_a_resize_that_keeps_the_structure_in_view()
+    {
+        MoveViewTo(300);
+        var before = View;
+
+        _fitting.Resize(1000, 800);
+
+        Assert.Equal(before, View);
+        Assert.False(_fitting.IsFitted);
+    }
+
+    [Fact]
+    public void A_narrower_window_that_would_cut_off_a_moved_view_frames_the_structure_again()
+    {
+        MoveViewTo(300);
+
+        _fitting.Resize(700, 800);
+
+        Assert.True(_fitting.IsFitted);
+        Assert.Equal(SheetFit(700, 800), View);
+        Assert.True(_engine.Viewport.Shows(_engine.Document.GetBounds()));
+    }
+
+    [Fact]
+    public void A_view_the_user_left_partly_off_the_canvas_is_not_taken_from_them()
+    {
+        MoveViewTo(-100);
+        var before = View;
+
+        _fitting.Resize(700, 800);
+
+        Assert.Equal(before, View);
+        Assert.False(_fitting.IsFitted);
+    }
 
     [Fact]
     public void A_fitted_view_refits_on_every_resize_until_it_is_released()

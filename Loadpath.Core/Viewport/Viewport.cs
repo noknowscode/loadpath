@@ -75,6 +75,15 @@ public sealed class Viewport
 
     public void PanBy(Vec2 screenDelta) => Offset = _offset + screenDelta;
 
+    /// <summary>True when all of <paramref name="world"/> is on the screen (false for nothing, or a screen with no size).</summary>
+    public bool Shows(Bounds world)
+    {
+        if (world.IsEmpty || ScreenWidth <= 0 || ScreenHeight <= 0) return false;
+        var a = ToScreen(world.Min);
+        var b = ToScreen(world.Max);
+        return Math.Min(a.X, b.X) >= 0 && Math.Max(a.X, b.X) <= ScreenWidth && Math.Min(a.Y, b.Y) >= 0 && Math.Max(a.Y, b.Y) <= ScreenHeight;
+    }
+
     /// <summary>Compute the (scale, offset) that fits world bounds with padding, without applying it.</summary>
     public (double Scale, Vec2 Offset) ComputeFit(Bounds world, double paddingFraction = 0.15)
     {

@@ -7,7 +7,9 @@ internal readonly record struct SheetInsets((double Left, double Top, double Rig
 
 /// <summary>
 /// Keeps the structure framed on the sheet. Fit eases the view to the sheet's frame (<see cref="CanvasLayout.SheetFit"/>),
-/// and a fitted view stays fitted through resizes and layout changes until the user moves it.
+/// and a fitted view stays fitted through resizes and layout changes until the user moves it. A view the user moved is
+/// kept through a resize, unless the resize pushes part of a structure that was all in view off the canvas (a narrower
+/// window): then it is fitted again.
 /// </summary>
 internal sealed class ViewFitting(EditorEngine editor, ViewportAnimation animation, Func<SheetInsets> insets)
 {
@@ -33,9 +35,13 @@ internal sealed class ViewFitting(EditorEngine editor, ViewportAnimation animati
 
     public void Resize(double width, double height)
     {
-        editor.Viewport.Resize(width, height);
-        if (!IsFitted || editor.Document.Nodes.Count == 0) return;
+        var viewport = editor.Viewport;
+        var bounds = editor.Document.GetBounds();
+        var wasInView = viewport.Shows(bounds);
+        viewport.Resize(width, height);
+        if (editor.Document.Nodes.Count == 0 || !(IsFitted || wasInView && !viewport.Shows(bounds))) return;
         animation.Stop();
+        IsFitted = true;
         Refit();
     }
 
