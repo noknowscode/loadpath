@@ -165,7 +165,7 @@ public sealed class DocumentSession
             if (file is not null) text = await File.ReadAllTextAsync(file);
         }
         if (!ShareCode.TryDecode(text, out var snapshot, out var error)) { _engine.Toast(error); return; }
-        _engine.ReplaceDocument(snapshot!, "Paste design");
+        _engine.ReplaceDocument(snapshot, "Paste design");
         _engine.Toast($"Pasted {_engine.Document.Name} · Ctrl+Z to undo");
     }
 

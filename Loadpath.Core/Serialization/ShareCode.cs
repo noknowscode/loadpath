@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -28,7 +29,7 @@ public static partial class ShareCode
     /// Read a design from pasted text: a share code (possibly inside surrounding text, such as a chat message)
     /// or a raw <c>.loadpath</c> JSON document. Returns false with a user-facing reason when nothing usable is found.
     /// </summary>
-    public static bool TryDecode(string? text, out DocumentSnapshot? snapshot, out string error)
+    public static bool TryDecode(string? text, [NotNullWhen(true)] out DocumentSnapshot? snapshot, out string error)
     {
         snapshot = null;
         error = "";
@@ -59,7 +60,7 @@ public static partial class ShareCode
     }
 
     /// <summary>A readable document error (a newer version, a duplicate id) is shown as is; unreadable JSON gets <paramref name="unreadable"/>.</summary>
-    private static bool TryDeserialize(string json, string unreadable, out DocumentSnapshot? snapshot, out string error)
+    private static bool TryDeserialize(string json, string unreadable, [NotNullWhen(true)] out DocumentSnapshot? snapshot, out string error)
     {
         snapshot = null;
         error = "";

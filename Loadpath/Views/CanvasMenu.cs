@@ -68,7 +68,8 @@ public static partial class CanvasMenu
                 case Entry.AddNodeId:
                     // At the snapped point under the pointer, as the node tool would place it.
                     var world = engine.Interaction.SnapPoint(engine.Viewport.ToWorld(new Vec2(request.Position.X, request.Position.Y)), false).Point;
-                    menu.Items.Add(Item(entry.Title!, new AppCommand("canvas.addNode", entry.Title!, "Edit", null, () => model.AddNodeAt(world)), "N"));
+                    var title = entry.Title ?? "Add node here";
+                    menu.Items.Add(Item(title, new AppCommand("canvas.addNode", title, "Edit", null, () => model.AddNodeAt(world)), "N"));
                     break;
                 default:
                     if (engine.Commands.Find(entry.Id) is { } c) menu.Items.Add(Item(entry.Title ?? c.Title, c, c.ShortcutDisplay.Split('|')[0]));

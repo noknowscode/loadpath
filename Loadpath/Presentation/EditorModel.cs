@@ -67,7 +67,7 @@ public partial record EditorModel
     private void Fire(ValueTask task)
     {
         if (task.IsCompletedSuccessfully) return;
-        _ = task.AsTask().ContinueWith(t => ReportFailure("Refresh", t.Exception!.GetBaseException()), TaskContinuationOptions.OnlyOnFaulted);
+        _ = task.AsTask().ContinueWith(t => { if (t.Exception is { } e) ReportFailure("Refresh", e.GetBaseException()); }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private async ValueTask RefreshAllAsync()
