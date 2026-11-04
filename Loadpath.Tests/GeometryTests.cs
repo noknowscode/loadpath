@@ -21,11 +21,12 @@ public class GeometryTests
     }
 
     [Fact]
-    public void Fit_centers_bounds()
+    public void ComputeFit_centers_bounds()
     {
         var vp = new Viewport();
         vp.Resize(1000, 800);
-        vp.Fit(new Bounds(new Vec2(0, 0), new Vec2(12, 2)));
+        var (scale, offset) = vp.ComputeFit(new Bounds(new Vec2(0, 0), new Vec2(12, 2)));
+        vp.Set(scale, offset);
         var c = vp.ToScreen(new Vec2(6, 1));
         Assert.InRange(c.X, 499, 501);
         Assert.InRange(c.Y, 399, 401);

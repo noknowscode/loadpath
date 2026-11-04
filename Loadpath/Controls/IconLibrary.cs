@@ -43,8 +43,6 @@ public static class IconLibrary
         ["mark"] = "M2.5 13.5 L2.5 8 L8 2.5 L13.5 8 L13.5 13.5 M2.5 10 L8 4.5 L13.5 10",
     };
 
-    public static IEnumerable<string> Names => Paths.Keys;
-
     public static Geometry Get(string name)
     {
         if (!Paths.TryGetValue(name, out var data)) data = Paths["close"];

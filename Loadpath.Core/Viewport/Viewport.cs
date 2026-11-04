@@ -97,10 +97,4 @@ public sealed class Viewport
         var offset = new Vec2(ScreenWidth / 2 - c.X * scale, ScreenHeight / 2 + c.Y * scale);
         return (scale, offset);
     }
-
-    public void Fit(Bounds world, double paddingFraction = 0.15)
-    {
-        var (s, o) = ComputeFit(world, paddingFraction);
-        Set(s, o);
-    }
 }
