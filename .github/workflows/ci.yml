@@ -368,7 +368,8 @@ jobs:
               FOUND=$(( $(date +%s) - LAUNCH_EPOCH )); break
             fi
             [ -z "$APP_CONTENT_MARKER" ] && break
-            if [ -s "$OUT/window.xml" ] && ! grep -qF "package=\"$PKG\"" "$OUT/window.xml"; then
+            # A failed dump leaves no <node> (exec-out returns cat's error text instead), which is not a covering window.
+            if grep -q '<node ' "$OUT/window.xml" && ! grep -qF "package=\"$PKG\"" "$OUT/window.xml"; then
               COVERED=$(( COVERED + 1 ))
               if [ "$COVERED" -eq 1 ]; then
                 cp "$OUT/window.xml" "$OUT/window-covering.xml"
@@ -425,7 +426,7 @@ jobs:
           fi
           echo "::group::App logcat (first 120 lines)"; head -n 120 "$OUT/logcat-app.txt"; echo "::endgroup::"
           # Other processes' ANRs and crashes: not the app's failure, but the usual cause of a covered screen.
-          grep -E "ANR in |FATAL EXCEPTION|Process: |has died|Force finishing|Showing (crash|ANR) dialog" "$OUT/logcat-full.txt" | grep -v "$PKG_RE" > "$OUT/logcat-system.txt"
+          grep -E "ANR in |FATAL EXCEPTION|AndroidRuntime: Process: |Fatal signal|isn't responding|keeps stopping|Showing (crash|ANR) dialog" "$OUT/logcat-full.txt" | grep -v "$PKG_RE" > "$OUT/logcat-system.txt"
           note system_anr_crash_lines "$(wc -l < "$OUT/logcat-system.txt")"
           echo "::group::Other processes: ANR and crash lines (first 30)"; head -n 30 "$OUT/logcat-system.txt"; echo "::endgroup::"
           finish
