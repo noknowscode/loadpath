@@ -304,6 +304,8 @@ XAML overlay layer (a `Canvas` above the `SKCanvasElement`) hosts: the floating 
 
 ### Module structure
 
+The plan the build started from. Several names changed as it was built; README.md (Architecture) lists the projects and files as they ship.
+
 ```
 Loadpath/                        (solution root)
   Loadpath.Core/                 net10.0 class library, no UI dependencies
