@@ -83,13 +83,13 @@ public class EditorModelTests
     public async Task An_edit_makes_the_status_dirty_and_offers_its_undo()
     {
         Warren();
-        await When(_model.Status, s => !s.IsEmpty);
+        // Loading passes through a dirty state (the replacement) before it is marked saved: wait for the clean one.
+        await When(_model.Status, s => !s.IsEmpty && !s.IsDirty);
 
         _engine.History.Do(new SetSupportEdit(4, SupportKind.Pin));
 
-        var status = await When(_model.Status, s => s.IsDirty);
-        Assert.True(status.CanUndo);
-        Assert.StartsWith("Undo ", status.UndoTooltip);
+        var status = await When(_model.Status, s => s.IsDirty && s.CanUndo);
+        Assert.Equal("Undo " + _engine.History.UndoLabel!.ToLowerInvariant(), status.UndoTooltip);
     }
 
     [Fact]
@@ -140,10 +140,11 @@ public class EditorModelTests
         _engine.LoadSnapshot(TrussPresets.Build("pratt", new PresetParameters(24, 6, 1.6)), "Load preset", null);
 
         var failures = await When(_model.Failures, f => f.Count > 0);
-        Assert.True(await _model.HasFailures);
+        // The list, the flag, the header and Lighten are separate states, published one after another.
+        await When(_model.HasFailures, v => v);
         Assert.All(failures, f => Assert.Contains(f.Mode, new[] { "BUCKLES", "YIELDS" }));
-        Assert.Equal(failures.Count == 1 ? "1 MEMBER" : $"{failures.Count} MEMBERS", await _model.FailuresHeader);
-        Assert.False(await _model.CanLighten);
+        await When(_model.FailuresHeader, h => h == (failures.Count == 1 ? "1 MEMBER" : $"{failures.Count} MEMBERS"));
+        await When(_model.CanLighten, v => !v);
     }
 
     [Fact]
@@ -155,8 +156,8 @@ public class EditorModelTests
         var members = await When(_model.OutlineMembers, m => m.Any(r => r.RowBrushKey == "SelectionBrush"));
         Assert.Equal(_engine.Document.Members.Count, members.Count);
         Assert.Equal("m3", Assert.Single(members, r => r.RowBrushKey == "SelectionBrush").Key);
-        Assert.Equal(_engine.Document.Nodes.Count.ToString(), await _model.NodesHeader);
-        Assert.False(await _model.OutlineIsEmpty);
+        await When(_model.NodesHeader, h => h == _engine.Document.Nodes.Count.ToString());
+        await When(_model.OutlineIsEmpty, v => !v);
     }
 
     [Fact]
@@ -165,7 +166,7 @@ public class EditorModelTests
         _model.ShowUtilization();
         Assert.Equal(DisplayMode.Utilization, _engine.Options.DisplayMode);
         await When(_model.IsUtilization, v => v);
-        Assert.False(await _model.IsForces);
+        await When(_model.IsForces, v => !v);
 
         _engine.Options.ReduceNoise = true;
         Assert.StartsWith("NOISE REDUCED · ", await When(_model.NoiseStatus, t => t.Length > 0 && _engine.Options.ReduceNoise));
@@ -279,8 +280,8 @@ public class EditorModelTests
     public async Task Tabs_switch_between_the_inspector_and_the_outline()
     {
         await _model.SelectTabAsync(outline: true);
-        Assert.True(await _model.OutlineTabSelected);
-        Assert.False(await _model.InspectorTabSelected);
+        await When(_model.OutlineTabSelected, v => v);
+        await When(_model.InspectorTabSelected, v => !v);
 
         _model.ShowInspectorTab();
         await When(_model.InspectorTabSelected, v => v);
@@ -293,7 +294,7 @@ public class EditorModelTests
 
         Assert.Equal(ToolKind.Member, _engine.Interaction.ActiveTool);
         await When(_model.IsMemberActive, v => v);
-        Assert.False(await _model.IsSelectActive);
+        await When(_model.IsSelectActive, v => !v);
     }
 
     [Fact]

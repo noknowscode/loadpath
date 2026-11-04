@@ -20,6 +20,26 @@ public partial record EditorModel
     private readonly IUiThread _ui;
     private readonly ILogger _log;
     private bool _syncingOptions;
+    private readonly Projection _optionsProjection = new(), _interactionProjection = new(), _failuresProjection = new(),
+        _statusProjection = new(), _inspectorProjection = new(), _outlineProjection = new();
+
+    /// <summary>
+    /// Each engine event starts a projection, so projections of one kind can run at the same time, and MVUX does not
+    /// apply concurrent state updates in the order they were made: an older projection could land after a newer one and
+    /// leave the view stale (a status still reading "Undo open" after an edit). A projection takes a ticket when it
+    /// starts; its updates apply only while it is still the latest of its kind, and keep what is there otherwise.
+    /// </summary>
+    private sealed class Projection
+    {
+        private long _latest;
+
+        public Ticket Start() => new(this, Interlocked.Increment(ref _latest));
+
+        public readonly record struct Ticket(Projection Kind, long Number)
+        {
+            public bool IsLatest => Interlocked.Read(ref Kind._latest) == Number;
+        }
+    }
 
     public EditorModel(EditorEngine engine, IUiThread ui, ILogger<EditorModel> log)
     {
@@ -148,39 +168,40 @@ public partial record EditorModel
 
     private async ValueTask PullOptionsAsync()
     {
+        var t = _optionsProjection.Start();
         _syncingOptions = true;
         try
         {
             var o = _engine.Options;
-            await IsForces.SetAsync(o.DisplayMode == DisplayMode.Forces);
-            await IsUtilization.SetAsync(o.DisplayMode == DisplayMode.Utilization);
-            await ExaggerationText.SetAsync(ExaggerationLabel());
-            await SnapEnabled.SetAsync(o.SnapEnabled);
-            await SnapText.SetAsync(SnapLabel());
-            await InspectorVisible.SetAsync(o.InspectorVisible);
-            await InspectorShown.SetAsync(o.InspectorShown);
-            await MultiSelect.SetAsync(o.MultiSelect);
-            await FreePlacement.SetAsync(o.FreePlacement);
-            await IsThemeSystem.SetAsync(o.Theme == ThemeChoice.System);
-            await IsThemeLight.SetAsync(o.Theme == ThemeChoice.Light);
-            await IsThemeDark.SetAsync(o.Theme == ThemeChoice.Dark);
-            await ReduceNoise.SetAsync(o.ReduceNoise);
-            await KeepGrid.SetAsync((o.Keep & NoiseLayer.Grid) != 0);
-            await KeepDimensions.SetAsync((o.Keep & NoiseLayer.Dimensions) != 0);
-            await KeepSupports.SetAsync((o.Keep & NoiseLayer.Supports) != 0);
-            await KeepLoads.SetAsync((o.Keep & NoiseLayer.Loads) != 0);
-            await KeepOverCapacity.SetAsync((o.Keep & NoiseLayer.OverCapacity) != 0);
-            await KeepMemberForces.SetAsync((o.Keep & NoiseLayer.MemberForces) != 0);
-            await KeepReactions.SetAsync((o.Keep & NoiseLayer.Reactions) != 0);
-            await KeepDeflection.SetAsync((o.Keep & NoiseLayer.Deflection) != 0);
-            await KeepPartNames.SetAsync((o.Keep & NoiseLayer.PartNames) != 0);
-            await KeepLegend.SetAsync((o.Keep & NoiseLayer.Legend) != 0);
-            await KeepStructureList.SetAsync((o.Keep & NoiseLayer.StructureList) != 0);
-            await KeepResultDetails.SetAsync((o.Keep & NoiseLayer.ResultDetails) != 0);
-            await NoiseSummary.SetAsync(NoiseSummaryText());
-            await NoiseStatus.SetAsync(NoiseStatusText());
-            await ShowStructureList.SetAsync(o.IsVisible(NoiseLayer.StructureList));
-            await ShowResultDetails.SetAsync(o.IsVisible(NoiseLayer.ResultDetails));
+            await IsForces.UpdateAsync(current => t.IsLatest ? (o.DisplayMode == DisplayMode.Forces) : current);
+            await IsUtilization.UpdateAsync(current => t.IsLatest ? (o.DisplayMode == DisplayMode.Utilization) : current);
+            await ExaggerationText.UpdateAsync(current => t.IsLatest ? (ExaggerationLabel()) : current);
+            await SnapEnabled.UpdateAsync(current => t.IsLatest ? (o.SnapEnabled) : current);
+            await SnapText.UpdateAsync(current => t.IsLatest ? (SnapLabel()) : current);
+            await InspectorVisible.UpdateAsync(current => t.IsLatest ? (o.InspectorVisible) : current);
+            await InspectorShown.UpdateAsync(current => t.IsLatest ? (o.InspectorShown) : current);
+            await MultiSelect.UpdateAsync(current => t.IsLatest ? (o.MultiSelect) : current);
+            await FreePlacement.UpdateAsync(current => t.IsLatest ? (o.FreePlacement) : current);
+            await IsThemeSystem.UpdateAsync(current => t.IsLatest ? (o.Theme == ThemeChoice.System) : current);
+            await IsThemeLight.UpdateAsync(current => t.IsLatest ? (o.Theme == ThemeChoice.Light) : current);
+            await IsThemeDark.UpdateAsync(current => t.IsLatest ? (o.Theme == ThemeChoice.Dark) : current);
+            await ReduceNoise.UpdateAsync(current => t.IsLatest ? (o.ReduceNoise) : current);
+            await KeepGrid.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Grid) != 0) : current);
+            await KeepDimensions.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Dimensions) != 0) : current);
+            await KeepSupports.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Supports) != 0) : current);
+            await KeepLoads.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Loads) != 0) : current);
+            await KeepOverCapacity.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.OverCapacity) != 0) : current);
+            await KeepMemberForces.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.MemberForces) != 0) : current);
+            await KeepReactions.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Reactions) != 0) : current);
+            await KeepDeflection.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Deflection) != 0) : current);
+            await KeepPartNames.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.PartNames) != 0) : current);
+            await KeepLegend.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.Legend) != 0) : current);
+            await KeepStructureList.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.StructureList) != 0) : current);
+            await KeepResultDetails.UpdateAsync(current => t.IsLatest ? ((o.Keep & NoiseLayer.ResultDetails) != 0) : current);
+            await NoiseSummary.UpdateAsync(current => t.IsLatest ? (NoiseSummaryText()) : current);
+            await NoiseStatus.UpdateAsync(current => t.IsLatest ? (NoiseStatusText()) : current);
+            await ShowStructureList.UpdateAsync(current => t.IsLatest ? (o.IsVisible(NoiseLayer.StructureList)) : current);
+            await ShowResultDetails.UpdateAsync(current => t.IsLatest ? (o.IsVisible(NoiseLayer.ResultDetails)) : current);
         }
         finally { _syncingOptions = false; }
     }
@@ -199,16 +220,17 @@ public partial record EditorModel
 
     private async ValueTask RefreshInteractionAsync()
     {
+        var t = _interactionProjection.Start();
         var i = _engine.Interaction;
-        await IsSelectActive.SetAsync(i.ActiveTool == ToolKind.Select);
-        await IsNodeActive.SetAsync(i.ActiveTool == ToolKind.Node);
-        await IsMemberActive.SetAsync(i.ActiveTool == ToolKind.Member);
-        await IsLoadActive.SetAsync(i.ActiveTool == ToolKind.Load);
-        await IsSupportActive.SetAsync(i.ActiveTool == ToolKind.Support);
-        await IsPanActive.SetAsync(i.ActiveTool == ToolKind.Pan);
-        await Hint.SetAsync(i.Hint);
-        await CursorText.SetAsync(i.CursorWorldText);
-        await ZoomText.SetAsync(i.ZoomText);
+        await IsSelectActive.UpdateAsync(current => t.IsLatest ? (i.ActiveTool == ToolKind.Select) : current);
+        await IsNodeActive.UpdateAsync(current => t.IsLatest ? (i.ActiveTool == ToolKind.Node) : current);
+        await IsMemberActive.UpdateAsync(current => t.IsLatest ? (i.ActiveTool == ToolKind.Member) : current);
+        await IsLoadActive.UpdateAsync(current => t.IsLatest ? (i.ActiveTool == ToolKind.Load) : current);
+        await IsSupportActive.UpdateAsync(current => t.IsLatest ? (i.ActiveTool == ToolKind.Support) : current);
+        await IsPanActive.UpdateAsync(current => t.IsLatest ? (i.ActiveTool == ToolKind.Pan) : current);
+        await Hint.UpdateAsync(current => t.IsLatest ? (i.Hint) : current);
+        await CursorText.UpdateAsync(current => t.IsLatest ? (i.CursorWorldText) : current);
+        await ZoomText.UpdateAsync(current => t.IsLatest ? (i.ZoomText) : current);
     }
 
     [Command] public void SelectTool() => Ui(() => _engine.Interaction.SetTool(ToolKind.Select));
@@ -302,6 +324,7 @@ public partial record EditorModel
 
     private async ValueTask RefreshFailuresAsync()
     {
+        var t = _failuresProjection.Start();
         var doc = _engine.Document;
         var failures = _engine.Analysis.Failures;
         var items = failures.Select(f =>
@@ -314,10 +337,11 @@ public partial record EditorModel
             return new FailureItem($"m{f.MemberId}", $"M{f.MemberId}", verb.ToUpperInvariant(), $"{f.Utilization * 100:0}%", detail,
                 $"Select member M{f.MemberId}, {verb} at {f.Utilization * 100:0} percent");
         }).ToImmutableList();
-        await Failures.UpdateAsync(_ => items);
-        await HasFailures.SetAsync(items.Count > 0);
-        await CanLighten.SetAsync(_engine.Analysis.IsSolved && items.Count == 0 && _engine.Document.Members.Count > 0);
-        await FailuresHeader.SetAsync(items.Count == 1 ? "1 MEMBER" : $"{items.Count} MEMBERS");
+        await Failures.UpdateAsync(current => t.IsLatest ? (items) : current);
+        await HasFailures.UpdateAsync(current => t.IsLatest ? (items.Count > 0) : current);
+        var canLighten = _engine.Analysis.IsSolved && items.Count == 0 && _engine.Document.Members.Count > 0;
+        await CanLighten.UpdateAsync(current => t.IsLatest ? canLighten : current);
+        await FailuresHeader.UpdateAsync(current => t.IsLatest ? (items.Count == 1 ? "1 MEMBER" : $"{items.Count} MEMBERS") : current);
     }
 
     // ---- presets ----
@@ -500,6 +524,7 @@ public partial record EditorModel
 
     private async ValueTask RefreshStatusAsync()
     {
+        var t = _statusProjection.Start();
         var a = _engine.Analysis;
         var h = _engine.History;
         string text, detail, tone, mechanismText = "";
@@ -534,11 +559,11 @@ public partial record EditorModel
             h.RedoLabel is { } r ? $"Redo {r.ToLowerInvariant()}" : "Nothing to redo",
             pillText, over > 0 || mechanism,
             a.IsSolved ? $"{a.SolveMilliseconds:0.0} ms" : "—", over > 0);
-        await Status.UpdateAsync(_ => status);
+        await Status.UpdateAsync(current => t.IsLatest ? (status) : current);
 
         var doc = _engine.Document;
         var supports = doc.Nodes.Count(n => n.HasSupport);
-        await Counts.UpdateAsync(_ => new LayerCounts(
+        await Counts.UpdateAsync(current => !t.IsLatest ? current : new LayerCounts(
             $"{_engine.Options.GridStep:0.##} m",
             supports.ToString(),
             doc.Nodes.Count(n => n.HasLoad).ToString(),
@@ -573,6 +598,7 @@ public partial record EditorModel
 
     private async ValueTask RefreshInspectorAsync()
     {
+        var t = _inspectorProjection.Start();
         var doc = _engine.Document;
         var a = _engine.Analysis;
         var sel = _engine.Selection;
@@ -653,9 +679,9 @@ public partial record EditorModel
                     mr is { } u ? $"{u.Utilization * 100:0}%" : "",
                     mr is { IsOverstressed: true });
             }).ToImmutableList();
-            await ConnectedMembers.UpdateAsync(_ => connected);
-            await NodePosition.UpdateAsync(_ => new NodeVector(node.Id, node.Position.X, node.Position.Y));
-            await NodeLoad.UpdateAsync(_ => new NodeVector(node.Id, node.Load.X, node.Load.Y));
+            await ConnectedMembers.UpdateAsync(current => t.IsLatest ? (connected) : current);
+            await NodePosition.UpdateAsync(current => t.IsLatest ? (new NodeVector(node.Id, node.Position.X, node.Position.Y)) : current);
+            await NodeLoad.UpdateAsync(current => t.IsLatest ? (new NodeVector(node.Id, node.Load.X, node.Load.Y)) : current);
         }
         else if (SelectedMemberId is { } mid && doc.FindMember(mid) is { } member)
         {
@@ -686,7 +712,7 @@ public partial record EditorModel
                 } : "",
                 BucklingText = solved ? (mr.IsCompression ? $"Pcr {member.Section.CriticalBucklingLoadN(mr.LengthM) / 1000:0.0} kN · {mr.UtilizationBuckling * 100:0}%" : "n/a (tension)") : "—",
             };
-            await MemberSection.UpdateAsync(_ => new SectionPick(member.Id, Math.Max(0, Section.Library.ToList().IndexOf(member.Section))));
+            await MemberSection.UpdateAsync(current => t.IsLatest ? (new SectionPick(member.Id, Math.Max(0, Section.Library.ToList().IndexOf(member.Section)))) : current);
         }
         else
         {
@@ -700,11 +726,12 @@ public partial record EditorModel
                 MixedText = "Bulk actions apply to every selected element.",
             };
         }
-        await Inspector.UpdateAsync(_ => c);
+        await Inspector.UpdateAsync(current => t.IsLatest ? (c) : current);
     }
 
     private async ValueTask RefreshOutlineAsync()
     {
+        var t = _outlineProjection.Start();
         var doc = _engine.Document;
         var a = _engine.Analysis;
         var sel = _engine.Selection;
@@ -728,10 +755,10 @@ public partial record EditorModel
                 selected ? "SelectionBrush" : "TransparentBrush", false, "",
                 solved && res.IsOverstressed, solved ? $"{res.Utilization * 100:0}%" : "");
         }).ToImmutableList();
-        await OutlineNodes.UpdateAsync(_ => nodes);
-        await OutlineMembers.UpdateAsync(_ => members);
-        await NodesHeader.SetAsync(doc.Nodes.Count.ToString());
-        await MembersHeader.SetAsync(doc.Members.Count.ToString());
-        await OutlineIsEmpty.SetAsync(doc.Nodes.Count == 0);
+        await OutlineNodes.UpdateAsync(current => t.IsLatest ? (nodes) : current);
+        await OutlineMembers.UpdateAsync(current => t.IsLatest ? (members) : current);
+        await NodesHeader.UpdateAsync(current => t.IsLatest ? (doc.Nodes.Count.ToString()) : current);
+        await MembersHeader.UpdateAsync(current => t.IsLatest ? (doc.Members.Count.ToString()) : current);
+        await OutlineIsEmpty.UpdateAsync(current => t.IsLatest ? (doc.Nodes.Count == 0) : current);
     }
 }
