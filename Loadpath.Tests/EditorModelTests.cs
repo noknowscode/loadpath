@@ -300,6 +300,36 @@ public class EditorModelTests
     }
 
     [Fact]
+    public async Task A_layer_toggled_while_the_options_are_pulled_reaches_the_engine()
+    {
+        // Every option change pulls all the option states into the model; a toggle made by the view meanwhile must still land.
+        for (var i = 0; i < 40; i++)
+        {
+            var keep = (_engine.Options.Keep & NoiseLayer.Grid) == 0;
+            _engine.Options.ShowGrid = !_engine.Options.ShowGrid;
+            await _model.KeepGrid.SetAsync(keep, CancellationToken.None);
+            await Until(() => ((_engine.Options.Keep & NoiseLayer.Grid) != 0) == keep);
+            await When(_model.KeepGrid, v => v == keep);
+        }
+    }
+
+    [Fact]
+    public async Task An_option_the_engine_changes_twice_ends_where_the_engine_left_it()
+    {
+        // The pulls' echoes come back late; an echo of the first change must not undo the second.
+        for (var i = 0; i < 40; i++)
+        {
+            var end = _engine.Options.ReduceNoise;
+            _engine.Options.ReduceNoise = !end;
+            _engine.Options.ReduceNoise = end;
+            await When(_model.ReduceNoise, v => v == end);
+            await Task.Delay(20);
+            Assert.Equal(end, _engine.Options.ReduceNoise);
+            Assert.Equal(end, await _model.ReduceNoise);
+        }
+    }
+
+    [Fact]
     public async Task The_palette_opens_with_every_command_and_a_query_narrows_it()
     {
         await _model.TogglePalette(CancellationToken.None);
