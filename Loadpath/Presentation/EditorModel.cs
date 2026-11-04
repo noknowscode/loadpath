@@ -182,8 +182,14 @@ public partial record EditorModel
 
     // ---- edits (the engine) ----
 
-    public IAsyncCommand Undo => Command.Create(b => b.Given(Status).When(s => s.CanUndo).Then(async (s, ct) => Ui(() => _engine.Commands.TryExecute("edit.undo"))));
-    public IAsyncCommand Redo => Command.Create(b => b.Given(Status).When(s => s.CanRedo).Then(async (s, ct) => Ui(() => _engine.Commands.TryExecute("edit.redo"))));
+    public IAsyncCommand Undo => Command.Create(b => b.Given(Status).When(s => s.CanUndo).Then(async (s, ct) => UndoStep()));
+    public IAsyncCommand Redo => Command.Create(b => b.Given(Status).When(s => s.CanRedo).Then(async (s, ct) => RedoStep()));
+
+    // What Undo and Redo run once Status allows them. Internal: the generator must not make commands of them, and the
+    // tests call them, because an IAsyncCommand cannot be built without a UI host.
+    internal void UndoStep() => Ui(() => _engine.Commands.TryExecute("edit.undo"));
+    internal void RedoStep() => Ui(() => _engine.Commands.TryExecute("edit.redo"));
+
     [Command] public void JumpToCritical() => Ui(() => _engine.JumpToCritical());
     [Command] public void SplitMember() => Ui(() => _engine.SplitSelectedMember());
     [Command] public void DeleteSelection() => Ui(() => _engine.DeleteSelection());

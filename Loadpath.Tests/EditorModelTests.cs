@@ -225,6 +225,26 @@ public class EditorModelTests
     }
 
     [Fact]
+    public async Task Undo_and_redo_step_through_the_history_and_the_status_gates_them()
+    {
+        Warren();
+        // The buttons are enabled by Status.CanUndo and Status.CanRedo.
+        await When(_model.Status, s => !s.IsEmpty && !s.CanUndo && !s.CanRedo);
+        _engine.History.Do(new SetSupportEdit(4, SupportKind.Pin));
+        await When(_model.Status, s => s.CanUndo && s.IsDirty);
+
+        _model.UndoStep();
+
+        Assert.Equal(SupportKind.None, _engine.Document.GetNode(4).Support);
+        await When(_model.Status, s => !s.CanUndo && s.CanRedo && !s.IsDirty && s.RedoTooltip == "Redo set pin");
+
+        _model.RedoStep();
+
+        Assert.Equal(SupportKind.Pin, _engine.Document.GetNode(4).Support);
+        await When(_model.Status, s => s.CanUndo && !s.CanRedo && s.IsDirty);
+    }
+
+    [Fact]
     public async Task Overloaded_members_are_listed_as_failures_with_their_mode()
     {
         _engine.LoadSnapshot(TrussPresets.Build("pratt", new PresetParameters(24, 6, 1.6)), "Load preset", null);
