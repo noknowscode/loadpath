@@ -186,7 +186,7 @@
               </Grid>
               <Rectangle Style="{StaticResource DashedRule}" />
               <!-- Two tiles per row. -->
-              <ItemsRepeater ItemsSource="{Binding Presets}" Margin="{StaticResource PresetGridMargin}">
+              <ItemsRepeater TabFocusNavigation="Local" ItemsSource="{Binding Presets}" Margin="{StaticResource PresetGridMargin}">
                 <ItemsRepeater.Layout>
                   <UniformGridLayout MinItemWidth="{StaticResource PresetTileMinWidth}" MinItemHeight="{StaticResource PresetTileHeight}" MinColumnSpacing="{StaticResource Space8}" MinRowSpacing="{StaticResource Space6}" MaximumRowsOrColumns="2" ItemsStretch="Fill" />
                 </ItemsRepeater.Layout>

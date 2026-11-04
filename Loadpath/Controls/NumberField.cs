@@ -49,6 +49,8 @@ public sealed partial class NumberField : Control
         _box = GetTemplateChild("PART_Box") as TextBox;
         if (_box is not null)
         {
+            // The text box takes the focus, so it carries the field's name: a screen reader says "Node X", not "edit".
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_box, Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(this));
             _box.KeyDown += OnKeyDown;
             _box.LostFocus += OnLostFocus;
             _box.GotFocus += OnGotFocus;

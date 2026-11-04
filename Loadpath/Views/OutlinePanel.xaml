@@ -72,7 +72,7 @@
             <TextBlock Grid.Column="3" Text="{Binding NodesHeader}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
           </Grid>
         </Button>
-        <ItemsRepeater ElementPrepared="OnRowPrepared" ItemsSource="{Binding OutlineNodes}" ItemTemplate="{StaticResource NodeRow}" c:Motion.Reveal="True" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}}" />
+        <ItemsRepeater TabFocusNavigation="Local" ElementPrepared="OnRowPrepared" ItemsSource="{Binding OutlineNodes}" ItemTemplate="{StaticResource NodeRow}" c:Motion.Reveal="True" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}}" />
 
         <Button Style="{StaticResource QuietButton}" Command="{Binding ToggleMembers}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="{StaticResource OutlineGroupInset}" Height="{StaticResource GroupRowHeight}" Margin="{StaticResource GapTop12}"
                 Visibility="{Binding OutlineIsEmpty, Converter={StaticResource Vis}, ConverterParameter=invert}" AutomationProperties.Name="Toggle members">
@@ -89,7 +89,7 @@
             <TextBlock Grid.Column="3" Text="{Binding MembersHeader}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
           </Grid>
         </Button>
-        <ItemsRepeater ElementPrepared="OnRowPrepared" ItemsSource="{Binding OutlineMembers}" ItemTemplate="{StaticResource MemberRow}" c:Motion.Reveal="True" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}}" />
+        <ItemsRepeater TabFocusNavigation="Local" ElementPrepared="OnRowPrepared" ItemsSource="{Binding OutlineMembers}" ItemTemplate="{StaticResource MemberRow}" c:Motion.Reveal="True" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}}" />
       </StackPanel>
     </ScrollViewer>
   </Grid>

@@ -120,7 +120,7 @@
                 <TextBlock Text="OVER CAPACITY" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource DangerBrush}" />
                 <TextBlock Text="{Binding FailuresHeader}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" HorizontalAlignment="Right" />
               </Grid>
-              <ItemsControl ItemsSource="{Binding Failures}">
+              <ItemsControl IsTabStop="False" ItemsSource="{Binding Failures}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
                     <Button Style="{StaticResource QuietButton}" Height="{StaticResource TouchTarget}" Padding="{StaticResource Inset0}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
@@ -286,7 +286,7 @@
                 </StackPanel>
                 <TextBlock Text="{Binding Inspector.ConnectedCountText}" Style="{StaticResource MonoCaption}" HorizontalAlignment="Right" />
               </Grid>
-              <ItemsControl ItemsSource="{Binding ConnectedMembers}">
+              <ItemsControl IsTabStop="False" ItemsSource="{Binding ConnectedMembers}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
                     <Grid Height="{StaticResource RowHeight}" ColumnSpacing="{StaticResource Space12}">
@@ -349,7 +349,7 @@
             <TextBlock Text="{Binding Inspector.AreaText}" Style="{StaticResource MonoCaption}" Margin="{StaticResource GapTop2}" />
             <TextBlock Text="Drag a section onto any member, or pick one to apply it here." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource GapTop10}" />
             <!-- The chips overflow one 296 px row; a uniform grid wraps them into rows of four instead of clipping. -->
-            <ItemsRepeater ItemsSource="{Binding Sections}" Margin="{StaticResource GapTop8}">
+            <ItemsRepeater TabFocusNavigation="Local" ItemsSource="{Binding Sections}" Margin="{StaticResource GapTop8}">
               <ItemsRepeater.Layout>
                 <UniformGridLayout MinItemWidth="{StaticResource ChipMinWidth}" MinItemHeight="{StaticResource ChipMinHeight}" MinColumnSpacing="{StaticResource Space4}" MinRowSpacing="{StaticResource Space4}" ItemsStretch="Fill" />
               </ItemsRepeater.Layout>
@@ -429,7 +429,7 @@
               <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom6}">
                 <TextBlock Text="02" Style="{StaticResource SectionNumber}" /><TextBlock Text="MEMBERS · SET SECTION" Style="{StaticResource SectionLabel}" />
               </StackPanel>
-              <ItemsControl ItemsSource="{Binding Sections}">
+              <ItemsControl IsTabStop="False" ItemsSource="{Binding Sections}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate><StackPanel Spacing="{StaticResource Space2}" /></ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>

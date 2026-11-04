@@ -25,7 +25,7 @@
                    Text="{Binding PaletteQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" KeyDown="OnQueryKeyDown" AutomationProperties.Name="Command search" />
         </Grid>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="{StaticResource PaletteListMaxHeight}">
-          <ItemsControl ItemsSource="{Binding PaletteItems}" Padding="{StaticResource Inset4}">
+          <ItemsControl IsTabStop="False" ItemsSource="{Binding PaletteItems}" Padding="{StaticResource Inset4}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <!-- A button per command: Tab reaches it, Enter, Space or a click runs it; arrow keys in the query move the highlight. -->
