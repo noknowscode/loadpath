@@ -6,8 +6,6 @@ namespace Loadpath.Services;
 /// <summary>The window's dispatcher behind <see cref="IUiThread"/>: posts to it, and debounces with a DispatcherTimer.</summary>
 public sealed class DispatcherUiThread(DispatcherQueue queue) : IUiThread
 {
-    public bool HasAccess => queue.HasThreadAccess;
-
     public void Run(Action action)
     {
         if (queue.HasThreadAccess) action();

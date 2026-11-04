@@ -9,8 +9,6 @@ public sealed class TestUiThread : IUiThread
 {
     private readonly List<Timer> _timers = new();
 
-    public bool HasAccess => true;
-
     public void Run(Action action) => action();
 
     public IUiTimer CreateTimer(TimeSpan interval, Action tick)

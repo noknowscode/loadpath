@@ -7,9 +7,6 @@ namespace Loadpath.Presentation;
 /// </summary>
 public interface IUiThread
 {
-    /// <summary>True when the caller is on the UI thread.</summary>
-    bool HasAccess { get; }
-
     /// <summary>Run on the UI thread: now when the caller is on it, otherwise as soon as the thread is free.</summary>
     void Run(Action action);
 
