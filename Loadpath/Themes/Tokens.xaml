@@ -11,6 +11,7 @@
   Text contrast (WCAG, measured on Canvas / on Selection): Light Ink 16.9, InkSecondary 7.3, InkTertiary 5.5 / 4.8,
   Accent 6.6, Danger 5.5 (4.7 on DangerSoft), Warn 5.0. Dark Ink 15.2, InkSecondary 8.6, InkTertiary 6.4 / 5.2,
   Accent 7.6, Danger 6.8 (5.6 on DangerSoft), Warn 8.6.
+  Non-text (WCAG 1.4.11, on Canvas / SurfaceRaised / Selection): Light ControlBorder 3.6 / 3.3 / 3.1, Dark 3.8 / 3.5 / 3.1.
   Force sign is carried by line style (open tension, hatched compression), not by color.
 -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -26,6 +27,9 @@
       <Color x:Key="SelectionColor">#E5E8FA</Color>
       <Color x:Key="HairlineColor">#C9CFE6</Color>
       <Color x:Key="HairlineStrongColor">#AEB5CC</Color>
+      <!-- The edge that tells an input apart (field, combo box, check box, switch track, segment group): 3.1:1 or more on
+           every surface (WCAG 1.4.11). Hairlines stay quieter: they divide, they do not identify a control. -->
+      <Color x:Key="ControlBorderColor">#7C8399</Color>
       <Color x:Key="InkColor">#15171A</Color>
       <Color x:Key="InkSecondaryColor">#4D535C</Color>
       <!-- Was #8B919A (3.0:1); darkened so hints and unit suffixes pass 4.5:1 on every surface they sit on. -->
@@ -66,6 +70,7 @@
       <SolidColorBrush x:Key="SelectionBrush" Color="{StaticResource SelectionColor}" />
       <SolidColorBrush x:Key="HairlineBrush" Color="{StaticResource HairlineColor}" />
       <SolidColorBrush x:Key="HairlineStrongBrush" Color="{StaticResource HairlineStrongColor}" />
+      <SolidColorBrush x:Key="ControlBorderBrush" Color="{StaticResource ControlBorderColor}" />
       <SolidColorBrush x:Key="InkBrush" Color="{StaticResource InkColor}" />
       <SolidColorBrush x:Key="InkSecondaryBrush" Color="{StaticResource InkSecondaryColor}" />
       <SolidColorBrush x:Key="InkTertiaryBrush" Color="{StaticResource InkTertiaryColor}" />
@@ -92,7 +97,7 @@
       <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="{StaticResource AccentInkColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="{StaticResource AccentInkColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="{StaticResource AccentInkColor}" />
-      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="{StaticResource HairlineStrongColor}" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="{StaticResource ControlBorderColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" Color="{StaticResource InkSecondaryColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUnchecked" Color="{StaticResource SurfaceColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPointerOver" Color="{StaticResource SurfaceHoverColor}" />
@@ -103,7 +108,7 @@
       <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource SurfaceColor}" />
       <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource SurfaceHoverColor}" />
       <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource SurfaceRaisedColor}" />
-      <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="{StaticResource HairlineStrongColor}" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="{StaticResource ControlBorderColor}" />
       <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="{StaticResource InkSecondaryColor}" />
       <SolidColorBrush x:Key="ComboBoxForeground" Color="{StaticResource InkColor}" />
       <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="{StaticResource InkSecondaryColor}" />
@@ -134,6 +139,7 @@
       <Color x:Key="SelectionColor">#1D2540</Color>
       <Color x:Key="HairlineColor">#262D3B</Color>
       <Color x:Key="HairlineStrongColor">#3D465A</Color>
+      <Color x:Key="ControlBorderColor">#68728A</Color>
       <Color x:Key="InkColor">#E6E9F0</Color>
       <Color x:Key="InkSecondaryColor">#A9B1BF</Color>
       <Color x:Key="InkTertiaryColor">#8F98A8</Color>
@@ -170,6 +176,7 @@
       <SolidColorBrush x:Key="SelectionBrush" Color="{StaticResource SelectionColor}" />
       <SolidColorBrush x:Key="HairlineBrush" Color="{StaticResource HairlineColor}" />
       <SolidColorBrush x:Key="HairlineStrongBrush" Color="{StaticResource HairlineStrongColor}" />
+      <SolidColorBrush x:Key="ControlBorderBrush" Color="{StaticResource ControlBorderColor}" />
       <SolidColorBrush x:Key="InkBrush" Color="{StaticResource InkColor}" />
       <SolidColorBrush x:Key="InkSecondaryBrush" Color="{StaticResource InkSecondaryColor}" />
       <SolidColorBrush x:Key="InkTertiaryBrush" Color="{StaticResource InkTertiaryColor}" />
@@ -195,7 +202,7 @@
       <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="{StaticResource AccentInkColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="{StaticResource AccentInkColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="{StaticResource AccentInkColor}" />
-      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="{StaticResource HairlineStrongColor}" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="{StaticResource ControlBorderColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" Color="{StaticResource InkSecondaryColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUnchecked" Color="{StaticResource SurfaceColor}" />
       <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPointerOver" Color="{StaticResource SurfaceHoverColor}" />
@@ -206,7 +213,7 @@
       <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource SurfaceColor}" />
       <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource SurfaceHoverColor}" />
       <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource SurfaceRaisedColor}" />
-      <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="{StaticResource HairlineStrongColor}" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="{StaticResource ControlBorderColor}" />
       <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="{StaticResource InkSecondaryColor}" />
       <SolidColorBrush x:Key="ComboBoxForeground" Color="{StaticResource InkColor}" />
       <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="{StaticResource InkSecondaryColor}" />

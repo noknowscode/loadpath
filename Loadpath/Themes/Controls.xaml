@@ -594,7 +594,7 @@
             <Border x:Name="Hover" Opacity="0" Background="{ThemeResource SurfaceHoverBrush}" />
             <StackPanel x:Name="Body" Orientation="Horizontal" Spacing="{StaticResource Space10}" Margin="{TemplateBinding Padding}" VerticalAlignment="Center">
               <Grid Width="{StaticResource SwitchTrackWidth}" Height="{StaticResource SwitchTrackHeight}" VerticalAlignment="Center">
-                <Rectangle RadiusX="{StaticResource SwitchTrackRadius}" RadiusY="{StaticResource SwitchTrackRadius}" Fill="{ThemeResource HairlineStrongBrush}" />
+                <Rectangle RadiusX="{StaticResource SwitchTrackRadius}" RadiusY="{StaticResource SwitchTrackRadius}" Fill="{ThemeResource ControlBorderBrush}" />
                 <Rectangle x:Name="TrackOn" Opacity="0" RadiusX="{StaticResource SwitchTrackRadius}" RadiusY="{StaticResource SwitchTrackRadius}" Fill="{ThemeResource AccentBrush}" />
                 <Ellipse Width="{StaticResource SwitchKnobSize}" Height="{StaticResource SwitchKnobSize}" Fill="{ThemeResource AccentInkBrush}" HorizontalAlignment="Left" Margin="{StaticResource KnobMargin}">
                   <Ellipse.RenderTransform>
@@ -674,7 +674,7 @@
   <Style x:Key="FieldTextBox" TargetType="TextBox">
     <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
     <Setter Property="Foreground" Value="{ThemeResource InkBrush}" />
-    <Setter Property="BorderBrush" Value="{ThemeResource HairlineStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{ThemeResource ControlBorderBrush}" />
     <Setter Property="BorderThickness" Value="{StaticResource Hairline}" />
     <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
     <Setter Property="FontSize" Value="{StaticResource TextValue}" />
