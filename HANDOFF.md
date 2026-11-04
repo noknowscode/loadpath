@@ -2,7 +2,7 @@
 Updated: 2026-11-04 20:10
 
 ## Where we are
-A pass 2 (closed scope: the code review's list for Loadpath, `reviews/2026-11-04-a-pass/loadpath.json`) is done on
+A pass 2 (closed scope: the code review's list for Loadpath, `docs/production-readiness/reviews/2026-11-04-a-pass/loadpath.json` in the uno-lab repo) is done on
 `feat/production-readiness`, from `7fc4042`. `docs/COMPLETENESS.md` verdict: Complete with gaps, 0 functional Majors;
 0 Blockers, 3 head Majors, 7 Minors (was 10).
 
