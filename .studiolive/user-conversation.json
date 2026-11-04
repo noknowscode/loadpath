@@ -1,0 +1,18 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Build a desktop-class workbench for designing 2D trusses that solves as you draw:\n- a drafting-sheet canvas with tools to place nodes, connect members, add pin and roller supports, hang loads and pan, with grid snapping and alignment guides\n- live analysis on every edit: member forces as ribbons (tension and compression), a utilization mode, the deflected shape and support reactions; dragging a node re-solves continuously\n- an inspector for the structure, a node, a member (section, material, stress, buckling) or a mixed selection, and a structure outline\n- failures you can step through, with one-step upsize and lighten\n- parametric presets (Pratt, Howe, Warren, K, Fink, scissor) with span, panels and depth\n- undo and redo, a Ctrl+K command palette, a context menu and a floating selection bar\n- save, open, autosave with crash recovery, and share codes to paste a design elsewhere\n- Light and Dark themes, a phone layout with touch (tap, drag, long press, pinch)\n\nUse MVUX, a SkiaSharp canvas, the Uno Toolkit for responsive layout and safe areas, and Uno.Extensions hosting, logging and theme switching. Keep everything local."
+    },
+    {
+      "role": "assistant",
+      "content": "Here's **Loadpath**. It's built and running in the preview: draw a truss or open the Warren sample, and the forces, utilization and deflected shape follow every drag."
+    }
+  ],
+  "suggestedPrompts": [
+    "Add a slider for the deflection exaggeration in the layers sheet",
+    "Export the drawing as an SVG with its legend",
+    "Add a member force table I can copy into a spreadsheet",
+    "Let me add my own sections to the section library"
+  ]
+}
