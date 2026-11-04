@@ -8,6 +8,4 @@ public sealed record Material(string Name, double ElasticModulusGPa, double Yiel
     public static readonly Material Timber = new("Timber C24", 11, 24, 420);
 
     public static readonly IReadOnlyList<Material> Library = [Steel, Aluminum, Timber];
-
-    public static Material FindByName(string name) => Library.FirstOrDefault(m => m.Name == name) ?? Steel;
 }

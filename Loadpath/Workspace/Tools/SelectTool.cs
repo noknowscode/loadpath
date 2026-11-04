@@ -20,6 +20,7 @@ public sealed class SelectTool : Tool
     private Vec2 _grabOffsetWorld;
     private int _gesture;
     private int _loadNode;
+    private int _undoDepthAtDrag;
 
     public override ToolKind Kind => ToolKind.Select;
     public override bool IsBusy => _phase is Phase.DraggingNodes or Phase.Marquee or Phase.DraggingLoad;
@@ -53,6 +54,7 @@ public sealed class SelectTool : Tool
             _phase = Phase.DraggingLoad;
             _loadNode = hit.Id;
             _gesture = ctx.NextGesture();
+            _undoDepthAtDrag = ctx.History.UndoDepth;
             ctx.Selection.Set(ElementRef.Node(hit.Id));
             ctx.SetCursor(CursorKind.Grabbing);
             return;
@@ -62,21 +64,21 @@ public sealed class SelectTool : Tool
             _phase = Phase.PressedElement;
             _pressedRef = r;
             _pressedWasSelected = ctx.Selection.Contains(r);
-            if (!_pressedWasSelected && !p.Shift) ctx.Selection.Set(r);
-            else if (!_pressedWasSelected && p.Shift) ctx.Selection.Add([r]);
+            if (!_pressedWasSelected && !p.Extend) ctx.Selection.Set(r);
+            else if (!_pressedWasSelected && p.Extend) ctx.Selection.Add(new[] { r });
             return;
         }
         _phase = Phase.PressedEmpty;
-        if (!p.Shift) ctx.Selection.Clear();
+        if (!p.Extend) ctx.Selection.Clear();
     }
 
     public override void OnMoved(IToolContext ctx, PointerState p)
     {
         switch (_phase)
         {
-            case Phase.PressedElement:
+            case Phase.PressedElement when _pressedRef is { } pressed:
                 if ((p.Screen - _pressScreen).Length < DragThresholdPx) return;
-                BeginNodeDrag(ctx, p);
+                BeginNodeDrag(ctx, pressed);
                 goto case Phase.DraggingNodes;
             case Phase.DraggingNodes:
                 DragNodes(ctx, p);
@@ -97,13 +99,13 @@ public sealed class SelectTool : Tool
         }
     }
 
-    private void BeginNodeDrag(IToolContext ctx, PointerState p)
+    private void BeginNodeDrag(IToolContext ctx, ElementRef r)
     {
         _phase = Phase.DraggingNodes;
         _gesture = ctx.NextGesture();
-        var r = _pressedRef!.Value;
+        _undoDepthAtDrag = ctx.History.UndoDepth;
         // Dragging something already selected moves the whole selection; otherwise just the pressed element.
-        var refs = ctx.Selection.Contains(r) ? ctx.Selection.Items : [r];
+        var refs = ctx.Selection.Contains(r) ? ctx.Selection.Items : new[] { r };
         _dragNodes = new HashSet<int>();
         foreach (var e in refs)
         {
@@ -120,7 +122,7 @@ public sealed class SelectTool : Tool
     {
         var primary = ctx.Document.GetNode(_primaryNode);
         var target = p.World - _grabOffsetWorld;
-        var snap = ctx.SnapPoint(target, allowNodeSnap: false, exclude: _dragNodes, constrainAxis: p.Shift, origin: primary.Position - CurrentDelta(ctx), disableSnap: p.Alt);
+        var snap = ctx.SnapPoint(target, allowNodeSnap: false, exclude: _dragNodes, constrainAxis: p.Shift, origin: primary.Position - CurrentDelta(ctx), disableSnap: p.NoSnap);
         var delta = snap.Point - primary.Position;
         ctx.Overlay.Guides.Clear();
         ctx.Overlay.Guides.AddRange(snap.Guides);
@@ -139,7 +141,7 @@ public sealed class SelectTool : Tool
                 // A click on an already-selected element with Shift toggles it off; without Shift, isolates it.
                 if (_pressedRef is { } r && _pressedWasSelected)
                 {
-                    if (p.Shift) ctx.Selection.Toggle(r);
+                    if (p.Extend) ctx.Selection.Toggle(r);
                     else ctx.Selection.Set(r);
                 }
                 break;
@@ -148,7 +150,7 @@ public sealed class SelectTool : Tool
                 {
                     var bounds = Bounds.FromPoints(new Vec2(rect.Left, rect.Top), new Vec2(rect.Right, rect.Bottom));
                     var hits = HitTester.Marquee(ctx.Document, ctx.Viewport, bounds, contained: !p.Alt).ToList();
-                    if (p.Shift) ctx.Selection.Add(hits); else ctx.Selection.Replace(hits);
+                    if (p.Extend) ctx.Selection.Add(hits); else ctx.Selection.Replace(hits);
                 }
                 break;
         }
@@ -163,8 +165,9 @@ public sealed class SelectTool : Tool
 
     public override void Cancel(IToolContext ctx)
     {
-        if (_phase == Phase.DraggingNodes) ctx.History.Undo();
-        else if (_phase == Phase.DraggingLoad) ctx.History.Undo();
+        // Undo what this drag pushed, and only that. A press on a load handle, or a drag that snapping kept in place,
+        // pushed nothing: undoing then would revert an unrelated earlier edit.
+        if (_phase is Phase.DraggingNodes or Phase.DraggingLoad && ctx.History.UndoDepth > _undoDepthAtDrag) ctx.History.Undo();
         Reset(ctx);
     }
 

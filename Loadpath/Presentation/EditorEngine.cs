@@ -3,6 +3,7 @@ using Loadpath.Core.Analysis;
 using Loadpath.Core.Editing;
 using Loadpath.Core.Samples;
 using Loadpath.Core.Selection;
+using Loadpath.Core.Serialization;
 using Loadpath.Workspace;
 
 namespace Loadpath.Presentation;
@@ -55,14 +56,16 @@ public sealed class EditorEngine
     public event EventHandler<string>? OptionsChanged;
     /// <summary>The workspace should redraw (hover, overlays, options).</summary>
     public event EventHandler? RenderRequested;
-    public event EventHandler<string>? ToastRequested;
+    public event EventHandler<ToastMessage>? ToastRequested;
     public event EventHandler? FitRequested;
     public event EventHandler? PaletteRequested;
     public event EventHandler? SavedStateChanged;
 
-
     public void RequestRender() => RenderRequested?.Invoke(this, EventArgs.Empty);
-    public void Toast(string message) => ToastRequested?.Invoke(this, message);
+    /// <summary>Say what just happened (an edit's result, a refused action). A newer one replaces it.</summary>
+    public void Toast(string message) => ToastRequested?.Invoke(this, new ToastMessage(message, IsError: false));
+    /// <summary>Say that something failed. It is never replaced before it has been shown, and paths in it read as file names.</summary>
+    public void ToastError(string message) => ToastRequested?.Invoke(this, new ToastMessage(ToastText.ShortenPaths(message), IsError: true));
     public void RequestFit() => FitRequested?.Invoke(this, EventArgs.Empty);
     public void RequestPalette() => PaletteRequested?.Invoke(this, EventArgs.Empty);
 
@@ -84,37 +87,75 @@ public sealed class EditorEngine
         RequestRender();
     }
 
-    // ---- document lifecycle ----
-
     public void MarkSaved()
     {
         History.MarkSaved();
         SavedStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void LoadSnapshot(DocumentSnapshot snapshot, string label, string? filePath)
+    /// <summary>
+    /// Load a document with a fresh history (open, new). <paramref name="saved"/>: the document matches
+    /// <paramref name="filePath"/>; false keeps it unsaved, so New, Open and closing still ask before dropping it.
+    /// </summary>
+    public void LoadSnapshot(DocumentSnapshot snapshot, string label, string? filePath, bool saved = true)
     {
-        History.Do(new ReplaceDocumentEdit(snapshot, label));
-        History.Clear();
-        Selection.Clear();
         Interaction.CancelTool();
+        Selection.Clear();
+        History.Do(new ReplaceDocumentEdit(snapshot, label));
+        // Clearing keeps the document dirty: the replacement just made it so.
+        History.Clear();
         FilePath = filePath;
-        MarkSaved();
+        if (saved) MarkSaved();
         RequestFit();
     }
 
-    public void LoadSample(string id) => LoadSnapshot(SampleStructures.Build(id), "Load sample", null);
+    /// <summary>
+    /// Bring back an autosaved session: the document, the file it belongs to (none for a sample, preset or paste),
+    /// and its unsaved changes as unsaved.
+    /// </summary>
+    public void RestoreSession(AutosavedSession session) => LoadSnapshot(session.Snapshot, "Restore", session.FilePath, saved: !session.Dirty);
 
     /// <summary>
-    /// Replace the document as one undoable step, so Ctrl+Z brings back what was there. Presets and pasted designs
-    /// land this way; the result is a new, unsaved document.
+    /// Open a built-in sample the way presets and pasted designs land: one undoable step, so Ctrl+Z brings back the
+    /// structure it replaced, and a new, unsaved document.
+    /// </summary>
+    public void LoadSample(string id)
+    {
+        var replacing = Document.Nodes.Count > 0;
+        ReplaceDocument(SampleStructures.Build(id), "Load sample");
+        if (replacing) Toast($"{Document.Name} · Ctrl+Z restores your previous structure");
+    }
+
+    /// <summary>
+    /// Replace the document as one undoable step, so Ctrl+Z brings back what was there, with the file it belongs to.
+    /// Samples, presets and pasted designs land this way; the result is a new, unsaved document with no file.
     /// </summary>
     public void ReplaceDocument(DocumentSnapshot snapshot, string label)
     {
         Interaction.CancelTool();
         Selection.Clear();
-        History.Do(new ReplaceDocumentEdit(snapshot, label));
-        FilePath = null;
+        History.Do(new ReplaceWithoutFileEdit(this, new ReplaceDocumentEdit(snapshot, label)));
+    }
+
+    /// <summary>A whole-document replacement that leaves the new document without a file; undo gives the old one its file back.</summary>
+    private sealed class ReplaceWithoutFileEdit(EditorEngine engine, ReplaceDocumentEdit replace) : IEdit
+    {
+        private string? _file;
+
+        public string Label => replace.Label;
+
+        public void Apply(StructureDocument doc)
+        {
+            _file = engine.FilePath;
+            engine.FilePath = null;
+            replace.Apply(doc);
+        }
+
+        public void Revert(StructureDocument doc)
+        {
+            engine.FilePath = _file;
+            replace.Revert(doc);
+        }
     }
 
     public void LoadPreset(string id, PresetParameters parameters)
@@ -151,6 +192,40 @@ public sealed class EditorEngine
         History.Do(new MoveNodesEdit(nodes, delta));
     }
 
+    // Inspector fields name the element they edit: by the time a typed value is committed, the selection may have moved on.
+
+    public void SetNodePosition(int nodeId, Vec2 to)
+    {
+        if (Document.FindNode(nodeId) is { } n && n.Position != to) History.Do(new SetPositionEdit(nodeId, to));
+    }
+
+    public void SetNodeLoad(int nodeId, Vec2 to)
+    {
+        if (Document.FindNode(nodeId) is { } n && n.Load != to) History.Do(new SetLoadEdit(nodeId, to));
+    }
+
+    public void SetMemberSection(int memberId, Section section)
+    {
+        if (Document.FindMember(memberId) is { } m && m.Section != section) History.Do(new SetSectionEdit(new[] { memberId }, section));
+    }
+
+    /// <summary>Add a node at a world point and select it (the canvas menu's "Add node here"); a node already there is selected instead.</summary>
+    public void AddNodeAt(Vec2 world)
+    {
+        if (Document.FindNodeAt(world) is { } there) { Selection.Set(there.Ref); return; }
+        var add = new AddNodeEdit(world);
+        History.Do(add);
+        Selection.Set(ElementRef.Node(add.NodeId));
+    }
+
+    /// <summary>A section dropped from the inspector onto a member: apply it, select the member and say so.</summary>
+    public void DropSection(int memberId, Section section)
+    {
+        SetMemberSection(memberId, section);
+        Selection.Set(ElementRef.Member(memberId));
+        Toast($"{section.Name} applied to member {memberId}");
+    }
+
     public IEnumerable<int> SelectedNodeIdsIncludingMemberEnds()
     {
         var set = new HashSet<int>(Selection.NodeIds);
@@ -164,12 +239,57 @@ public sealed class EditorEngine
         return set;
     }
 
+    /// <summary>The selected nodes, and the ends of selected members, in canvas pixels. Empty when nothing is selected.</summary>
+    public Bounds SelectionOnScreen() => OnScreen(SelectedNodeIdsIncludingMemberEnds());
+
+    /// <summary>Room a load arrow's label takes past the arrow's tail, and a support symbol under its node, in pixels.</summary>
+    private const double LoadLabelPx = 18, SupportPx = 24;
+
+    /// <summary>
+    /// What is drawn on the canvas, as screen segments an overlay should keep clear of: every member, every load arrow
+    /// (to past its tail, where the label sits), every support symbol, and every node as a point.
+    /// </summary>
+    public IReadOnlyList<(Vec2 A, Vec2 B)> DrawingOnScreen()
+    {
+        var segments = new List<(Vec2, Vec2)>(Document.Members.Count + Document.Nodes.Count * 2);
+        foreach (var m in Document.Members)
+        {
+            if (Document.FindNode(m.StartNodeId) is { } a && Document.FindNode(m.EndNodeId) is { } b) segments.Add((Viewport.ToScreen(a.Position), Viewport.ToScreen(b.Position)));
+        }
+        foreach (var n in Document.Nodes)
+        {
+            var at = Viewport.ToScreen(n.Position);
+            segments.Add((at, at));
+            if (n.HasLoad)
+            {
+                var tail = HitTester.LoadHandleScreen(n, Viewport);
+                segments.Add((at, tail + (tail - at).Normalized() * LoadLabelPx));
+            }
+            if (n.HasSupport) segments.Add((at, at + new Vec2(0, SupportPx)));
+        }
+        return segments;
+    }
+
+    private Bounds OnScreen(IEnumerable<int> nodeIds)
+    {
+        var bounds = Bounds.Empty;
+        foreach (var id in nodeIds)
+        {
+            if (Document.FindNode(id) is { } n) bounds = bounds.Include(Viewport.ToScreen(n.Position));
+        }
+        return bounds;
+    }
+
+    /// <summary>
+    /// Give every selected node the support, as one undo step. Nodes that already have it are left alone, so choosing
+    /// the support a node has adds no undo step.
+    /// </summary>
     public void SetSupportOnSelection(SupportKind kind)
     {
         var ids = Selection.NodeIds.ToList();
         if (ids.Count == 0) { Toast("Select a node first"); return; }
-        History.BeginTransaction(kind == SupportKind.None ? "Remove supports" : $"Set {kind.Label().ToLowerInvariant()}");
-        foreach (var id in ids) History.Do(new SetSupportEdit(id, kind));
+        History.BeginTransaction(kind == SupportKind.None ? (ids.Count == 1 ? "Remove support" : "Remove supports") : $"Set {kind.Label().ToLowerInvariant()}");
+        foreach (var id in ids.Where(id => Document.GetNode(id).Support != kind)) History.Do(new SetSupportEdit(id, kind));
         History.CommitTransaction();
     }
 
@@ -354,8 +474,13 @@ public sealed class EditorEngine
         c.Add(new AppCommand("view.reactions", "Toggle reactions", "View", "5", () => Options.ShowReactions = !Options.ShowReactions));
         c.Add(new AppCommand("view.grid", "Toggle grid", "View", "Ctrl+G", () => Options.ShowGrid = !Options.ShowGrid));
         c.Add(new AppCommand("view.snap", "Toggle snapping", "View", "G", () => Options.SnapEnabled = !Options.SnapEnabled));
-        c.Add(new AppCommand("view.inspector", "Toggle inspector", "View", "Ctrl+\\", () => Options.InspectorVisible = !Options.InspectorVisible, icon: "panel"));
+        c.Add(new AppCommand("view.inspector", "Toggle inspector", "View", "Ctrl+\\", Options.ToggleInspector, icon: "panel"));
+        c.Add(new AppCommand("edit.multiSelect", "Multi-select (like holding Shift)", "Edit", null, () => Options.MultiSelect = !Options.MultiSelect, icon: "select-add"));
+        c.Add(new AppCommand("view.freePlacement", "Free placement, no snapping (like holding Alt)", "View", null, () => Options.FreePlacement = !Options.FreePlacement, icon: "snap-off"));
         c.Add(new AppCommand("view.palette", "Command palette", "View", "Ctrl+K", RequestPalette, icon: "search"));
+        c.Add(new AppCommand("view.themeSystem", "Theme: follow system", "View", null, () => Options.Theme = ThemeChoice.System, icon: "theme"));
+        c.Add(new AppCommand("view.themeLight", "Theme: light sheet", "View", null, () => Options.Theme = ThemeChoice.Light, icon: "theme"));
+        c.Add(new AppCommand("view.themeDark", "Theme: dark table", "View", null, () => Options.Theme = ThemeChoice.Dark, icon: "theme"));
 
         foreach (var preset in TrussPresets.Catalog)
         {

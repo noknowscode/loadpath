@@ -7,14 +7,13 @@ public enum GuideAxis { Horizontal, Vertical }
 /// <summary>An alignment guide: a horizontal line at Y or a vertical line at X, anchored at a reference node.</summary>
 public readonly record struct SnapGuide(GuideAxis Axis, double Value, int AnchorNodeId);
 
-public readonly record struct SnapResult(Vec2 Point, int? SnappedNodeId, IReadOnlyList<SnapGuide> Guides, bool GridSnapped)
-{
-    public bool HasGuides => Guides.Count > 0;
-}
+public readonly record struct SnapResult(Vec2 Point, int? SnappedNodeId, IReadOnlyList<SnapGuide> Guides, bool GridSnapped);
 
 /// <summary>
 /// Snap order: existing node (when allowed) → alignment guides to other nodes → grid.
-/// Tolerances are in pixels and converted with the viewport scale.
+/// Tolerances are in pixels and converted with the viewport scale. A point that guides and the grid put exactly on a
+/// node (outside the node tolerance, or with node snapping off) is that node: SnappedNodeId names it, so a tool connects
+/// to it or selects it instead of placing a second node on top of it.
 /// </summary>
 public sealed class SnapEngine
 {
@@ -79,6 +78,7 @@ public sealed class SnapEngine
             p = new Vec2(x, y);
         }
 
+        if (doc.FindNodeAt(p, exclude) is { } there) return new SnapResult(there.Position, there.Id, guides, gridSnapped);
         return new SnapResult(p, null, guides, gridSnapped);
     }
 }

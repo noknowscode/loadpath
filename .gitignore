@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 solution-config.props
 # Publish Profiles
 !**/Properties/PublishProfiles/*.pubxml
+# Merge leftovers and backups
+*.orig
+*.bak

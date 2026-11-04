@@ -1,0 +1,10 @@
+{
+  "background_color": "#F7F8FB",
+  "description": "Loadpath: a 2D truss workbench that solves as you draw.",
+  "display": "standalone",
+  "name": "Loadpath",
+  "short_name": "Loadpath",
+  "start_url": "/index.html",
+  "theme_color": "#F7F8FB",
+  "scope": "/"
+}

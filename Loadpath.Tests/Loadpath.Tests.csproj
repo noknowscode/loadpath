@@ -3,6 +3,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!--
+      UNOB0025: the tests run the app's net10.0 build on Uno's reference assemblies on purpose. They cover the engine,
+      the tools and the document session, none of which needs a UI host; Uno's validation allows this for test projects.
+    -->
+    <UnoDisableUNOB0025Validation>true</UnoDisableUNOB0025Validation>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
@@ -11,5 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Loadpath.Core/Loadpath.Core.csproj" />
+    <!-- Build with -p:LoadpathTargetFrameworks=net10.0, so restoring the app does not need the mobile workloads. -->
+    <ProjectReference Include="../Loadpath/Loadpath.csproj" />
   </ItemGroup>
 </Project>

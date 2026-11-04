@@ -56,13 +56,39 @@ public record InspectorContent(
         false, "");
 }
 
+/// <summary>
+/// A node's position or load as the inspector fields edit it, with the node it belongs to. The id travels with the
+/// values, so an edit lands on the node it was typed for, even when the model commits it after the selection moved on.
+/// </summary>
+public record NodeVector(int NodeId, double X, double Y)
+{
+    public static readonly NodeVector None = new(0, 0, 0);
+}
+
+/// <summary>The section picked in the inspector, by library index, with the member it belongs to (see <see cref="NodeVector"/>).</summary>
+public record SectionPick(int MemberId, int Index)
+{
+    public static readonly SectionPick None = new(0, 0);
+}
+
 /// <summary>One outline row. Key is "n{id}" or "m{id}" so the view can name the element without carrying Core types.</summary>
-public partial record OutlineItem(string Key, string Label, string Detail, string Value, string ValueToneKey, string RowBrushKey, bool HasBadge, string Badge, bool HasPill, string PillText);
+public partial record OutlineItem(string Key, string Label, string Detail, string Value, string ValueToneKey, string RowBrushKey, bool HasBadge, string Badge, bool HasPill, string PillText)
+{
+    /// <summary>What a screen reader says for the row: "Node N4, 6, 0, pin, 15 kN" or "Member M6, N6-N7, +18.7, over capacity 120%".</summary>
+    public string AutomationName =>
+        $"{(Key.StartsWith('n') ? "Node" : "Member")} {Label}, {Detail}"
+        + (HasBadge ? $", {Badge.ToLowerInvariant()}" : "")
+        + (Value.Length > 0 ? $", {Value.TrimStart('↓', '↑', '←', '→', '↖', '↗', '↙', '↘', ' ')}" : "")
+        + (HasPill ? $", over capacity {PillText}" : "");
+}
 
 /// <summary>A member connected to the selected node, as listed in the node inspector.</summary>
 public partial record ConnectedItem(string Key, string Label, string Endpoints, string Force, string ForceToneKey, string Util, bool UtilIsDanger);
 
-public partial record PaletteItem(string Id, string Title, string Category, string Shortcut, string Icon, bool HasIcon, bool IsDisabled, string RowBrushKey);
+public partial record PaletteItem(string Id, string Title, string Category, string Shortcut, string Icon, bool HasIcon, bool IsDisabled, string RowBrushKey)
+{
+    public string AutomationName => IsDisabled ? $"{Title}, {Category}, not available now" : $"{Title}, {Category}";
+}
 
 /// <summary>Counts beside each layer in the Reduce noise flyout.</summary>
 public record LayerCounts(string Grid, string Supports, string Loads, string OverCapacity, string MemberForces, string Reactions)
@@ -71,10 +97,19 @@ public record LayerCounts(string Grid, string Supports, string Loads, string Ove
 }
 
 /// <summary>A section choice for the inspector, decoupled from the Core record.</summary>
-public partial record SectionChoice(string Id, string Name, string ShortName);
+public partial record SectionChoice(string Id, string Name, string ShortName)
+{
+    public string ApplyName => $"Apply section {Name} to the selected members";
+}
 
 /// <summary>A member over capacity, as listed in the summary inspector. Mode is the failure verb ("BUCKLES", "YIELDS").</summary>
 public partial record FailureItem(string Key, string Label, string Mode, string Util, string Detail, string AutomationName);
 
-/// <summary>A preset tile. Sketch is the generated geometry as pixel-space segments "x1,y1,x2,y2;…" for the thumbnail.</summary>
-public partial record PresetItem(string Id, string Title, string Description, string Sketch, string Size, string AutomationName);
+/// <summary>
+/// A preset tile. Sketch is the generated geometry as pixel-space segments "x1,y1,x2,y2;…" for the thumbnail; Choice is
+/// what the tile loads, with the parameters it was drawn for.
+/// </summary>
+public partial record PresetItem(string Id, string Title, string Description, string Sketch, string Size, string AutomationName, PresetChoice Choice);
+
+/// <summary>A preset to load and the sheet's span, panels and depth for it, as the tile's command receives them.</summary>
+public partial record PresetChoice(string Id, double Span, double Panels, double Depth);

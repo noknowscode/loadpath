@@ -21,11 +21,12 @@ public class GeometryTests
     }
 
     [Fact]
-    public void Fit_centers_bounds()
+    public void ComputeFit_centers_bounds()
     {
         var vp = new Viewport();
         vp.Resize(1000, 800);
-        vp.Fit(new Bounds(new Vec2(0, 0), new Vec2(12, 2)));
+        var (scale, offset) = vp.ComputeFit(new Bounds(new Vec2(0, 0), new Vec2(12, 2)));
+        vp.Set(scale, offset);
         var c = vp.ToScreen(new Vec2(6, 1));
         Assert.InRange(c.X, 499, 501);
         Assert.InRange(c.Y, 399, 401);
@@ -47,7 +48,7 @@ public class GeometryTests
         var onMember = vp.ToScreen(new Vec2(1, 0)) + new Vec2(0, 3);
         Assert.Equal(HitKind.Member, HitTester.Test(doc, vp, onMember).Kind);
         var far = vp.ToScreen(new Vec2(1, 1));
-        Assert.True(HitTester.Test(doc, vp, far).IsNone);
+        Assert.Equal(HitKind.None, HitTester.Test(doc, vp, far).Kind);
     }
 
     [Fact]
@@ -67,6 +68,24 @@ public class GeometryTests
         // Close to node 1: node snap when allowed.
         var n = snap.Snap(doc, vp, new Vec2(0.05, 0.02), allowNodeSnap: true);
         Assert.Equal(1, n.SnappedNodeId);
+    }
+
+    [Fact]
+    public void A_snapped_point_on_a_node_names_that_node_unless_it_is_excluded()
+    {
+        var doc = new StructureDocument();
+        var h = new EditHistory(doc);
+        h.Do(new AddNodeEdit(new Vec2(0, 0)));
+        var vp = new Viewport();
+        vp.Resize(1000, 800);
+        var snap = new SnapEngine { GridStep = 0.5 };
+        // 0.2 m away is well outside the node tolerance; the grid rounds it onto the node.
+        var r = snap.Snap(doc, vp, new Vec2(-0.2, 0.1), allowNodeSnap: false);
+
+        Assert.Equal(new Vec2(0, 0), r.Point);
+        Assert.Equal(1, r.SnappedNodeId);
+        Assert.Null(snap.Snap(doc, vp, new Vec2(-0.2, 0.1), allowNodeSnap: false, exclude: new HashSet<int> { 1 }).SnappedNodeId);
+        Assert.Null(snap.Snap(doc, vp, new Vec2(-0.4, 0.1), allowNodeSnap: false).SnappedNodeId);
     }
 
     [Fact]

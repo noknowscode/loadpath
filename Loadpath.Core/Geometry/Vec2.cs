@@ -16,7 +16,6 @@ public readonly record struct Vec2(double X, double Y)
 
     public double Dot(Vec2 other) => X * other.X + Y * other.Y;
     public double Cross(Vec2 other) => X * other.Y - Y * other.X;
-    public Vec2 Perp() => new(-Y, X);
     public double DistanceTo(Vec2 other) => (this - other).Length;
 
     public static Vec2 operator +(Vec2 a, Vec2 b) => new(a.X + b.X, a.Y + b.Y);

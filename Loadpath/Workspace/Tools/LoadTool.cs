@@ -11,6 +11,7 @@ public sealed class LoadTool : Tool
     private Vec2 _pressScreen;
     private bool _dragging;
     private int _gesture;
+    private int _undoDepthAtDrag;
 
     public override ToolKind Kind => ToolKind.Load;
     public override bool IsBusy => _dragging;
@@ -43,6 +44,7 @@ public sealed class LoadTool : Tool
             if ((p.Screen - _pressScreen).Length < 6) return;
             _dragging = true;
             _gesture = ctx.NextGesture();
+            _undoDepthAtDrag = ctx.History.UndoDepth;
             ctx.SetCursor(CursorKind.Grabbing);
         }
         LoadVector.Apply(ctx, id, p, _gesture);
@@ -72,7 +74,8 @@ public sealed class LoadTool : Tool
 
     public override void Cancel(IToolContext ctx)
     {
-        if (_dragging) ctx.History.Undo();
+        // Undo the load this drag set, if it set one: a drag that stays close to the node sets nothing.
+        if (_dragging && ctx.History.UndoDepth > _undoDepthAtDrag) ctx.History.Undo();
         _node = null;
         _dragging = false;
         ctx.Overlay.Clear();

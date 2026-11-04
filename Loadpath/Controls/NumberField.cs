@@ -1,5 +1,4 @@
 using System.Globalization;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Windows.System;
 
@@ -7,7 +6,8 @@ namespace Loadpath.Controls;
 
 /// <summary>
 /// Mono numeric field with a unit suffix. Commits on Enter or blur, reverts on Esc, steps with Up/Down (×10 with Shift).
-/// Value is the committed number; Committed fires once per commit.
+/// Value is the committed number, shown and typed in the current culture like every other number on screen ("1,500" in
+/// French); only files use the invariant culture.
 /// </summary>
 public sealed partial class NumberField : Control
 {
@@ -32,8 +32,6 @@ public sealed partial class NumberField : Control
         IsTabStop = false;
     }
 
-    public event EventHandler? Committed;
-
     public double Value { get => (double)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
     public string Unit { get => (string)GetValue(UnitProperty); set => SetValue(UnitProperty, value); }
     public int Decimals { get => (int)GetValue(DecimalsProperty); set => SetValue(DecimalsProperty, value); }
@@ -51,6 +49,8 @@ public sealed partial class NumberField : Control
         _box = GetTemplateChild("PART_Box") as TextBox;
         if (_box is not null)
         {
+            // The text box takes the focus, so it carries the field's name: a screen reader says "Node X", not "edit".
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_box, Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(this));
             _box.KeyDown += OnKeyDown;
             _box.LostFocus += OnLostFocus;
             _box.GotFocus += OnGotFocus;
@@ -61,8 +61,18 @@ public sealed partial class NumberField : Control
     private void RenderValue()
     {
         if (_box is null || _editing) return;
-        _box.Text = Value.ToString("F" + Decimals, CultureInfo.InvariantCulture);
+        _box.Text = Format(Value, Decimals, CultureInfo.CurrentCulture);
     }
+
+    /// <summary>The text shown for a value.</summary>
+    public static string Format(double value, int decimals, CultureInfo culture) => value.ToString("F" + decimals, culture);
+
+    /// <summary>
+    /// Read typed text. A typographic minus counts as a minus (.NET also takes "-" where the culture's sign is "−").
+    /// False for anything else, NaN and infinity included.
+    /// </summary>
+    public static bool TryParse(string text, CultureInfo culture, out double value) =>
+        double.TryParse(text.Trim().Replace("−", "-"), NumberStyles.Float, culture, out value) && double.IsFinite(value);
 
     private void OnGotFocus(object sender, RoutedEventArgs e)
     {
@@ -91,11 +101,10 @@ public sealed partial class NumberField : Control
                 break;
             case VirtualKey.Up:
             case VirtualKey.Down:
-                var shift = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+                var shift = KeyboardState.IsDown(VirtualKey.Shift);
                 var delta = (e.Key == VirtualKey.Up ? 1 : -1) * Step * (shift ? 10 : 1);
                 _editing = false;
                 Value = Math.Round(Value + delta, Math.Max(Decimals, 3));
-                Committed?.Invoke(this, EventArgs.Empty);
                 _editing = true;
                 _box?.SelectAll();
                 e.Handled = true;
@@ -103,23 +112,24 @@ public sealed partial class NumberField : Control
         }
     }
 
+    /// <summary>
+    /// Commit the number being typed, if there is one. A press on the canvas calls this before it changes the selection:
+    /// losing focus commits too, but that arrives after the press, when the field is already bound to the next element.
+    /// </summary>
+    public static void CommitFocused(XamlRoot root)
+    {
+        for (var e = FocusManager.GetFocusedElement(root) as DependencyObject; e is not null; e = VisualTreeHelper.GetParent(e))
+        {
+            if (e is NumberField field) { field.Commit(); return; }
+        }
+    }
+
     private void Commit()
     {
         if (_box is null) return;
-        var text = _box.Text.Trim().Replace(',', '.').Replace("−", "-");
-        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && !double.IsNaN(v) && !double.IsInfinity(v))
-        {
-            var rounded = Math.Round(v, Math.Max(Decimals, 3));
-            var changed = Math.Abs(rounded - Value) > 1e-12;
-            _editing = false;
-            Value = rounded;
-            RenderValue();
-            if (changed) Committed?.Invoke(this, EventArgs.Empty);
-        }
-        else
-        {
-            _editing = false;
-            RenderValue();
-        }
+        _editing = false;
+        // Text that is not a number puts the last value back.
+        if (TryParse(_box.Text, CultureInfo.CurrentCulture, out var v)) Value = Math.Round(v, Math.Max(Decimals, 3));
+        RenderValue();
     }
 }

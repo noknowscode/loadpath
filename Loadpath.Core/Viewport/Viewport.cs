@@ -53,9 +53,6 @@ public sealed class Viewport
     public Vec2 ToScreen(Vec2 world) => new(world.X * _scale + _offset.X, -world.Y * _scale + _offset.Y);
     public Vec2 ToWorld(Vec2 screen) => new((screen.X - _offset.X) / _scale, -(screen.Y - _offset.Y) / _scale);
     public double ToWorldLength(double pixels) => pixels / _scale;
-    public double ToScreenLength(double meters) => meters * _scale;
-
-    public Bounds VisibleWorldBounds() => Bounds.FromPoints(ToWorld(Vec2.Zero), ToWorld(new Vec2(ScreenWidth, ScreenHeight)));
 
     /// <summary>Set both at once, raising one change.</summary>
     public void Set(double scale, Vec2 offset)
@@ -78,6 +75,15 @@ public sealed class Viewport
 
     public void PanBy(Vec2 screenDelta) => Offset = _offset + screenDelta;
 
+    /// <summary>True when all of <paramref name="world"/> is on the screen (false for nothing, or a screen with no size).</summary>
+    public bool Shows(Bounds world)
+    {
+        if (world.IsEmpty || ScreenWidth <= 0 || ScreenHeight <= 0) return false;
+        var a = ToScreen(world.Min);
+        var b = ToScreen(world.Max);
+        return Math.Min(a.X, b.X) >= 0 && Math.Max(a.X, b.X) <= ScreenWidth && Math.Min(a.Y, b.Y) >= 0 && Math.Max(a.Y, b.Y) <= ScreenHeight;
+    }
+
     /// <summary>Compute the (scale, offset) that fits world bounds with padding, without applying it.</summary>
     public (double Scale, Vec2 Offset) ComputeFit(Bounds world, double paddingFraction = 0.15)
     {
@@ -90,11 +96,5 @@ public sealed class Viewport
         var c = world.Center;
         var offset = new Vec2(ScreenWidth / 2 - c.X * scale, ScreenHeight / 2 + c.Y * scale);
         return (scale, offset);
-    }
-
-    public void Fit(Bounds world, double paddingFraction = 0.15)
-    {
-        var (s, o) = ComputeFit(world, paddingFraction);
-        Set(s, o);
     }
 }

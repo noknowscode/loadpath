@@ -73,7 +73,10 @@ public sealed class WorkspaceInteraction : IToolContext
     public SnapEngine Snap => _editor.Snap;
     public ViewOptions Options => _editor.Options;
 
-    public HitResult Hit(Vec2 screen, bool includeLoadHandles = true) => HitTester.Test(Document, Viewport, screen, includeLoadHandles);
+    /// <summary>Hit radii of the pointer in use: the view sets touch radii for a finger and mouse radii otherwise.</summary>
+    public HitRadii Radii { get; set; } = HitRadii.Mouse;
+
+    public HitResult Hit(Vec2 screen, bool includeLoadHandles = true) => HitTester.Test(Document, Viewport, screen, Radii, includeLoadHandles);
 
     public SnapResult SnapPoint(Vec2 world, bool allowNodeSnap, ISet<int>? exclude = null, bool constrainAxis = false, Vec2? origin = null, bool disableSnap = false)
     {
@@ -124,10 +127,9 @@ public sealed class WorkspaceInteraction : IToolContext
     /// <summary>True while a tool is mid-gesture (drag, chain); shortcuts that change tools are deferred.</summary>
     public bool IsBusy => _active.IsBusy || _transientPan is not null;
 
-    // ---- pointer routing ----
-
     public void PointerPressed(PointerState p)
     {
+        Radii = HitRadii.For(p.IsTouch);
         if (p.IsMiddle || (_spaceHeld && p.IsLeft))
         {
             _transientPan = _tools[ToolKind.Pan];
@@ -140,6 +142,7 @@ public sealed class WorkspaceInteraction : IToolContext
 
     public void PointerMoved(PointerState p)
     {
+        Radii = HitRadii.For(p.IsTouch);
         CursorWorldText = $"X {p.World.X,6:0.00}  Y {p.World.Y,6:0.00}";
         if (_transientPan is not null) { _transientPan.OnMoved(this, p); return; }
         if (!_active.IsBusy)
@@ -179,8 +182,6 @@ public sealed class WorkspaceInteraction : IToolContext
         if (r != Hover) { Hover = r; Invalidate(); }
     }
 
-    // ---- keys ----
-
     public bool KeyDown(VirtualKey key)
     {
         if (key == VirtualKey.Space) { _spaceHeld = true; SetCursor(CursorKind.Grab); return true; }
@@ -194,9 +195,10 @@ public sealed class WorkspaceInteraction : IToolContext
         if (key == VirtualKey.Space) { _spaceHeld = false; SetCursor(_active.IdleCursor); }
     }
 
-    // ---- zoom ----
-
     public event EventHandler? UserNavigated;
+
+    /// <summary>The view was moved on the user's behalf (a sheet opened over the selection): stop keeping it fitted.</summary>
+    public void NotifyNavigated() => UserNavigated?.Invoke(this, EventArgs.Empty);
 
     public void ZoomStep(int direction, Vec2? anchor = null)
     {

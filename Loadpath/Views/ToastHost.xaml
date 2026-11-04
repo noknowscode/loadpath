@@ -1,0 +1,22 @@
+<UserControl x:Class="Loadpath.Views.ToastHost"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Loadpath.Controls"
+             IsHitTestVisible="False">
+  <!--
+    The toast line under the canvas: one message at a time from the ToastQueue. It rises in on EaseOut (200 ms) and
+    fades and drops out (150 ms). A failure carries the warning mark and stays longer; the text is a live region, so a
+    screen reader reads each message as it appears.
+  -->
+  <!-- xaml-lint: allow card - toast, not a card; Fluent ships no toast control -->
+  <Border x:Name="Chrome" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}" Opacity="0" Background="{ThemeResource InkBrush}">
+    <Border.RenderTransform>
+      <TranslateTransform Y="6" />
+    </Border.RenderTransform>
+    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
+      <c:Icon x:Name="ErrorMark" Kind="warning" Foreground="{ThemeResource CanvasBrush}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" VerticalAlignment="Center" Visibility="Collapsed" />
+      <TextBlock x:Name="Message" Style="{StaticResource BodyText}" Foreground="{ThemeResource CanvasBrush}" TextWrapping="Wrap" TextTrimming="None"
+                 AutomationProperties.LiveSetting="Polite" />
+    </StackPanel>
+  </Border>
+</UserControl>

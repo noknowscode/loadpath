@@ -5,13 +5,13 @@
 set -u
 export DISPLAY=:99
 if ! pgrep -x Xvfb >/dev/null; then
-  Xvfb :99 -screen 0 1600x1000x24 -nolisten tcp >/tmp/claude-0/xvfb.log 2>&1 &
+  Xvfb :99 -screen 0 1600x1000x24 -nolisten tcp >"${TMPDIR:-/tmp}/loadpath-xvfb.log" 2>&1 &
   sleep 1.5
 fi
 DIR="$(cd "$(dirname "$0")" && pwd)"
 EXE="$DIR/../Loadpath/bin/Debug/net10.0-desktop/Loadpath"
 pkill -x Loadpath 2>/dev/null; sleep 0.5
-env APP_NO_HOTDESIGN=1 ${ENV:-} "$EXE" >/tmp/claude-0/app.log 2>&1 &
+env APP_NO_HOTDESIGN=1 ${ENV:-} "$EXE" >"${TMPDIR:-/tmp}/loadpath-app.log" 2>&1 &
 APP=$!
 sleep "${STARTUP:-7}"
 # Focus the window so keys land in it.
@@ -27,4 +27,4 @@ for step in "$@"; do
   esac
 done
 kill $APP 2>/dev/null
-grep -iE "exception|unhandled" /tmp/claude-0/app.log | head -5
+grep -iE "exception|unhandled" "${TMPDIR:-/tmp}/loadpath-app.log" | head -5

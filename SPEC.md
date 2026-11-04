@@ -304,6 +304,8 @@ XAML overlay layer (a `Canvas` above the `SKCanvasElement`) hosts: the floating 
 
 ### Module structure
 
+The plan the build started from. Several names changed as it was built; README.md (Architecture) lists the projects and files as they ship.
+
 ```
 Loadpath/                        (solution root)
   Loadpath.Core/                 net10.0 class library, no UI dependencies
@@ -315,7 +317,7 @@ Loadpath/                        (solution root)
     Geometry/     Vec2, HitTester, SnapEngine, Bounds
     Serialization/ DocumentSerializer (JSON v1)
     Samples/      SampleStructures (Warren, Cantilever, Roof)
-  Loadpath/                      Uno single-project app, net10.0-desktop
+  Loadpath/                      Uno single-project app: android, ios, windows (WinAppSDK), browserwasm, desktop
     App.xaml(.cs), MainPage.xaml(.cs)
     Presentation/ EditorViewModel, InspectorViewModel (+ Node/Member/Mixed/Summary), OutlineViewModel, StatusViewModel, PaletteViewModel, ViewOptions
     Commands/     AppCommand, CommandRegistry, ShortcutMap
@@ -324,7 +326,7 @@ Loadpath/                        (solution root)
     Services/     IFileService (+ Skia desktop implementation), SettingsService, AutosaveService, ClipboardService (in-app)
     Themes/       Tokens.xaml (colors, brushes, fonts, sizes), Typography.xaml, Controls.xaml (styles), MotionTokens.xaml, Icons.xaml
     Assets/Fonts/ Inter (3 static), JetBrainsMono (2 static)
-  Loadpath.Tests/                xunit, references Core
+  Loadpath.Tests/                xunit, references Core and the app's net10.0 build
 ```
 
 ### State model
@@ -350,25 +352,29 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 
 ### Services and dependencies
 
-- `Uno.Sdk 6.7.30` (pinned via `global.json`, same as ReticleLab), `net10.0-desktop` only.
-- UnoFeatures: `SkiaRenderer` (brings `Uno.WinUI.Graphics2DSK` for `SKCanvasElement`). No Material, no Toolkit, no Extensions hosting: the app has three services and constructs them in `App`.
+- `Uno.Sdk 7.0.0-dev.115` (pinned via `global.json`), five heads: `net10.0-android`, `net10.0-ios`, `net10.0-windows10.0.19041`, `net10.0-browserwasm`, `net10.0-desktop`. `-p:LoadpathTargetFrameworks=<tfm>` builds one head without the other workloads.
+- UnoFeatures: `SkiaRenderer` (brings `Uno.WinUI.Graphics2DSK` for `SKCanvasElement`), `MVUX`, and `Toolkit` for `utu:Responsive` / `ResponsiveView` (no `ToolkitResources`: Fluent and the app's own styles remain the only control theme). No Material, no Extensions hosting: the app has three services and constructs them in `App`.
 - `CommunityToolkit.Mvvm` for `ObservableObject`/`RelayCommand`.
 - `System.Text.Json` (in-box) for documents and settings.
 - Fonts: Inter static TTFs (OFL), JetBrains Mono static TTFs (OFL, copied from the repo's Meridian assets).
 
 ### Platform constraints
 
-- Desktop Skia only. `SKCanvasElement.IsSupportedOnCurrentPlatform()` is checked; a text fallback shows otherwise.
+- Every head draws the workspace with `SKCanvasElement` (Skia on the Uno heads, the x64/ARM64 WinAppSDK build on Windows). The canvas fonts load from `ms-appx:///Assets/Fonts`, which every head can read.
+- Window sizing is per head: desktop sets `PreferredLaunchViewSize` and re-asserts the X11 size; WinAppSDK resizes its `AppWindow` once at the display scale; WebAssembly, Android and iOS fill the browser or screen.
+- Editing works by mouse and keyboard and by touch: one finger edits like the left button (its press held back until drag, tap or long press), two fingers pinch-zoom and pan, a long press opens the context menu, fingers hit-test with 22 px radii, and toggles stand in for Shift (multi-select) and Alt (free placement).
 - `UIElement.Opacity` does not affect `SKCanvasElement`; alpha is baked into paints.
 - No `CompositionTarget.Rendering` subscription held; timers only while animating.
 - `CharacterSpacing` is a no-op on Skia; tracking is not relied on.
 - Composition blur is unavailable; entrances use opacity + translate only.
 - `UseStudio()` is gated behind `APP_NO_HOTDESIGN != "1"` so headless runs show a window.
-- File pickers are called on the UI thread; a Documents-folder fallback path exists if the picker is unavailable on the host.
+- File pickers are called on the UI thread and files are read and written through `StorageFile` streams (a picked file has no usable path on WebAssembly or Android). When the picker is unavailable the app falls back to Documents/Loadpath on desktop and Windows and to the app's local folder elsewhere.
+- WebAssembly mounts the app's local folder (browser storage) after launch, so settings and the autosave are read after an awaited `StorageFolder` call, and settings are never written before they were read. A browser tab cannot be kept open through `AppWindow.Closing`; with unsaved changes a `beforeunload` handler raises the browser's own leave-page prompt.
+- The autosave records the document's file and whether it was saved, and restores both: a sample, preset or paste comes back attached to no file, and unsaved edits come back unsaved.
 
 ### Testing and validation
 
-- `Loadpath.Tests` (xunit): solver on a 3-node triangle with a known analytic answer, a Warren truss symmetry check, mechanism detection, `EditHistory` undo/redo/coalesce, `Viewport` zoom-at-point invariants, `SnapEngine` guide output, `HitTester` tolerances, serializer round-trip.
+- `Loadpath.Tests` (xunit): solver on a 3-node triangle with a known analytic answer, a Warren truss symmetry check, mechanism detection, `EditHistory` undo/redo/coalesce, `Viewport` zoom-at-point invariants, `SnapEngine` guide output, `HitTester` tolerances, serializer round-trip. Through the app's `net10.0` build: tool cancellation, the document session (open, save, the unsaved-changes question, autosave and restore), malformed documents, and inspector edits landing on the element they were typed for.
 - Runtime: build `net10.0-desktop`, run under Xvfb with `APP_NO_HOTDESIGN=1`, capture screenshots with `import`, and drive deterministic states through DEBUG env hooks (`LOADPATH_SAMPLE`, `LOADPATH_SELECT`, `LOADPATH_MODE`, `LOADPATH_PALETTE`).
 
 ---
@@ -380,12 +386,12 @@ None (single page). The `Frame` hosts `MainPage` directly; no Uno navigation ext
 - **Typography**: Inter 11/12/13/15 for UI, JetBrains Mono for all numbers. Section labels uppercase 11 Medium.
 - **Spacing**: 4 px base; 12 panel padding; 28 rows; 26 fields; 16 between sections.
 - **Component hierarchy**: MainPage → TitleStrip, ToolRail, WorkspaceHost (WorkspaceView + overlay Canvas: FloatingBar, MechanismBanner, EmptyState, ToastHost), InspectorColumn (InspectorHost → SummaryInspector | NodeInspector | MemberInspector | MixedInspector; OutlinePanel), StatusBar, CommandPalette (overlay).
-- **Theme usage**: single dark theme. Tokens in a plain root dictionary merged in App.xaml. `RequestedTheme="Dark"`. No Material.
-- **Responsive/adaptive**: below 1100 px width the inspector column collapses to an edge toggle; below 800 px the tool rail becomes a horizontal strip under the title. The canvas always fills the rest.
+- **Theme usage**: Light (blueprint sheet) and Dark (drafting table) ThemeDictionaries in Tokens.xaml, `{ThemeResource}` in views, follows the system by default with a System / Light / Dark choice saved in settings. No Material.
+- **Responsive/adaptive**: one Toolkit `DefaultResponsiveLayout` (Normal 600, Wide 1100, Widest 1240). Widest: outline, canvas, inspector. Wide: canvas and docked inspector with the outline as a tab. Normal: inspector as a side sheet. Narrow: bottom tool strip, inspector as a bottom sheet, title overflow menu. The canvas always fills the rest.
 
 ## Interaction Brief
 
-- **User flows**: (1) Start → sample or empty → place nodes (N) → connect (M) → support (S) two nodes → load (L) a node → read ribbons → drag a node to explore → save. (2) Open file → select critical member from summary → change section → utilization drops → save. (3) Ctrl+K → "deflection" → toggle → adjust exaggeration in status bar.
+- **User flows**: (1) Start → sample or empty → place nodes (N) → connect (M) → support (S) two nodes → load (L) a node → read ribbons → drag a node to explore → save. (2) Open file → select critical member from summary → change section → utilization drops → save. (3) Ctrl+K → "deflection" → toggle → step the exaggeration from the palette (×0.2 to ×3; the legend and the layers sheet show it).
 - **Input behavior**: as specified in Stage 2. Pointer capture on press; release or capture-lost ends the gesture and commits or cancels cleanly.
 - **Empty states**: empty document invitation; empty selection → summary inspector; outline with zero items shows "No elements yet".
 - **Loading states**: file open and sample load are synchronous; the title strip shows the name when done. No spinners.
@@ -435,7 +441,7 @@ Three additions that make a design leave the app, start faster, and say clearly 
 - **Presets flyout**: same `SheetFlyoutPresenter` as Reduce noise. Header row of three mono number fields (SPAN m, PANELS, DEPTH m), then a two-column grid of preset tiles: a line thumbnail of the generated geometry (blueprint ink on paper) above a mono caption and a one-line description.
 - **Typography/spacing**: existing tokens only. Mono 11–12 for captions, Inter for descriptions, 8/12/16 spacing.
 - **Component hierarchy**: TitleStrip → `PRESETS` link button (flyout) · `SHARE` link button · `OPEN` · `SAVE`. Inspector summary → "Failures" section listing rows (M id, mode, utilization) under the max-utilization bar.
-- **Responsive behavior**: `SHARE` and `PRESETS` collapse with the search button below 720 px; both stay reachable through the palette.
+- **Responsive behavior**: `SHARE` moves into the title's `⋯` menu below 1240 px, `PRESETS` and search below 1100 px; both stay reachable through the palette and the menu.
 
 ### Interaction Brief
 

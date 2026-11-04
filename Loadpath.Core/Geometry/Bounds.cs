@@ -18,8 +18,6 @@ public readonly record struct Bounds(Vec2 Min, Vec2 Max)
         new Vec2(Math.Min(Min.X, p.X), Math.Min(Min.Y, p.Y)),
         new Vec2(Math.Max(Max.X, p.X), Math.Max(Max.Y, p.Y)));
 
-    public Bounds Inflate(double amount) => new(Min - new Vec2(amount, amount), Max + new Vec2(amount, amount));
-
     public bool Contains(Vec2 p) => p.X >= Min.X && p.X <= Max.X && p.Y >= Min.Y && p.Y <= Max.Y;
 
     /// <summary>True when the segment a-b touches the box (either endpoint inside, or it crosses an edge).</summary>

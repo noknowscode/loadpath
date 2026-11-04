@@ -36,6 +36,13 @@ public sealed class StructureDocument
     public Member? FindMemberBetween(int a, int b) =>
         _memberOrder.FirstOrDefault(m => (m.StartNodeId == a && m.EndNodeId == b) || (m.StartNodeId == b && m.EndNodeId == a));
 
+    /// <summary>Two points closer than this, in metres, are the same point: a node placed there is the node already there.</summary>
+    public const double SamePointM = 1e-6;
+
+    /// <summary>The node at a point (within <see cref="SamePointM"/>), skipping <paramref name="exclude"/>; null when there is none.</summary>
+    public Node? FindNodeAt(Vec2 point, ISet<int>? exclude = null) =>
+        _nodeOrder.FirstOrDefault(n => (exclude is null || !exclude.Contains(n.Id)) && n.Position.DistanceTo(point) < SamePointM);
+
     public double MemberLength(Member m) => GetNode(m.StartNodeId).Position.DistanceTo(GetNode(m.EndNodeId).Position);
 
     public Bounds GetBounds()
@@ -44,9 +51,6 @@ public sealed class StructureDocument
         foreach (var n in _nodeOrder) b = b.Include(n.Position);
         return b;
     }
-
-    public int PeekNextNodeId() => _nextNodeId;
-    public int PeekNextMemberId() => _nextMemberId;
 
     // ---- mutation surface (used by edits and the serializer) ----
 
