@@ -10,7 +10,9 @@ gaps, 0 functional Majors (head Majors: iOS and WinAppSDK never run, Android lau
 Commits (pushed): `cd5c094` refactor (host, services, MainPage split, toasts), `1b366a7` floating bar off the drawing,
 `e4a02e0` safe area, `a831978` input edges 3:1, `6356c62` rail wraps, `dac50ec` preset one click, `8a6bd7e` Tab reach and
 named fields, `bacd11f` IL2026 at the host build (the WebAssembly job failed on `cd5c094`), `22d21be` preset values handed
-to the command (WebAssembly race), then the docs commit with this file.
+to the command (WebAssembly race), `17525dc` docs and evidence, `e62c3e4` an unused interface member dropped, and
+`adced8f` the owner's CI concurrency block (a newer push cancels the run it supersedes). Runs created before `adced8f`
+(41855773486, 41860765144, 41861286508, 41861638203) are not in the group and could not be cancelled from here (HTTP 403).
 
 ## Last verified state
 - Build: Debug desktop 0 warnings; Release browserwasm publish 0 compiler warnings (ILLink trim warnings only, from Uno's
@@ -42,7 +44,7 @@ to the command (WebAssembly race), then the docs commit with this file.
 | dotnet-csharp: constructor injection, narrow catches, async void guarded | `Presentation/DocumentSession.cs`, `Services/CloseGuard.cs`, `MainPage.xaml.cs` |
 
 ## Next actions (in order)
-1. Confirm CI is green on the head (WebAssembly after `bacd11f`, iOS and macOS were queued).
+1. Confirm CI is green on the head (the run for the last commit; WebAssembly failed only at `8a6bd7e`, before `bacd11f`).
 2. Owner calls on the two proposed decisions in README (unhandled exceptions keep the app running; exaggeration stays a
    palette command), and on the remaining uno-audit items 2-5 and 7 (InfoBar, ToggleSplitButton, light-dismiss palette,
    ToolTip/Separator templates, test-package bumps).
