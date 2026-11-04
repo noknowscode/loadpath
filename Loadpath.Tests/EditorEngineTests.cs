@@ -26,7 +26,7 @@ public class EditorEngineTests
         engine.LoadSnapshot(SampleStructures.Build("warren"), "Open", "/docs/bridge.loadpath");
         engine.History.Do(new SetSupportEdit(4, SupportKind.Pin));
         string? toast = null;
-        engine.ToastRequested += (_, message) => toast = message;
+        engine.ToastRequested += (_, message) => toast = message.Text;
 
         engine.LoadSample("roof");
 
@@ -64,7 +64,7 @@ public class EditorEngineTests
         var member = engine.Document.Members[0];
         var section = Section.Library.First(s => s != member.Section);
         var toasts = new List<string>();
-        engine.ToastRequested += (_, message) => toasts.Add(message);
+        engine.ToastRequested += (_, message) => toasts.Add(message.Text);
 
         engine.DropSection(member.Id, section);
 
@@ -83,7 +83,7 @@ public class EditorEngineTests
     {
         var engine = new EditorEngine();
         string? toast = null;
-        engine.ToastRequested += (_, message) => toast = message;
+        engine.ToastRequested += (_, message) => toast = message.Text;
 
         engine.LoadSample("cantilever");
 

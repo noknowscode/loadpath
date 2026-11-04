@@ -2,37 +2,47 @@ using System.Text.Json;
 using Loadpath.Commands;
 using Loadpath.Core.Serialization;
 using Loadpath.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Loadpath.Presentation;
 
-/// <summary>The answer to "this document has unsaved changes".</summary>
-public enum UnsavedChoice { Save, Discard, Cancel }
-
 /// <summary>
 /// The open document's life outside the editor: the file it belongs to; new, open, save and save as; share codes; the
-/// autosave and its restore; and the unsaved-changes question before anything drops work. Plain C#: the page hands it
-/// the pickers (<see cref="IDocumentFiles"/>) and the question (a dialog), so the tests can hand it their own.
+/// autosave (debounced after each change) and its restore; and the unsaved-changes question before anything drops work.
+/// Plain C#: the pickers (<see cref="IDocumentFiles"/>), the question (<see cref="IUnsavedPrompt"/>) and the UI thread's
+/// timer come in through the constructor, so the tests hand it their own.
 /// </summary>
 public sealed class DocumentSession
 {
+    /// <summary>How long the document must stay unchanged before the autosave writes it.</summary>
+    public static readonly TimeSpan AutosaveDelay = TimeSpan.FromMilliseconds(1200);
+
     private readonly EditorEngine _engine;
     private readonly IDocumentFiles _files;
     private readonly string _autosavePath;
-    private readonly Func<string, Task<UnsavedChoice>> _askUnsaved;
+    private readonly IUnsavedPrompt _prompt;
+    private readonly ILogger _log;
+    private readonly IUiTimer _autosaveTimer;
     private bool _autosaveDropped;
     private bool _autosaveFailing;
 
-    /// <param name="askUnsaved">Asks about unsaved changes in the named document.</param>
-    public DocumentSession(EditorEngine engine, IDocumentFiles files, string autosavePath, Func<string, Task<UnsavedChoice>> askUnsaved)
+    public DocumentSession(EditorEngine engine, IDocumentFiles files, ISettingsStore store, IUnsavedPrompt prompt, IUiThread ui, ILogger<DocumentSession> log)
     {
         _engine = engine;
         _files = files;
-        _autosavePath = autosavePath;
-        _askUnsaved = askUnsaved;
+        _autosavePath = store.AutosavePath;
+        _prompt = prompt;
+        _log = log;
+        _autosaveTimer = ui.CreateTimer(AutosaveDelay, () => _ = RunAsync("Autosave", AutosaveAsync));
+        // Every edit, and every save (which changes what the autosave records, the file and the clean state, without
+        // changing the document), pushes the autosave back until the document has been still for a moment.
+        engine.AnalysisChanged += (_, _) => _autosaveTimer.Restart();
+        engine.SavedStateChanged += (_, _) => _autosaveTimer.Restart();
+        RegisterCommands();
     }
 
     /// <summary>The File commands, for shortcuts, menus and the palette. Commands are synchronous, so each runs as a task.</summary>
-    public void RegisterCommands()
+    private void RegisterCommands()
     {
         var c = _engine.Commands;
         c.Add(new AppCommand("file.new", "New structure", "File", "Ctrl+N", () => _ = RunAsync("New", NewAsync), icon: "new"));
@@ -52,7 +62,8 @@ public sealed class DocumentSession
         }
         catch (Exception ex)
         {
-            _engine.Toast($"{action} failed: {ex.Message}");
+            _log.LogError(ex, "{Action} failed", action);
+            _engine.ToastError($"{action} failed: {ex.Message}");
         }
     }
 
@@ -70,11 +81,12 @@ public sealed class DocumentSession
             var result = await _files.OpenAsync();
             if (result is null) { _engine.Toast("Nothing opened"); return; }
             _engine.LoadSnapshot(result.Value.Snapshot, "Open", result.Value.Path);
-            _engine.Toast($"Opened {Path.GetFileName(result.Value.Path)}");
+            _engine.Toast($"Opened {ToastText.FileName(result.Value.Path)}");
         }
         catch (Exception ex)
         {
-            _engine.Toast($"Could not open: {ex.Message}");
+            _log.LogError(ex, "Open failed");
+            _engine.ToastError($"Could not open: {ex.Message}");
         }
     }
 
@@ -88,11 +100,13 @@ public sealed class DocumentSession
             _engine.FilePath = path;
             _engine.Document.Name = Path.GetFileNameWithoutExtension(path);
             _engine.MarkSaved();
-            _engine.Toast($"Saved to {path}");
+            _log.LogInformation("Saved {Path}", path);
+            _engine.Toast($"Saved {ToastText.FileName(path)}");
         }
         catch (Exception ex)
         {
-            _engine.Toast($"Could not save: {ex.Message}");
+            _log.LogError(ex, "Save failed");
+            _engine.ToastError($"Could not save: {ex.Message}");
         }
     }
 
@@ -124,12 +138,13 @@ public sealed class DocumentSession
         }
         if (_files.FallbackFolder is not { } folder)
         {
-            _engine.Toast("No clipboard here, and no folder to save the share code to");
+            _engine.ToastError("No clipboard here, and no folder to save the share code to");
             return;
         }
         var path = Path.Combine(folder, DocumentSerializer.SafeFileName(_engine.Document.Name) + ShareFileSuffix);
         await File.WriteAllTextAsync(path, code);
-        _engine.Toast($"No clipboard here. Share code saved to {path}");
+        _log.LogInformation("Share code written to {Path}", path);
+        _engine.Toast($"No clipboard here. Share code saved to {ToastText.FileInFolder(path)}");
     }
 
     private const string ShareFileSuffix = ".share.txt";
@@ -161,7 +176,7 @@ public sealed class DocumentSession
     public async Task<bool> ConfirmDiscardAsync(bool closing = false)
     {
         if (!_engine.IsDirty) return true;
-        switch (await _askUnsaved(_engine.Document.Name))
+        switch (await _prompt.AskAsync(_engine.Document.Name))
         {
             case UnsavedChoice.Save:
                 await SaveAsync(ask: false);
@@ -191,13 +206,14 @@ public sealed class DocumentSession
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
         {
             // A bad autosave is discarded: the next edit overwrites it.
+            _log.LogWarning(ex, "The autosave at {Path} could not be restored", _autosavePath);
             return false;
         }
     }
 
     /// <summary>
-    /// Write the autosave now; the page debounces the calls. Nothing is written once closing discarded the work. A write
-    /// that fails is reported when the failures start, not on every edit after; the next edit tries again.
+    /// Write the autosave now (the timer calls this once edits pause). Nothing is written once closing discarded the work.
+    /// A write that fails is reported when the failures start, not on every edit after; the next edit tries again.
     /// </summary>
     public async Task AutosaveAsync()
     {
@@ -212,7 +228,11 @@ public sealed class DocumentSession
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            if (!_autosaveFailing) _engine.Toast($"Autosave failed: {ex.Message.TrimEnd('.')}. Save to keep your work.");
+            if (!_autosaveFailing)
+            {
+                _log.LogWarning(ex, "Autosave to {Path} failed", _autosavePath);
+                _engine.ToastError($"Autosave failed: {ex.Message.TrimEnd('.')}. Save to keep your work.");
+            }
             _autosaveFailing = true;
         }
     }
@@ -220,6 +240,7 @@ public sealed class DocumentSession
     private void DropAutosave()
     {
         _autosaveDropped = true;
-        try { File.Delete(_autosavePath); } catch (Exception) { /* nothing to drop */ }
+        _autosaveTimer.Stop();
+        try { File.Delete(_autosavePath); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* nothing to drop */ }
     }
 }

@@ -153,16 +153,8 @@
           <TextBlock x:Name="DragGhostText" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" />
         </Border>
 
-        <!-- Toast -->
-
-        <!-- xaml-lint: allow card - toast, not a card; Fluent ships no toast control -->
-        <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="{utu:Responsive Narrow={StaticResource ToastMarginNarrow}, Normal={StaticResource ToastMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}" Opacity="0" IsHitTestVisible="False"
-                Background="{ThemeResource InkBrush}">
-          <Border.RenderTransform>
-            <TranslateTransform x:Name="ToastTranslate" Y="6" />
-          </Border.RenderTransform>
-          <TextBlock x:Name="ToastText" Style="{StaticResource BodyText}" Foreground="{ThemeResource CanvasBrush}" TextWrapping="Wrap" TextTrimming="None" />
-        </Border>
+        <!-- Toasts: one at a time, from the ToastQueue -->
+        <v:ToastHost x:Name="Toasts" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="{utu:Responsive Narrow={StaticResource ToastMarginNarrow}, Normal={StaticResource ToastMargin}}" />
       </Grid>
 
       <!-- Tools: a floating palette over the sheet from Normal up, a strip under the drawing on a phone. -->

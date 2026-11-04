@@ -24,13 +24,18 @@
     <!--
       SkiaRenderer: the workspace is an SKCanvasElement.
       MVUX: the presentation model (Uno.Extensions.Reactive).
-      Toolkit: utu:Responsive and ResponsiveView for the width layouts. Only the helpers and controls are used;
-      ToolkitResources is not merged, so Fluent (XamlControlsResources) plus the app's own tokens and control
-      styles stay the only control theme. No Material, no Extensions hosting: the app has three services.
+      Hosting, Logging: the app's services live in one container (AppServices) and log through ILogger.
+      ThemeService: IThemeService puts the saved theme choice on the window.
+      Toolkit: utu:Responsive and ResponsiveView for the width layouts, utu:SafeArea for the phone's system bars. Only
+      the helpers are used; ToolkitResources is not merged, so Fluent (XamlControlsResources) plus the app's own tokens
+      and control styles stay the only control theme. No Material.
     -->
     <UnoFeatures>
       SkiaRenderer;
       MVUX;
+      Hosting;
+      Logging;
+      ThemeService;
       Toolkit;
     </UnoFeatures>
     <!--
@@ -66,5 +71,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Loadpath.Core/Loadpath.Core.csproj" />
+    <!-- The page model's internal hooks (tab selection, failure reporting) are tested directly. -->
+    <InternalsVisibleTo Include="Loadpath.Tests" />
   </ItemGroup>
 </Project>

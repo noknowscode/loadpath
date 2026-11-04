@@ -3,6 +3,8 @@ using Loadpath.Core.Input;
 using Loadpath.Core.Viewport;
 using Loadpath.Presentation;
 using Loadpath.Workspace.Tools;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml.Input;
 using SkiaSharp;
@@ -133,6 +135,9 @@ public sealed partial class WorkspaceView : SKCanvasElement
         get => (EditorEngine?)GetValue(EditorProperty);
         set => SetValue(EditorProperty, value);
     }
+
+    /// <summary>Pointer diagnostics (button states, wheel deltas) at Trace level. Set by the page; silent until then.</summary>
+    public ILogger Log { get; set; } = NullLogger.Instance;
 
     /// <summary>Raised on right-click or a long press, with the screen point, what was hit, and whether a finger asked.</summary>
     public event EventHandler<ContextMenuRequest>? ContextMenuRequested;
@@ -325,13 +330,11 @@ public sealed partial class WorkspaceView : SKCanvasElement
         }
         var s = State(e);
         _lastState = s;
-#if DEBUG
-        if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } tr)
+        if (Log.IsEnabled(LogLevel.Trace))
         {
             var pp = e.GetCurrentPoint(this).Properties;
-            File.AppendAllText(tr, $"press kind={pp.PointerUpdateKind} l={pp.IsLeftButtonPressed} m={pp.IsMiddleButtonPressed} r={pp.IsRightButtonPressed} x1={pp.IsXButton1Pressed} x2={pp.IsXButton2Pressed}\n");
+            Log.LogTrace("press kind={Kind} l={Left} m={Middle} r={Right} x1={X1} x2={X2}", pp.PointerUpdateKind, pp.IsLeftButtonPressed, pp.IsMiddleButtonPressed, pp.IsRightButtonPressed, pp.IsXButton1Pressed, pp.IsXButton2Pressed);
         }
-#endif
         if (s.IsRight)
         {
             OpenContextMenu(s, touch: false);
@@ -502,9 +505,7 @@ public sealed partial class WorkspaceView : SKCanvasElement
         if (_editor is null) return;
         var pt = e.GetCurrentPoint(this);
         var delta = pt.Properties.MouseWheelDelta;
-#if DEBUG
-        if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } trace) File.AppendAllText(trace, $"wheel {delta} h={pt.Properties.IsHorizontalMouseWheel}\n");
-#endif
+        Log.LogTrace("wheel {Delta} h={Horizontal}", delta, pt.Properties.IsHorizontalMouseWheel);
         if (delta == 0) return;
         var mods = e.KeyModifiers;
         var screen = new Vec2(pt.Position.X, pt.Position.Y);

@@ -60,15 +60,25 @@ public sealed class DocumentSessionTests : IDisposable
     private readonly List<string> _asked = new();
     private readonly List<string> _toasts = new();
 
-    private (EditorEngine Engine, DocumentSession Session) Start(UnsavedChoice answer = UnsavedChoice.Cancel)
+    private readonly TestUiThread _ui = new();
+
+    /// <summary>Asks the scripted question and records the document it was asked about in <see cref="_asked"/>.</summary>
+    private sealed class Prompt(List<string> asked, UnsavedChoice answer) : IUnsavedPrompt
+    {
+        public Task<UnsavedChoice> AskAsync(string documentName)
+        {
+            asked.Add(documentName);
+            return Task.FromResult(answer);
+        }
+    }
+
+    private (EditorEngine Engine, DocumentSession Session) Start(UnsavedChoice answer = UnsavedChoice.Cancel) => Start(answer, AutosavePath);
+
+    private (EditorEngine Engine, DocumentSession Session) Start(UnsavedChoice answer, string autosavePath)
     {
         var engine = new EditorEngine();
-        engine.ToastRequested += (_, message) => _toasts.Add(message);
-        var session = new DocumentSession(engine, _files, AutosavePath, name =>
-        {
-            _asked.Add(name);
-            return Task.FromResult(answer);
-        });
+        engine.ToastRequested += (_, message) => _toasts.Add(message.Text);
+        var session = new DocumentSession(engine, _files, new MemorySettingsStore(autosavePath), new Prompt(_asked, answer), _ui, Logs.For<DocumentSession>());
         return (engine, session);
     }
 
@@ -194,7 +204,7 @@ public sealed class DocumentSessionTests : IDisposable
         Assert.Equal(FileB, engine.FilePath);
         Assert.Equal("roof", engine.Document.Name);
         Assert.False(engine.IsDirty);
-        Assert.Contains("Saved to /docs/roof.loadpath", _toasts);
+        Assert.Contains("Saved roof.loadpath", _toasts);
     }
 
     [Fact]
@@ -294,9 +304,7 @@ public sealed class DocumentSessionTests : IDisposable
     {
         var folder = Path.Combine(_folder, "gone");
         var path = Path.Combine(folder, "autosave.loadpath");
-        var engine = new EditorEngine();
-        engine.ToastRequested += (_, message) => _toasts.Add(message);
-        var session = new DocumentSession(engine, _files, path, _ => Task.FromResult(UnsavedChoice.Cancel));
+        var (engine, session) = Start(UnsavedChoice.Cancel, path);
         engine.LoadSample("warren");
         int Failures() => _toasts.Count(t => t.StartsWith("Autosave failed: "));
 
@@ -312,6 +320,78 @@ public sealed class DocumentSessionTests : IDisposable
         Directory.Delete(folder, recursive: true);
         await session.AutosaveAsync();
         Assert.Equal(2, Failures());
+    }
+
+    /// <summary>The autosave the timer started, once it is on disk (the write runs off the timer's tick).</summary>
+    private async Task<AutosavedSession> AutosaveWritten(Func<AutosavedSession, bool> ready)
+    {
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        while (true)
+        {
+            try
+            {
+                var saved = Autosave.Deserialize(File.ReadAllText(AutosavePath));
+                if (ready(saved)) return saved;
+            }
+            catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or InvalidDataException) { /* not written yet */ }
+            if (clock.ElapsedMilliseconds > 5000) throw new TimeoutException("The autosave was not written");
+            await Task.Delay(10);
+        }
+    }
+
+    [Fact]
+    public async Task Edits_write_the_autosave_once_they_pause_not_on_every_edit()
+    {
+        var (engine, _) = Start();
+        var timer = Assert.Single(_ui.Timers);
+        Assert.Equal(DocumentSession.AutosaveDelay, timer.Interval);
+
+        engine.LoadSample("warren");
+        var afterLoad = timer.Restarts;
+        Edit(engine);
+        engine.History.Do(new SetSupportEdit(5, SupportKind.Pin));
+
+        Assert.True(timer.IsRunning);
+        Assert.True(timer.Restarts >= afterLoad + 2);
+        Assert.False(File.Exists(AutosavePath));
+
+        _ui.Elapse();
+
+        var saved = await AutosaveWritten(s => s.Snapshot.Nodes.Count > 0);
+        Assert.Equal(engine.Document.Nodes.Count, saved.Snapshot.Nodes.Count);
+        Assert.True(saved.Dirty);
+    }
+
+    [Fact]
+    public async Task A_save_pushes_the_autosave_back_so_it_records_the_clean_file()
+    {
+        var (engine, session) = Start();
+        engine.LoadSample("roof");
+        _ui.Elapse();
+        await AutosaveWritten(s => s.Dirty);
+        _files.PickToSave = FileB;
+
+        await session.SaveAsync(ask: false);
+        Assert.True(_ui.Timers[0].IsRunning);
+        _ui.Elapse();
+
+        var saved = await AutosaveWritten(s => !s.Dirty);
+        Assert.Equal(FileB, saved.FilePath);
+    }
+
+    [Fact]
+    public async Task Failures_name_the_file_not_its_folders()
+    {
+        var folder = Path.Combine(_folder, "blocked.loadpath");
+        Directory.CreateDirectory(folder);
+        var (engine, session) = Start(UnsavedChoice.Cancel, folder);
+        engine.LoadSample("warren");
+
+        await session.AutosaveAsync();
+
+        var toast = Assert.Single(_toasts, t => t.StartsWith("Autosave failed: "));
+        Assert.DoesNotContain(_folder, toast);
+        Assert.Contains("'blocked.loadpath'", toast);
     }
 
     [Fact]

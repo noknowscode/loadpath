@@ -4,25 +4,28 @@ using Uno.Extensions.Reactive.Config;
 using Loadpath.Core.Analysis;
 using Loadpath.Core.Editing;
 using Loadpath.Core.Samples;
+using Microsoft.Extensions.Logging;
 
 namespace Loadpath.Presentation;
 
 /// <summary>
 /// MVUX presentation model. Every value the views bind to is a state or feed here; every button binds a command.
 /// The engine raises events; this record projects them into immutable records and pushes them into states.
-/// The generated EditorViewModel is the DataContext of the page.
+/// The generated EditorViewModel is the DataContext of the page; both are singletons in the app's container.
 /// </summary>
 [ImplicitCommands(false)]
 public partial record EditorModel
 {
     private readonly EditorEngine _engine;
-    private readonly Microsoft.UI.Dispatching.DispatcherQueue _dispatcher;
+    private readonly IUiThread _ui;
+    private readonly ILogger _log;
     private bool _syncingOptions;
 
-    public EditorModel(EditorEngine engine)
+    public EditorModel(EditorEngine engine, IUiThread ui, ILogger<EditorModel> log)
     {
         _engine = engine;
-        _dispatcher = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+        _ui = ui;
+        _log = log;
         engine.AnalysisChanged += (_, _) => Fire(RefreshAllAsync());
         engine.SelectionChanged += (_, _) => Fire(RefreshSelectionAsync());
         engine.HistoryChanged += (_, _) => Fire(RefreshStatusAsync());
@@ -35,35 +38,25 @@ public partial record EditorModel
 
     /// <summary>
     /// Generated commands and state callbacks run off the UI thread. The engine mutates the document and raises
-    /// events that reach XAML, so every mutation is posted back to the dispatcher the model was created on.
+    /// events that reach XAML, so every mutation runs on the UI thread.
     /// </summary>
-    private void Ui(Action action)
-    {
-        if (_dispatcher.HasThreadAccess) action();
-        else _dispatcher.TryEnqueue(() => action());
-    }
+    private void Ui(Action action) => _ui.Run(action);
 
     /// <summary>
-    /// A UI action that failed (a palette key, a pointer press) becomes a toast instead of an unhandled exception.
-    /// Internal so the MVUX generator does not turn it into a command.
+    /// A UI action that failed (a palette key, a pointer press) is logged and becomes a toast instead of an unhandled
+    /// exception. Internal so the MVUX generator does not turn it into a command.
     /// </summary>
     internal void ReportFailure(string action, Exception error)
     {
-        Trace($"{action} failed: {error}");
-        Ui(() => _engine.Toast($"{action} failed: {error.Message}"));
+        _log.LogError(error, "{Action} failed", action);
+        Ui(() => _engine.ToastError($"{action} failed: {error.Message}"));
     }
 
-    private static void Fire(ValueTask task)
+    /// <summary>Starts a projection without awaiting it; a fault is reported, never left unobserved.</summary>
+    private void Fire(ValueTask task)
     {
         if (task.IsCompletedSuccessfully) return;
-        _ = task.AsTask().ContinueWith(t => Trace($"async fault: {t.Exception}"), TaskContinuationOptions.OnlyOnFaulted);
-    }
-
-    internal static void Trace(string line)
-    {
-#if DEBUG
-        if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } path) File.AppendAllText(path, line + "\n");
-#endif
+        _ = task.AsTask().ContinueWith(t => ReportFailure("Refresh", t.Exception!.GetBaseException()), TaskContinuationOptions.OnlyOnFaulted);
     }
 
     // ---- status and banners ----
@@ -356,7 +349,7 @@ public partial record EditorModel
     public async ValueTask LoadPreset(string id, CancellationToken ct)
     {
         var p = await ReadPresetParametersAsync(ct);
-        Trace($"preset {id} span={p.Span} panels={p.Panels} depth={p.Depth}");
+        _log.LogDebug("preset {Id} span={Span} panels={Panels} depth={Depth}", id, p.Span, p.Panels, p.Depth);
         Ui(() => _engine.LoadPreset(id, p));
     }
 
@@ -436,7 +429,7 @@ public partial record EditorModel
     [Command]
     public async ValueTask RunPalette(string? id, CancellationToken ct)
     {
-        Trace($"palette run id={id} highlight={_paletteHighlight} matches={_paletteMatches.Count}");
+        _log.LogDebug("palette run id={Id} highlight={Highlight} matches={Matches}", id, _paletteHighlight, _paletteMatches.Count);
         var command = id is null
             ? (_paletteHighlight >= 0 && _paletteHighlight < _paletteMatches.Count ? _paletteMatches[_paletteHighlight] : null)
             : _paletteMatches.FirstOrDefault(c => c.Id == id);

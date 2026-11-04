@@ -1,0 +1,306 @@
+using System.Collections.Immutable;
+using System.Diagnostics;
+using Loadpath.Core.Editing;
+using Loadpath.Core.Model;
+using Loadpath.Core.Samples;
+using Loadpath.Core.Geometry;
+using Loadpath.Presentation;
+using Uno.Extensions.Reactive;
+using Xunit;
+
+namespace Loadpath.Tests;
+
+/// <summary>
+/// The page model (MVUX): what the views bind to follows the engine, and what the views send reaches it. The engine
+/// raises events and the model projects them into states asynchronously, so each check waits for the state it reads.
+/// </summary>
+public class EditorModelTests
+{
+    private readonly EditorEngine _engine = new();
+    private readonly EditorModel _model;
+    private readonly List<ToastMessage> _toasts = new();
+
+    public EditorModelTests()
+    {
+        _model = new EditorModel(_engine, new TestUiThread(), Logs.For<EditorModel>());
+        _engine.ToastRequested += (_, t) => _toasts.Add(t);
+    }
+
+    /// <summary>The feed's value once it satisfies <paramref name="ready"/>, or a timeout with the last value seen.</summary>
+    private static async Task<T> When<T>(IFeed<T> feed, Func<T, bool> ready) where T : notnull
+    {
+        var clock = Stopwatch.StartNew();
+        T? last = default;
+        while (clock.ElapsedMilliseconds < 5000)
+        {
+            last = await feed;
+            if (last is not null && ready(last)) return last;
+            await Task.Delay(10);
+        }
+        throw new TimeoutException($"Still {last} after 5 s");
+    }
+
+    private static async Task<IImmutableList<T>> When<T>(IListFeed<T> feed, Func<IImmutableList<T>, bool> ready) where T : notnull
+    {
+        var clock = Stopwatch.StartNew();
+        IImmutableList<T> last = ImmutableList<T>.Empty;
+        while (clock.ElapsedMilliseconds < 5000)
+        {
+            last = await feed;
+            if (ready(last)) return last;
+            await Task.Delay(10);
+        }
+        throw new TimeoutException($"Still {last.Count} items after 5 s");
+    }
+
+    private static async Task Until(Func<bool> ready)
+    {
+        var clock = Stopwatch.StartNew();
+        while (!ready())
+        {
+            if (clock.ElapsedMilliseconds > 5000) throw new TimeoutException();
+            await Task.Delay(10);
+        }
+    }
+
+    private void Warren() => _engine.LoadSnapshot(SampleStructures.Build("warren"), "Open", null);
+
+    [Fact]
+    public async Task The_status_starts_empty_and_follows_a_loaded_structure()
+    {
+        Assert.True((await _model.Status)!.IsEmpty);
+
+        Warren();
+
+        var status = await When(_model.Status, s => s.PillText == "WITHIN CAPACITY" && !s.IsDirty);
+        Assert.Equal("Warren truss", status.DocumentName);
+        Assert.False(status.IsDirty);
+        Assert.False(status.IsEmpty);
+        Assert.Equal("OkBrush", status.StatusToneKey);
+    }
+
+    [Fact]
+    public async Task An_edit_makes_the_status_dirty_and_offers_its_undo()
+    {
+        Warren();
+        await When(_model.Status, s => !s.IsEmpty);
+
+        _engine.History.Do(new SetSupportEdit(4, SupportKind.Pin));
+
+        var status = await When(_model.Status, s => s.IsDirty);
+        Assert.True(status.CanUndo);
+        Assert.StartsWith("Undo ", status.UndoTooltip);
+    }
+
+    [Fact]
+    public async Task A_roller_alone_raises_the_mechanism_banner()
+    {
+        Warren();
+        var pin = _engine.Document.Nodes.Single(n => n.Support == SupportKind.Pin);
+        _engine.History.Do(new SetSupportEdit(pin.Id, SupportKind.None));
+
+        var status = await When(_model.Status, s => s.IsMechanism);
+        Assert.Contains("can move freely", status.MechanismText);
+        Assert.Equal("DangerBrush", status.StatusToneKey);
+    }
+
+    [Fact]
+    public async Task Selecting_a_node_or_a_member_switches_the_inspector()
+    {
+        Warren();
+        await When(_model.Inspector, i => i.IsSummary && i.Title == "Warren truss");
+
+        _engine.Selection.Set(ElementRef.Node(2));
+        var node = await When(_model.Inspector, i => i.IsNode);
+        Assert.Equal("Node N2", node.Title);
+        Assert.Equal(new NodeVector(2, _engine.Document.GetNode(2).Position.X, _engine.Document.GetNode(2).Position.Y), await _model.NodePosition);
+
+        _engine.Selection.Set(ElementRef.Member(1));
+        var member = await When(_model.Inspector, i => i.IsMember);
+        Assert.Equal("Member M1", member.Title);
+        Assert.Equal("M1", member.SelectionLabel);
+    }
+
+    [Fact]
+    public async Task A_position_typed_in_the_inspector_moves_its_node()
+    {
+        Warren();
+        _engine.Selection.Set(ElementRef.Node(2));
+        await When(_model.Inspector, i => i.IsNode);
+
+        await _model.NodePosition.UpdateAsync(_ => new NodeVector(2, 2.5, 0.5), CancellationToken.None);
+
+        await Until(() => _engine.Document.GetNode(2).Position == new Vec2(2.5, 0.5));
+        Assert.True(_engine.History.CanUndo);
+    }
+
+    [Fact]
+    public async Task Overloaded_members_are_listed_as_failures_with_their_mode()
+    {
+        _engine.LoadSnapshot(TrussPresets.Build("pratt", new PresetParameters(24, 6, 1.6)), "Load preset", null);
+
+        var failures = await When(_model.Failures, f => f.Count > 0);
+        Assert.True(await _model.HasFailures);
+        Assert.All(failures, f => Assert.Contains(f.Mode, new[] { "BUCKLES", "YIELDS" }));
+        Assert.Equal(failures.Count == 1 ? "1 MEMBER" : $"{failures.Count} MEMBERS", await _model.FailuresHeader);
+        Assert.False(await _model.CanLighten);
+    }
+
+    [Fact]
+    public async Task The_outline_lists_nodes_and_members_and_marks_the_selection()
+    {
+        Warren();
+        _engine.Selection.Set(ElementRef.Member(3));
+
+        var members = await When(_model.OutlineMembers, m => m.Any(r => r.RowBrushKey == "SelectionBrush"));
+        Assert.Equal(_engine.Document.Members.Count, members.Count);
+        Assert.Equal("m3", Assert.Single(members, r => r.RowBrushKey == "SelectionBrush").Key);
+        Assert.Equal(_engine.Document.Nodes.Count.ToString(), await _model.NodesHeader);
+        Assert.False(await _model.OutlineIsEmpty);
+    }
+
+    [Fact]
+    public async Task Display_commands_reach_the_engine_and_option_changes_come_back()
+    {
+        _model.ShowUtilization();
+        Assert.Equal(DisplayMode.Utilization, _engine.Options.DisplayMode);
+        await When(_model.IsUtilization, v => v);
+        Assert.False(await _model.IsForces);
+
+        _engine.Options.ReduceNoise = true;
+        Assert.StartsWith("NOISE REDUCED · ", await When(_model.NoiseStatus, t => t.Length > 0 && _engine.Options.ReduceNoise));
+        Assert.True(await When(_model.ReduceNoise, v => v));
+
+        _model.ThemeDark();
+        Assert.Equal(ThemeChoice.Dark, _engine.Options.Theme);
+        await When(_model.IsThemeDark, v => v);
+    }
+
+    [Fact]
+    public async Task A_noise_layer_toggled_in_the_view_is_kept_by_the_engine()
+    {
+        Assert.False(await _model.KeepGrid);
+
+        await _model.KeepGrid.SetAsync(true, CancellationToken.None);
+
+        await Until(() => (_engine.Options.Keep & NoiseLayer.Grid) != 0);
+        _model.ResetNoiseLayers();
+        Assert.Equal(ViewOptions.DefaultKeep, _engine.Options.Keep);
+    }
+
+    [Fact]
+    public async Task The_palette_opens_with_every_command_and_a_query_narrows_it()
+    {
+        await _model.TogglePalette(CancellationToken.None);
+        Assert.True(await _model.IsPaletteOpen);
+        var all = await When(_model.PaletteItems, items => items.Count > 0);
+        Assert.Equal(40, all.Count);
+
+        await _model.PaletteQuery.SetAsync("show util", CancellationToken.None);
+
+        var narrowed = await When(_model.PaletteItems, items => items.Count > 0 && items[0].Id == "view.utilization");
+        Assert.Equal("SurfaceHoverBrush", narrowed[0].RowBrushKey);
+    }
+
+    [Fact]
+    public async Task Enter_runs_the_highlighted_entry_and_closes_the_palette()
+    {
+        await _model.TogglePalette(CancellationToken.None);
+        await _model.PaletteQuery.SetAsync("toggle grid", CancellationToken.None);
+        await When(_model.PaletteItems, items => items.Count > 0 && items[0].Id == "view.grid");
+        Assert.True(_engine.Options.ShowGrid);
+
+        await _model.RunPalette(null, CancellationToken.None);
+
+        Assert.False(_engine.Options.ShowGrid);
+        Assert.False(await _model.IsPaletteOpen);
+    }
+
+    [Fact]
+    public async Task The_highlight_wraps_and_a_row_runs_its_own_entry()
+    {
+        await _model.TogglePalette(CancellationToken.None);
+        await _model.PaletteQuery.SetAsync("zoom", CancellationToken.None);
+        var items = await When(_model.PaletteItems, i => i.Count >= 2 && i.All(x => x.Title.Contains("Zoom", StringComparison.OrdinalIgnoreCase)));
+
+        await _model.MovePaletteHighlight(-1, CancellationToken.None);
+        var wrapped = await When(_model.PaletteItems, i => i[^1].RowBrushKey == "SurfaceHoverBrush");
+        Assert.Equal("TransparentBrush", wrapped[0].RowBrushKey);
+
+        await _model.RunPalette("view.zoomIn", CancellationToken.None);
+        Assert.False(await _model.IsPaletteOpen);
+        Assert.Equal(items.Count, wrapped.Count);
+    }
+
+    [Fact]
+    public async Task An_unavailable_entry_says_so_instead_of_running()
+    {
+        await _model.TogglePalette(CancellationToken.None);
+        await _model.PaletteQuery.SetAsync("split member", CancellationToken.None);
+        var items = await When(_model.PaletteItems, i => i.Count > 0 && i[0].Id == "structure.split");
+        Assert.True(items[0].IsDisabled);
+
+        await _model.RunPalette("structure.split", CancellationToken.None);
+
+        Assert.Contains(new ToastMessage("Split member at midpoint is not available right now", false), _toasts);
+    }
+
+    [Fact]
+    public async Task Preset_fields_rebuild_the_tiles_and_a_tile_loads_with_them()
+    {
+        Assert.Contains("12 m", (await _model.Presets)!.First(p => p.Id == "pratt").Size);
+
+        await _model.PresetSpan.SetAsync(24, CancellationToken.None);
+        await _model.PresetPanels.SetAsync(8, CancellationToken.None);
+        await _model.PresetDepth.SetAsync(3, CancellationToken.None);
+        var tiles = await When(_model.Presets, p => p.First(t => t.Id == "pratt").Size.StartsWith("24 m"));
+        Assert.Equal("24 m · 16 N · 29 M", tiles.First(t => t.Id == "pratt").Size);
+
+        await _model.LoadPreset("pratt", CancellationToken.None);
+
+        Assert.Equal("Pratt truss", _engine.Document.Name);
+        Assert.Equal(16, _engine.Document.Nodes.Count);
+        Assert.True(_engine.IsDirty);
+    }
+
+    [Fact]
+    public async Task Preset_parameters_out_of_range_are_clamped_and_shown_clamped()
+    {
+        await _model.PresetPanels.SetAsync(1000, CancellationToken.None);
+        await When(_model.PresetPanels, v => v != 6);
+
+        await _model.LoadPreset("warren", CancellationToken.None);
+
+        Assert.Equal(PresetParameters.MaxPanels, await When(_model.PresetPanels, v => v < 1000));
+        Assert.Equal(TrussPresets.Build("warren", new PresetParameters(12, PresetParameters.MaxPanels, 2)).Nodes.Count, _engine.Document.Nodes.Count);
+    }
+
+    [Fact]
+    public async Task Tabs_switch_between_the_inspector_and_the_outline()
+    {
+        await _model.SelectTabAsync(outline: true);
+        Assert.True(await _model.OutlineTabSelected);
+        Assert.False(await _model.InspectorTabSelected);
+
+        _model.ShowInspectorTab();
+        await When(_model.InspectorTabSelected, v => v);
+    }
+
+    [Fact]
+    public async Task Tool_commands_switch_the_tool_and_the_rail_follows()
+    {
+        _model.MemberTool();
+
+        Assert.Equal(ToolKind.Member, _engine.Interaction.ActiveTool);
+        await When(_model.IsMemberActive, v => v);
+        Assert.False(await _model.IsSelectActive);
+    }
+
+    [Fact]
+    public void A_failure_reported_by_a_view_becomes_an_error_toast()
+    {
+        _model.ReportFailure("Command palette", new IOException("Access to the path '/x/y/settings.json' is denied."));
+
+        Assert.Equal(new ToastMessage("Command palette failed: Access to the path 'settings.json' is denied.", true), Assert.Single(_toasts));
+    }
+}

@@ -56,14 +56,16 @@ public sealed class EditorEngine
     public event EventHandler<string>? OptionsChanged;
     /// <summary>The workspace should redraw (hover, overlays, options).</summary>
     public event EventHandler? RenderRequested;
-    public event EventHandler<string>? ToastRequested;
+    public event EventHandler<ToastMessage>? ToastRequested;
     public event EventHandler? FitRequested;
     public event EventHandler? PaletteRequested;
     public event EventHandler? SavedStateChanged;
 
-
     public void RequestRender() => RenderRequested?.Invoke(this, EventArgs.Empty);
-    public void Toast(string message) => ToastRequested?.Invoke(this, message);
+    /// <summary>Say what just happened (an edit's result, a refused action). A newer one replaces it.</summary>
+    public void Toast(string message) => ToastRequested?.Invoke(this, new ToastMessage(message, IsError: false));
+    /// <summary>Say that something failed. It is never replaced before it has been shown, and paths in it read as file names.</summary>
+    public void ToastError(string message) => ToastRequested?.Invoke(this, new ToastMessage(ToastText.ShortenPaths(message), IsError: true));
     public void RequestFit() => FitRequested?.Invoke(this, EventArgs.Empty);
     public void RequestPalette() => PaletteRequested?.Invoke(this, EventArgs.Empty);
 
@@ -216,6 +218,19 @@ public sealed class EditorEngine
             set.Add(m.EndNodeId);
         }
         return set;
+    }
+
+    /// <summary>The selected nodes, and the ends of selected members, in canvas pixels. Empty when nothing is selected.</summary>
+    public Bounds SelectionOnScreen() => OnScreen(SelectedNodeIdsIncludingMemberEnds());
+
+    private Bounds OnScreen(IEnumerable<int> nodeIds)
+    {
+        var bounds = Bounds.Empty;
+        foreach (var id in nodeIds)
+        {
+            if (Document.FindNode(id) is { } n) bounds = bounds.Include(Viewport.ToScreen(n.Position));
+        }
+        return bounds;
     }
 
     public void SetSupportOnSelection(SupportKind kind)

@@ -1,106 +1,89 @@
 using Loadpath.Controls;
-using Loadpath.Core.Editing;
-using Loadpath.Core.Serialization;
 using Loadpath.Presentation;
 using Loadpath.Services;
-using Microsoft.UI.Xaml.Controls.Primitives;
+using Loadpath.Views;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Input;
-using Windows.Foundation;
 using Windows.System;
 
 namespace Loadpath;
 
 /// <summary>
-/// The single page. Composes the shell, routes keyboard shortcuts, hosts the context menu, floating bar,
-/// toast and section drag-and-drop, and gives the document session its dialog, autosave timer and close guard.
+/// The single page. It composes the shell from the app's services, routes keyboard shortcuts and tells the engine
+/// which layout is active. The overlays that follow the viewport (CanvasOverlays), the canvas menu, the section drag,
+/// toasts, the theme, settings, the autosave and the start sequence live in their own classes (App, AppServices).
 /// </summary>
 public sealed partial class MainPage : Page
 {
-    private readonly FileService _files = new(() => App.MainWindow);
-    private readonly SettingsService _settings = new();
-    private SettingsService.Model _settingsModel = new();
-    private bool _settingsLoaded;
-    private readonly DocumentSession _session;
-    private DispatcherTimer? _autosaveTimer;
-    private DispatcherTimer? _toastTimer;
-    private Section? _draggingSection;
-    private int? _dropTargetMember;
+    private readonly ThemeSwitcher _theme;
+    private readonly EditorStartup _startup;
+    private readonly SectionDragController _sectionDrag;
+    private readonly CanvasOverlays _overlays;
+    private readonly ILogger _log;
 
     public MainPage()
     {
-        Engine = new EditorEngine();
-#if !__WASM__
-        // The local folder is there at launch: read the settings before the views are built, so the first frame is
-        // already in the saved theme. WebAssembly mounts its storage later and reads them in StartAsync.
-        ApplySettings(ResetFixture ? new SettingsService.Model() : _settings.Load());
-#endif
-        _session = new DocumentSession(Engine, _files, _settings.AutosavePath, AskUnsavedAsync);
-        _session.RegisterCommands();
-        // Before the views are built, so the canvas and the converter brushes start in the right theme.
-        ApplyTheme();
+        var services = App.Services;
+        Engine = services.GetRequiredService<EditorEngine>();
+        _theme = services.GetRequiredService<ThemeSwitcher>();
+        _startup = services.GetRequiredService<EditorStartup>();
+        _log = services.GetRequiredService<ILogger<MainPage>>();
+        // Before the views are built, so the canvas and the converter brushes start in the saved theme.
+        _startup.BeforeViews();
+        _theme.PrepareBrushes();
         InitializeComponent();
-        // Converter-made brushes and the canvas follow the window's theme, including live system changes under System.
-        ActualThemeChanged += (_, _) => ThemeBrushes.Apply(ActualTheme);
 
         // MVUX: the generated view model is the binding surface; the engine stays reachable for pointer-level code.
-        var viewModel = new EditorViewModel(Engine);
+        var viewModel = services.GetRequiredService<EditorViewModel>();
         Model = viewModel.Model;
         DataContext = viewModel;
         Workspace.Editor = Engine;
+        Workspace.Log = services.GetRequiredService<ILogger<global::Loadpath.Workspace.WorkspaceView>>();
         Outline.Engine = Engine;
         OutlineTab.Engine = Engine;
         Palette.Model = Model;
+        Toasts.Queue = services.GetRequiredService<ToastQueue>();
+        _sectionDrag = new SectionDragController(Engine, Root, WorkspaceHost, Workspace, DragGhost, DragGhostText);
+        Inspector.SectionDragStarted += (_, section) => _sectionDrag.Start(section);
+        Workspace.ContextMenuRequested += (_, request) => CanvasMenu.Show(Engine, Workspace, request);
+
         // MVUX runs state callbacks off the UI thread: the palette's entrance and the focus move are posted back to it.
         Model.IsPaletteOpen.ForEach(async (open, ct) => DispatcherQueue.TryEnqueue(() =>
         {
             if (open) Palette.OnOpened();
             else KeySink.Focus(FocusState.Programmatic);
         }));
-
-        Engine.ToastRequested += (_, msg) => ShowToast(msg);
-        Engine.SelectionChanged += (_, _) => { UpdateFloatingBar(glide: true); EnsureKeyboardTarget(); };
-        Engine.ViewportChanged += (_, _) => UpdateFloatingBar();
-        Engine.AnalysisChanged += (_, _) => { UpdateFloatingBar(); ScheduleAutosave(); };
-        // Saving changes what the autosave records (the file, clean) without changing the document.
-        Engine.SavedStateChanged += (_, _) => ScheduleAutosave();
-        Engine.OptionsChanged += (_, name) =>
-        {
-            if (name == nameof(ViewOptions.Theme)) ApplyTheme();
-            if (name == nameof(ViewOptions.InspectorSheetOpen) && Engine.Options.InspectorSheetOpen) DispatcherQueue.TryEnqueue(RevealSelectionBesideSheet);
-            if (name is nameof(ViewOptions.InspectorSheetOpen) or nameof(ViewOptions.InspectorDocked)) { UpdateCoveredCanvas(); UpdateFloatingBar(); }
-            PersistSettings();
-        };
-        Engine.Interaction.ToolChanged += (_, _) => UpdateFloatingBar();
-        // The bar's label and buttons are bound, so its width settles after the binding; re-anchor when it does.
-        FloatingBar.SizeChanged += (_, _) => UpdateFloatingBar();
-        Workspace.ContextMenuRequested += OnContextMenuRequested;
+        _overlays = new CanvasOverlays(Engine, WorkspaceHost, Workspace, FloatingBar);
+        Engine.SelectionChanged += (_, _) => EnsureKeyboardTarget();
         Workspace.FocusRequested += (_, _) =>
         {
             // The press may select something else: a number still being typed goes to the element it was typed for.
             if (XamlRoot is { } root) NumberField.CommitFocused(root);
             KeySink.Focus(FocusState.Programmatic);
         };
-        Inspector.SectionDragStarted += OnSectionDragStarted;
-        // handledEventsToo: the canvas marks its pointer events handled, and the drag must still reach the host.
-        Root.AddHandler(PointerMovedEvent, new PointerEventHandler(OnHostPointerMoved), true);
-        Root.AddHandler(PointerReleasedEvent, new PointerEventHandler(OnHostPointerReleased), true);
-        Root.AddHandler(PointerCaptureLostEvent, new PointerEventHandler(OnHostPointerReleased), true);
-
         Root.AddHandler(KeyDownEvent, new KeyEventHandler(OnRootKeyDown), true);
-#if DEBUG
-        if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } tracePath)
-        {
-#if !ANDROID && !IOS
-            Root.AddHandler(PointerWheelChangedEvent, new PointerEventHandler((_, e) => File.AppendAllText(tracePath, $"page wheel {e.GetCurrentPoint(Root).Properties.MouseWheelDelta} src={e.OriginalSource?.GetType().Name}\n")), true);
-#endif
-            Root.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) => File.AppendAllText(tracePath, $"page press src={e.OriginalSource?.GetType().Name} pid={e.Pointer.PointerId}\n")), true);
-            Root.GotFocus += (_, e) => File.AppendAllText(tracePath, $"focus -> {e.OriginalSource?.GetType().Name}\n");
-        }
-#endif
         Root.AddHandler(KeyUpEvent, new KeyEventHandler(OnRootKeyUp), true);
+        if (_log.IsEnabled(LogLevel.Trace))
+        {
+            Root.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) => _log.LogTrace("page press src={Source} pid={Pointer}", e.OriginalSource?.GetType().Name, e.Pointer.PointerId)), true);
+            Root.GotFocus += (_, e) => _log.LogTrace("focus -> {Element} \"{Name}\"", e.OriginalSource?.GetType().Name,
+                e.OriginalSource is DependencyObject d ? Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(d) : "");
+        }
         Loaded += OnLoaded;
         LayoutProbe.RegisterPropertyChangedCallback(TagProperty, (_, _) => OnLayoutChanged());
         OnLayoutChanged();
+    }
+
+    public EditorEngine Engine { get; }
+    public EditorModel Model { get; }
+
+    // xaml-lint: allow codebehind - startup: the theme service needs loaded content, then settings and the autosave (no XAML surface)
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        KeySink.Focus(FocusState.Programmatic);
+        await GuardAsync("Theme", () => _theme.StartAsync(this));
+        await GuardAsync("Start", _startup.StartAsync);
     }
 
     // ---- layout ----
@@ -114,273 +97,13 @@ public sealed partial class MainPage : Page
     {
         var layout = LayoutProbe.Tag as string ?? "Widest";
         Engine.Options.InspectorDocked = layout is "Wide" or "Widest";
-        UpdateCoveredCanvas();
-        // Resized into a sheet layout with the sheet open: the sheet now covers part of the drawing.
-        if (Engine.Options.InspectorSheetOpen && !Engine.Options.InspectorDocked) DispatcherQueue.TryEnqueue(RevealSelectionBesideSheet);
+        _overlays.OnLayoutChanged(narrow: layout == "Narrow");
         if (layout == "Widest") _ = GuardAsync("Inspector tab", () => Model.SelectTabAsync(outline: false).AsTask());
+        _log.LogDebug("layout={Layout} width={Width:0}", layout, XamlRoot?.Size.Width ?? 0);
 #if DEBUG
         Console.Error.WriteLine($"VERIFY layout={layout} width={XamlRoot?.Size.Width ?? 0:0}");
 #endif
     }
-
-    public EditorEngine Engine { get; }
-    public EditorModel Model { get; }
-
-    // xaml-lint: allow codebehind - startup: settings, autosave restore and the launch-size re-assert (no XAML surface)
-    private async void OnLoaded(object sender, RoutedEventArgs e)
-    {
-        KeySink.Focus(FocusState.Programmatic);
-        SizeWindowAtLaunch();
-        GuardCloseWithUnsavedChanges();
-        await GuardAsync("Start", StartAsync);
-    }
-
-    /// <summary>
-    /// Settings and the autosave live in the app's local folder. WebAssembly mounts it (browser storage) only after
-    /// launch, so there both are read here, once SettingsService.LoadAsync has waited for the mount.
-    /// </summary>
-    private async Task StartAsync()
-    {
-#if __WASM__
-        ApplySettings(ResetFixture ? new SettingsService.Model() : await _settings.LoadAsync());
-#endif
-        await RestoreOrSeedAsync();
-    }
-
-    /// <summary>Apply the saved settings. From here on, option changes are saved; before, they would overwrite them with defaults.</summary>
-    private void ApplySettings(SettingsService.Model model)
-    {
-        _settingsModel = model;
-        _settings.Apply(model, Engine.Options);
-#if DEBUG
-        ApplyThemeFixture();
-#endif
-        _settingsLoaded = true;
-    }
-
-    // ---- closing with unsaved changes ----
-
-#if __DESKTOP__ || WINDOWS
-    private bool _closeConfirmed;
-#endif
-
-    /// <summary>
-    /// Desktop and WinAppSDK ask before a window with unsaved changes closes (Save, Discard, Cancel). A browser tab
-    /// cannot be kept open through AppWindow.Closing, so WebAssembly arms the browser's own "leave this page?" prompt
-    /// while there are unsaved changes. Android and iOS have no close to intercept; the autosave keeps the work.
-    /// </summary>
-    private void GuardCloseWithUnsavedChanges()
-    {
-#if __DESKTOP__ || WINDOWS
-        if (App.MainWindow is { } window) window.AppWindow.Closing += OnWindowClosing;
-#elif __WASM__
-        var armed = false;
-        Engine.HistoryChanged += (_, _) =>
-        {
-            if (Engine.IsDirty == armed) return;
-            armed = Engine.IsDirty;
-            BrowserUnloadGuard.SetUnsavedChanges(armed);
-        };
-#endif
-    }
-
-#if __DESKTOP__ || WINDOWS
-    private void OnWindowClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
-    {
-        if (!Engine.IsDirty || _closeConfirmed) return;
-        args.Cancel = true;
-        _ = GuardAsync("Close", async () =>
-        {
-            if (!await _session.ConfirmDiscardAsync(closing: true)) return;
-            _closeConfirmed = true;
-            App.MainWindow?.Close();
-        });
-    }
-#endif
-
-    /// <summary>
-    /// Desktop (X11, Win32, macOS) and WinAppSDK open at 1440 x 960. WebAssembly, Android and iOS fill the browser
-    /// or the screen, so there is nothing to size.
-    /// </summary>
-    private void SizeWindowAtLaunch()
-    {
-        if (App.MainWindow is not { } window) return;
-#if DEBUG
-        if (Environment.GetEnvironmentVariable("LOADPATH_NO_RESIZE") == "1") return;
-#endif
-#if __DESKTOP__
-        // The window is sized through PreferredLaunchViewSize at launch. The X11 host can still miss a configure
-        // event and lay out at the old size, so the size is re-asserted until the layout agrees with the frame.
-        var attempts = 0;
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        timer.Tick += (_, _) =>
-        {
-            attempts++;
-            try
-            {
-                var size = window.AppWindow.Size;
-                var layoutAgrees = Math.Abs(Root.ActualWidth - size.Width) < 4 && Math.Abs(Root.ActualHeight - size.Height) < 4;
-                if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2 && layoutAgrees) { timer.Stop(); return; }
-                if (size.Width >= App.LaunchWidth - 2 && size.Height >= App.LaunchHeight - 2)
-                {
-                    // Frame is right but the layout is stale: nudge by a pixel so the host re-reads its size.
-                    window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = size.Width + (attempts % 2 == 0 ? 1 : -1), Height = size.Height });
-                }
-                else
-                {
-                    window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = App.LaunchWidth, Height = App.LaunchHeight });
-                }
-            }
-            catch { timer.Stop(); }
-            if (attempts >= 10) timer.Stop();
-            timer.Interval = TimeSpan.FromMilliseconds(400);
-        };
-        timer.Start();
-#elif WINDOWS
-        // WinAppSDK has no launch-size preference: resize the AppWindow once, in physical pixels at this display's scale.
-        try
-        {
-            var scale = XamlRoot?.RasterizationScale ?? 1.0;
-            window.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = (int)(App.LaunchWidth * scale), Height = (int)(App.LaunchHeight * scale) });
-        }
-        catch (Exception)
-        {
-            // Cosmetic: the window keeps the size the system gave it.
-        }
-#endif
-    }
-
-    // ---- theme ----
-
-    /// <summary>
-    /// The theme lives on the window content (the root frame), so every page element, flyout and dialog resolves its
-    /// {ThemeResource} brushes from one place. System leaves it unset and the app follows the platform, live.
-    /// </summary>
-    private void ApplyTheme()
-    {
-        var requested = Engine.Options.Theme switch
-        {
-            ThemeChoice.Light => ElementTheme.Light,
-            ThemeChoice.Dark => ElementTheme.Dark,
-            _ => ElementTheme.Default,
-        };
-        var root = App.MainWindow?.Content as FrameworkElement ?? this;
-        root.RequestedTheme = requested;
-        // Before the page is in the tree ActualTheme is not known yet: resolve it the way the root will.
-        var actual = requested != ElementTheme.Default ? requested
-            : Application.Current.RequestedTheme == ApplicationTheme.Dark ? ElementTheme.Dark : ElementTheme.Light;
-        ThemeBrushes.Apply(IsLoaded && ActualTheme != ElementTheme.Default ? ActualTheme : actual);
-    }
-
-    // ---- startup: autosave restore, DEBUG fixture hooks ----
-
-    private async Task RestoreOrSeedAsync()
-    {
-#if DEBUG
-        if (!SeedFixture() && !ResetFixture) await _session.RestoreAsync();
-        ApplyFixtureHooks();
-#else
-        await _session.RestoreAsync();
-#endif
-    }
-
-    /// <summary>DEBUG <c>LOADPATH_RESET=1</c>: start from default settings and no autosave. Release builds read no fixture hooks.</summary>
-    private static bool ResetFixture =>
-#if DEBUG
-        Environment.GetEnvironmentVariable("LOADPATH_RESET") == "1";
-#else
-        false;
-#endif
-
-#if DEBUG
-    /// <summary>
-    /// <c>LOADPATH_SAMPLE=warren|cantilever|roof</c>, <c>LOADPATH_PRESET=pratt</c> or <c>pratt:40,6,2</c> (span, panels,
-    /// depth), <c>LOADPATH_FILE=path</c>: start from a fixture instead of the autosave. A fixture starts clean, as if
-    /// opened from a file: no undo step, nothing unsaved.
-    /// </summary>
-    private bool SeedFixture()
-    {
-        if (Environment.GetEnvironmentVariable("LOADPATH_SAMPLE") is { Length: > 0 } sample)
-        {
-            Engine.LoadSnapshot(Core.Samples.SampleStructures.Build(sample), "Load sample", null);
-            return true;
-        }
-        if (Environment.GetEnvironmentVariable("LOADPATH_PRESET") is { Length: > 0 } preset)
-        {
-            var parts = preset.Split(':');
-            var p = Core.Samples.TrussPresets.Find(parts[0]).Defaults;
-            if (parts.Length > 1 && parts[1].Split(',') is { Length: 3 } v)
-                p = new(double.Parse(v[0], System.Globalization.CultureInfo.InvariantCulture), int.Parse(v[1]), double.Parse(v[2], System.Globalization.CultureInfo.InvariantCulture));
-            Engine.LoadSnapshot(Core.Samples.TrussPresets.Build(parts[0], p), "Load preset", null);
-            return true;
-        }
-        if (Environment.GetEnvironmentVariable("LOADPATH_FILE") is { Length: > 0 } file && File.Exists(file))
-        {
-            Engine.LoadSnapshot(DocumentSerializer.Deserialize(File.ReadAllText(file)), "Open", null);
-            return true;
-        }
-        return false;
-    }
-#endif
-
-#if DEBUG
-    /// <summary><c>LOADPATH_THEME=light|dark|system</c>: start in a theme without touching the saved choice first.</summary>
-    private void ApplyThemeFixture()
-    {
-        if (Environment.GetEnvironmentVariable("LOADPATH_THEME") is { Length: > 0 } theme && Enum.TryParse<ThemeChoice>(theme, true, out var t))
-        {
-            Engine.Options.Theme = t;
-            Console.Error.WriteLine($"VERIFY theme={t}");
-        }
-    }
-
-    /// <summary>Env-driven start states so headless captures are deterministic without a pointer.</summary>
-    private void ApplyFixtureHooks()
-    {
-        var select = Environment.GetEnvironmentVariable("LOADPATH_SELECT");
-        if (!string.IsNullOrEmpty(select))
-        {
-            var refs = select.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim())
-                .Select(s => s[0] is 'n' or 'N' ? ElementRef.Node(int.Parse(s[1..])) : ElementRef.Member(int.Parse(s[1..])));
-            Engine.Selection.Replace(refs);
-        }
-        var mode = Environment.GetEnvironmentVariable("LOADPATH_MODE");
-        if (!string.IsNullOrEmpty(mode))
-        {
-            foreach (var m in mode.Split(','))
-            {
-                switch (m.Trim().ToLowerInvariant())
-                {
-                    case "utilization": Engine.Options.DisplayMode = DisplayMode.Utilization; break;
-                    case "forces": Engine.Options.DisplayMode = DisplayMode.Forces; break;
-                    case "deflection": Engine.Options.ShowDeflection = true; break;
-                    case "reactions": Engine.Options.ShowReactions = true; break;
-                    case "nolabels": Engine.Options.ShowLabels = false; break;
-                    case "labels": Engine.Options.ShowLabels = true; break;
-                    case "noise": Engine.Options.ReduceNoise = true; break;
-                }
-            }
-        }
-        if (Environment.GetEnvironmentVariable("LOADPATH_SHEET") == "1") Engine.Options.InspectorSheetOpen = true;
-        if (Environment.GetEnvironmentVariable("LOADPATH_TAB") == "outline") _ = Model.SelectTabAsync(outline: true);
-        if (Environment.GetEnvironmentVariable("LOADPATH_MULTI") == "1") Engine.Options.MultiSelect = true;
-        if (Environment.GetEnvironmentVariable("LOADPATH_FREE") == "1") Engine.Options.FreePlacement = true;
-        var tool = Environment.GetEnvironmentVariable("LOADPATH_TOOL");
-        if (!string.IsNullOrEmpty(tool) && Enum.TryParse<ToolKind>(tool, true, out var kind)) Engine.Interaction.SetTool(kind);
-        if (Environment.GetEnvironmentVariable("LOADPATH_PALETTE") == "1") _ = Model.TogglePalette(default);
-        var toast = Environment.GetEnvironmentVariable("LOADPATH_TOAST");
-        if (!string.IsNullOrEmpty(toast)) ShowToast(toast);
-        var edit = Environment.GetEnvironmentVariable("LOADPATH_EDIT");
-        if (edit == "unsupported" && Engine.Document.Nodes.Count > 0)
-        {
-            foreach (var n in Engine.Document.Nodes.Where(n => n.HasSupport).ToList()) Engine.History.Do(new SetSupportEdit(n.Id, SupportKind.None));
-        }
-        if (edit == "overload" && Engine.Document.Nodes.Count > 0)
-        {
-            foreach (var n in Engine.Document.Nodes.Where(n => n.HasLoad).ToList()) Engine.History.Do(new SetLoadEdit(n.Id, n.Load * 6));
-        }
-    }
-#endif
 
     // ---- keyboard ----
 
@@ -400,11 +123,7 @@ public sealed partial class MainPage : Page
         });
     }
 
-    private static bool IsTextInputFocused(XamlRoot root)
-    {
-        var focused = FocusManager.GetFocusedElement(root);
-        return focused is TextBox or PasswordBox or RichEditBox;
-    }
+    private static bool IsTextInputFocused(XamlRoot root) => FocusManager.GetFocusedElement(root) is TextBox or PasswordBox or RichEditBox;
 
     // xaml-lint: allow codebehind - editor-wide shortcut routing (handledEventsToo), tools get first refusal
     private async void OnRootKeyDown(object sender, KeyRoutedEventArgs e)
@@ -413,10 +132,7 @@ public sealed partial class MainPage : Page
         var shift = KeyboardState.IsDown(VirtualKey.Shift);
         var alt = KeyboardState.IsDown(VirtualKey.Menu);
         var key = e.Key;
-#if DEBUG
-        if (Environment.GetEnvironmentVariable("LOADPATH_TRACE") is { } tracePath)
-            File.AppendAllText(tracePath, $"key {key} ctrl={ctrl} focused={(XamlRoot is { } fr ? FocusManager.GetFocusedElement(fr)?.GetType().Name : "?")} src={e.OriginalSource?.GetType().Name}\n");
-#endif
+        _log.LogTrace("key {Key} ctrl={Ctrl} src={Source}", key, ctrl, e.OriginalSource?.GetType().Name);
 
         if (XamlRoot is { } xr && IsTextInputFocused(xr))
         {
@@ -434,7 +150,7 @@ public sealed partial class MainPage : Page
 
         try
         {
-            if (key == VirtualKey.Escape && _draggingSection is not null) { EndSectionDrag(drop: false); e.Handled = true; return; }
+            if (key == VirtualKey.Escape && _sectionDrag.IsDragging) { _sectionDrag.End(drop: false); e.Handled = true; return; }
             // Tools get first refusal (Esc cancels a chain or drag).
             if (!ctrl && !alt && Engine.Interaction.KeyDown(key)) { e.Handled = true; return; }
 
@@ -448,11 +164,14 @@ public sealed partial class MainPage : Page
         {
             // An event handler is async void: a throwing shortcut must end as a toast, not take the app down.
             e.Handled = true;
-            ShowToast($"{key} failed: {ex.Message}");
+            Model.ReportFailure($"{key}", ex);
         }
     }
 
-    /// <summary>Awaits UI work started from an event handler or a command; a failure becomes a toast.</summary>
+    // xaml-lint: allow codebehind - releases held keys (Space pan, Shift axis lock) in the interaction engine
+    private void OnRootKeyUp(object sender, KeyRoutedEventArgs e) => Engine.Interaction.KeyUp(e.Key);
+
+    /// <summary>Awaits UI work started from an event handler; a failure is logged and becomes a toast.</summary>
     private async Task GuardAsync(string action, Func<Task> work)
     {
         try
@@ -461,304 +180,7 @@ public sealed partial class MainPage : Page
         }
         catch (Exception ex)
         {
-            ShowToast($"{action} failed: {ex.Message}");
+            Model.ReportFailure(action, ex);
         }
-    }
-
-    // xaml-lint: allow codebehind - releases held keys (Space pan, Shift axis lock) in the interaction engine
-    private void OnRootKeyUp(object sender, KeyRoutedEventArgs e) => Engine.Interaction.KeyUp(e.Key);
-
-    // ---- context menu ----
-
-    // xaml-lint: allow codebehind - the menu depends on the canvas hit test at the pointer
-    private void OnContextMenuRequested(object? sender, Workspace.ContextMenuRequest args)
-    {
-        var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
-        // A long press gets fingertip rows; the theme comes from the canvas the menu opens on.
-        var touchStyle = args.Touch && Application.Current.Resources.TryGetValue("TouchMenuItem", out var ts) ? ts as Style : null;
-        void Add(string id, string? title = null)
-        {
-            var c = Engine.Commands.Find(id);
-            if (c is null) return;
-            var item = new MenuFlyoutItem { Text = title ?? c.Title, IsEnabled = c.CanExecute, KeyboardAcceleratorTextOverride = c.ShortcutDisplay.Split('|')[0] };
-            if (touchStyle is not null) item.Style = touchStyle;
-            item.Click += (_, _) => { if (!c.TryExecute()) Engine.Toast($"{c.Title} is not available"); };
-            menu.Items.Add(item);
-        }
-        void Sep() => menu.Items.Add(new MenuFlyoutSeparator());
-
-        switch (args.Hit.Kind)
-        {
-            case HitKind.Node:
-            case HitKind.LoadHandle:
-                Add("structure.pin", "Pin support");
-                Add("structure.roller", "Roller support");
-                Add("structure.rollerX", "Vertical roller");
-                Add("structure.noSupport", "No support");
-                Sep();
-                Add("structure.clearLoad");
-                Add("edit.duplicate");
-                Add("edit.delete");
-                break;
-            case HitKind.Member:
-                var sub = new MenuFlyoutSubItem { Text = "Set section" };
-                foreach (var s in Section.Library)
-                {
-                    var c = Engine.Commands[$"section.{s.Id}"];
-                    var item = new MenuFlyoutItem { Text = s.Name };
-                    if (touchStyle is not null) item.Style = touchStyle;
-                    item.Click += (_, _) => c.TryExecute();
-                    sub.Items.Add(item);
-                }
-                menu.Items.Add(sub);
-                Add("structure.split");
-                Sep();
-                Add("edit.duplicate");
-                Add("edit.delete");
-                break;
-            default:
-                var addNode = new MenuFlyoutItem { Text = "Add node here", KeyboardAcceleratorTextOverride = "N" };
-                if (touchStyle is not null) addNode.Style = touchStyle;
-                var world = Engine.Interaction.SnapPoint(Engine.Viewport.ToWorld(new Vec2(args.Position.X, args.Position.Y)), false).Point;
-                addNode.Click += (_, _) => Engine.AddNodeAt(world);
-                menu.Items.Add(addNode);
-                Add("edit.selectAll");
-                Sep();
-                Add("view.fit");
-                Add("view.grid");
-                Add("view.snap");
-                Sep();
-                Add("view.palette");
-                break;
-        }
-        menu.ShowAt(Workspace, args.Position);
-    }
-
-    /// <summary>
-    /// A sheet covers part of the drawing (the right 336 px, or the bottom of a phone screen). When it opens over the
-    /// selection, the view pans so the selection sits in the middle of the part still showing.
-    /// </summary>
-    private void RevealSelectionBesideSheet()
-    {
-        if (Engine.Options.InspectorDocked || !Engine.Options.InspectorSheetOpen || Engine.Selection.IsEmpty) return;
-        var bounds = Bounds.Empty;
-        foreach (var id in Engine.SelectedNodeIdsIncludingMemberEnds())
-        {
-            if (Engine.Document.FindNode(id) is { } n) bounds = bounds.Include(Engine.Viewport.ToScreen(n.Position));
-        }
-        if (bounds.IsEmpty) return;
-        // Bring the selection just inside the uncovered part (clear of the floating rail too), moving the view as little as possible.
-        var free = UncoveredCanvas();
-        var fit = Workspace.FitInsets;
-        double left = free.Left + (Workspace.RailOverlay ? fit.Left : 0), top = free.Top + fit.Top / 2;
-        double right = free.Right - 24, bottom = free.Bottom - 24;
-        double Shift(double min, double max, double lo, double hi) =>
-            max - min > hi - lo ? lo + (hi - lo) / 2 - (min + max) / 2 : min < lo ? lo - min : max > hi ? hi - max : 0;
-        var dx = Shift(bounds.Min.X, bounds.Max.X, left, right);
-        var dy = Shift(bounds.Min.Y, bounds.Max.Y, top, bottom);
-        if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) return;
-        Engine.Interaction.NotifyNavigated();
-        Engine.Viewport.PanBy(new Vec2(dx, dy));
-    }
-
-    /// <summary>What an open sheet covers of the canvas: the side sheet's width (Normal) or the bottom sheet's height (Narrow).</summary>
-    private Thickness CoveredCanvas()
-    {
-        if (Engine.Options.InspectorDocked || !Engine.Options.InspectorSheetOpen) return default;
-        // The sheet's size is a layout token; the layout (from the one responsive layout) says which edge it covers.
-        static double Token(string key) => Application.Current.Resources.TryGetValue(key, out var v) && v is double d ? d : 0;
-        return LayoutProbe.Tag as string == "Narrow" ? new Thickness(0, 0, 0, Token("BottomSheetHeight")) : new Thickness(0, 0, Token("InspectorWidth"), 0);
-    }
-
-    /// <summary>
-    /// A phone's bottom sheet leaves the full width, so a fitted structure re-fits above it. Beside a side sheet the
-    /// view stays put (refitting into what is left would draw it postage-stamp small); the selection is panned clear instead.
-    /// </summary>
-    private void UpdateCoveredCanvas() => Workspace.CoveredInsets = new Thickness(0, 0, 0, CoveredCanvas().Bottom);
-
-    /// <summary>The part of the canvas no sheet covers.</summary>
-    private Rect UncoveredCanvas()
-    {
-        var c = CoveredCanvas();
-        return new Rect(0, 0, Math.Max(0, WorkspaceHost.ActualWidth - c.Right), Math.Max(0, WorkspaceHost.ActualHeight - c.Bottom));
-    }
-
-    // ---- floating selection bar ----
-
-    /// <summary>
-    /// The bar follows the selection through the viewport transform, so its position (and whether there is anything
-    /// to anchor to) is computed here; its contents are bound to the inspector state.
-    /// </summary>
-    private bool _barShown;
-    private Thickness _barAt;
-
-    /// <param name="glide">True for a selection change: the bar travels to the new anchor. Viewport moves follow at once.</param>
-    private void UpdateFloatingBar(bool glide = false)
-    {
-        var sel = Engine.Selection;
-        if (sel.IsEmpty || Engine.Interaction.ActiveTool != ToolKind.Select || Engine.Interaction.IsBusy) { HideFloatingBar(); return; }
-        var bounds = Bounds.Empty;
-        foreach (var id in Engine.SelectedNodeIdsIncludingMemberEnds())
-        {
-            if (Engine.Document.FindNode(id) is { } n) bounds = bounds.Include(Engine.Viewport.ToScreen(n.Position));
-        }
-        if (bounds.IsEmpty) { HideFloatingBar(); return; }
-        // xaml-lint: allow responsive - "has the bar measured yet", not a layout breakpoint
-        var w = FloatingBar.ActualWidth > 0 ? FloatingBar.ActualWidth : 150;
-        // Up and to the right of the selection, clear of its load arrow; flip left when it would leave the sheet.
-        var x = bounds.Max.X + 24;
-        // The bar stays on the part of the canvas no sheet covers.
-        var area = UncoveredCanvas();
-        if (x + w > area.Right - 8) x = bounds.Min.X - 24 - w;
-        // Keep 32 px off the sheet's left edge when there is room; a phone-wide bar may use the 8 px gutter instead.
-        var minX = Math.Min(32, Math.Max(8, area.Right - w - 8));
-        x = Math.Clamp(x, minX, Math.Max(minX, area.Right - w - 8));
-        var y = bounds.Min.Y - 80;
-        if (y < 32) y = bounds.Max.Y + 28;
-        var target = new Thickness(x, y, 0, 0);
-
-        if (!_barShown)
-        {
-            _barShown = true;
-            FloatingBar.Margin = target;
-            // xaml-lint: allow codebehind - the bar's visibility follows the viewport-projected selection bounds
-            FloatingBar.Visibility = Visibility.Visible;
-            Motion.Enter(FloatingBar, rise: 4);
-        }
-        else
-        {
-            FloatingBar.Margin = target;
-            if (glide) Motion.Glide(FloatingBar, _barAt.Left - x, _barAt.Top - y);
-        }
-        _barAt = target;
-    }
-
-    private void HideFloatingBar()
-    {
-        if (!_barShown) return;
-        _barShown = false;
-        // xaml-lint: allow codebehind - collapses once the fade-out has played, unless the bar came back meanwhile
-        Motion.Exit(FloatingBar, () => { if (!_barShown) FloatingBar.Visibility = Visibility.Collapsed; });
-    }
-
-    // ---- section drag-and-drop (inspector chip → member on canvas) ----
-    // Pointer tracking across two views (inspector → canvas hit test); there is no XAML drag source for this.
-
-    // xaml-lint: allow codebehind - section drag starts from an inspector chip and ends on a canvas hit test
-    private void OnSectionDragStarted(object? sender, Section section)
-    {
-        _draggingSection = section;
-        DragGhostText.Text = section.Name;
-        DragGhost.Margin = new Thickness(WorkspaceHost.ActualWidth - 120, 12, 0, 0);
-        // xaml-lint: allow codebehind - the ghost follows the pointer for the life of the drag
-        DragGhost.Visibility = Visibility.Visible;
-        Engine.Interaction.Hint = "Drop on a member to apply the section · Esc cancels";
-    }
-
-    // xaml-lint: allow codebehind - drag tracking, see above
-    private void OnHostPointerMoved(object sender, PointerRoutedEventArgs e)
-    {
-        if (_draggingSection is null) return;
-        var p = e.GetCurrentPoint(WorkspaceHost).Position;
-        DragGhost.Margin = new Thickness(p.X + 12, p.Y + 12, 0, 0);
-        var canvasPoint = e.GetCurrentPoint(Workspace).Position;
-        var hit = Engine.Interaction.Hit(new Vec2(canvasPoint.X, canvasPoint.Y), includeLoadHandles: false);
-        var target = hit.Kind == HitKind.Member ? hit.Id : (int?)null;
-        if (target != _dropTargetMember)
-        {
-            _dropTargetMember = target;
-            Engine.Interaction.Overlay.HighlightMember = target;
-            Engine.RequestRender();
-        }
-    }
-
-    // xaml-lint: allow codebehind - drag tracking, see above
-    private void OnHostPointerReleased(object sender, PointerRoutedEventArgs e) => EndSectionDrag(drop: true);
-
-    /// <param name="drop">The pointer was released: apply the section to the member under it. Esc only cancels.</param>
-    private void EndSectionDrag(bool drop)
-    {
-        if (_draggingSection is not { } section) return;
-        _draggingSection = null;
-        // xaml-lint: allow codebehind - drag ghost ends with the drag
-        DragGhost.Visibility = Visibility.Collapsed;
-        Engine.Interaction.Overlay.HighlightMember = null;
-        if (drop && _dropTargetMember is { } id) Engine.DropSection(id, section);
-        _dropTargetMember = null;
-        Engine.Interaction.Hint = "";
-        Engine.RequestRender();
-    }
-
-    // ---- toast: rises in on EaseOut (200 ms), fades and drops out (150 ms) ----
-
-    private void ShowToast(string message)
-    {
-        ToastText.Text = message;
-        _toastTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2400) };
-        _toastTimer.Stop();
-        _toastTimer.Tick -= OnToastTick;
-        _toastTimer.Tick += OnToastTick;
-        _toastTimer.Start();
-        Motion.Enter(Toast, decorative: true);
-    }
-
-    // xaml-lint: allow codebehind - toast lifetime timer
-    private void OnToastTick(object? sender, object e)
-    {
-        _toastTimer?.Stop();
-        Motion.Exit(Toast);
-    }
-
-    // ---- files, autosave, settings ----
-
-    /// <summary>The session's unsaved-changes question, as a dialog: Save, Discard or Cancel.</summary>
-    private async Task<UnsavedChoice> AskUnsavedAsync(string documentName)
-    {
-        var dialog = new ContentDialog
-        {
-            Title = "Unsaved changes",
-            Content = $"“{documentName}” has changes that are not saved.",
-            PrimaryButtonText = "Save",
-            SecondaryButtonText = "Discard",
-            CloseButtonText = "Cancel",
-            XamlRoot = XamlRoot,
-            // A dialog opens in the popup layer, outside the page: hand it the page's theme.
-            RequestedTheme = ActualTheme,
-        };
-        return await dialog.ShowAsync() switch
-        {
-            ContentDialogResult.Primary => UnsavedChoice.Save,
-            ContentDialogResult.Secondary => UnsavedChoice.Discard,
-            _ => UnsavedChoice.Cancel,
-        };
-    }
-
-    private void ScheduleAutosave()
-    {
-        _autosaveTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
-        _autosaveTimer.Stop();
-        _autosaveTimer.Tick -= OnAutosaveTick;
-        _autosaveTimer.Tick += OnAutosaveTick;
-        _autosaveTimer.Start();
-    }
-
-    // xaml-lint: allow codebehind - debounced autosave timer
-    private async void OnAutosaveTick(object? sender, object e)
-    {
-        _autosaveTimer?.Stop();
-        // The session reports a failed write itself; anything else ends as a toast too, never as a crash.
-        await GuardAsync("Autosave", _session.AutosaveAsync);
-    }
-
-    private bool _settingsSaveFailing;
-
-    private void PersistSettings()
-    {
-        if (!_settingsLoaded) return;
-        _settings.Capture(Engine.Options, _settingsModel);
-        var error = _settings.Save(_settingsModel);
-        // Reported when the failures start: toggling a layer ten times does not raise ten toasts.
-        if (error is not null && !_settingsSaveFailing) ShowToast($"Settings not saved: {error}");
-        _settingsSaveFailing = error is not null;
     }
 }

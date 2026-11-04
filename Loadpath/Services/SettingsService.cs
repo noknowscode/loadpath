@@ -4,30 +4,47 @@ using Loadpath.Presentation;
 
 namespace Loadpath.Services;
 
-/// <summary>View options and the autosave, as JSON in the app's local folder.</summary>
-public sealed class SettingsService
+/// <summary>The saved view options, as they are written to settings.json.</summary>
+public sealed class SavedSettings
+{
+    public string DisplayMode { get; set; } = "Forces";
+    public bool ShowDeflection { get; set; } = true;
+    public double Exaggeration { get; set; } = 1;
+    public bool ShowLabels { get; set; } = true;
+    public bool ShowReactions { get; set; } = true;
+    public bool ShowGrid { get; set; } = true;
+    public bool SnapEnabled { get; set; } = true;
+    public double GridStep { get; set; } = 0.5;
+    public bool InspectorVisible { get; set; } = true;
+    public bool ReduceNoise { get; set; }
+    public int NoiseKeep { get; set; } = (int)ViewOptions.DefaultKeep;
+    /// <summary>"System", "Light" or "Dark". Missing in older settings files, which then follow the system.</summary>
+    public string Theme { get; set; } = nameof(ThemeChoice.System);
+}
+
+/// <summary>Where the settings and the autosave live: the app's local folder (SettingsService), a temp folder in the tests.</summary>
+public interface ISettingsStore
+{
+    /// <summary>The autosave file, next to the settings.</summary>
+    string AutosavePath { get; }
+
+    /// <summary>Read the settings now: on every head but WebAssembly, the local folder is there at launch. Defaults when there are none.</summary>
+    SavedSettings Load();
+
+    /// <summary>Read the settings once the local folder can be read (WebAssembly mounts it after launch). Read the autosave after this too.</summary>
+    Task<SavedSettings> LoadAsync();
+
+    /// <summary>Write the settings. Returns why they could not be written, or null when they were.</summary>
+    string? Save(SavedSettings settings);
+}
+
+/// <summary>View options and the autosave, as files in the app's local folder.</summary>
+public sealed class SettingsService : ISettingsStore
 {
     /// <summary>Source-generated: trimmed heads (WebAssembly) turn reflection-based System.Text.Json off.</summary>
     private static readonly SettingsJsonContext Json = new(new JsonSerializerOptions { WriteIndented = true });
 
-    public sealed class Model
-    {
-        public string DisplayMode { get; set; } = "Forces";
-        public bool ShowDeflection { get; set; } = true;
-        public double Exaggeration { get; set; } = 1;
-        public bool ShowLabels { get; set; } = true;
-        public bool ShowReactions { get; set; } = true;
-        public bool ShowGrid { get; set; } = true;
-        public bool SnapEnabled { get; set; } = true;
-        public double GridStep { get; set; } = 0.5;
-        public bool InspectorVisible { get; set; } = true;
-        public bool ReduceNoise { get; set; }
-        public int NoiseKeep { get; set; } = (int)ViewOptions.DefaultKeep;
-        /// <summary>"System", "Light" or "Dark". Missing in older settings files, which then follow the system.</summary>
-        public string Theme { get; set; } = nameof(ThemeChoice.System);
-    }
-
-    public string Folder
+    public static string Folder
     {
         get
         {
@@ -40,41 +57,38 @@ public sealed class SettingsService
     }
 
     private const string SettingsFileName = "settings.json";
-    private string SettingsPath => Path.Combine(Folder, SettingsFileName);
+    private static string SettingsPath => Path.Combine(Folder, SettingsFileName);
     public string AutosavePath => Path.Combine(Folder, "autosave.loadpath");
 
-    /// <summary>Read the settings now: on every head but WebAssembly, the local folder is there at launch.</summary>
-    public Model Load()
+    public SavedSettings Load()
     {
         try
         {
-            if (File.Exists(SettingsPath)) return JsonSerializer.Deserialize(File.ReadAllText(SettingsPath), Json.Model) ?? new Model();
+            if (File.Exists(SettingsPath)) return JsonSerializer.Deserialize(File.ReadAllText(SettingsPath), Json.SavedSettings) ?? new SavedSettings();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
             // Unreadable or corrupt settings start from the defaults; the next option change rewrites the file.
         }
-        return new Model();
+        return new SavedSettings();
     }
 
     /// <summary>
-    /// Read the settings once the local folder can be read. WebAssembly mounts the browser's persistent storage after
-    /// launch, and a System.IO read before that finds nothing; an awaited StorageFolder call waits for the mount
-    /// (https://platform.uno/docs/articles/features/file-management.html#webassembly-file-system). Read the autosave
-    /// after this too.
+    /// WebAssembly mounts the browser's persistent storage after launch, and a System.IO read before that finds nothing;
+    /// an awaited StorageFolder call waits for the mount
+    /// (https://platform.uno/docs/articles/features/file-management.html#webassembly-file-system).
     /// </summary>
-    public async Task<Model> LoadAsync()
+    public async Task<SavedSettings> LoadAsync()
     {
         await ApplicationData.Current.LocalFolder.TryGetItemAsync(SettingsFileName);
         return Load();
     }
 
-    /// <summary>Write the settings. Returns why they could not be written, or null when they were.</summary>
-    public string? Save(Model model)
+    public string? Save(SavedSettings settings)
     {
         try
         {
-            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(model, Json.Model));
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(settings, Json.SavedSettings));
             return null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -82,41 +96,9 @@ public sealed class SettingsService
             return ex.Message;
         }
     }
-
-    public void Apply(Model m, ViewOptions o)
-    {
-        o.DisplayMode = Enum.TryParse<DisplayMode>(m.DisplayMode, out var mode) ? mode : DisplayMode.Forces;
-        o.ShowDeflection = m.ShowDeflection;
-        o.Exaggeration = Math.Clamp(m.Exaggeration, 0.2, 3);
-        o.ShowLabels = m.ShowLabels;
-        o.ShowReactions = m.ShowReactions;
-        o.ShowGrid = m.ShowGrid;
-        o.SnapEnabled = m.SnapEnabled;
-        o.GridStep = m.GridStep > 0 ? m.GridStep : 0.5;
-        o.InspectorVisible = m.InspectorVisible;
-        o.ReduceNoise = m.ReduceNoise;
-        o.Keep = (NoiseLayer)m.NoiseKeep;
-        o.Theme = Enum.TryParse<ThemeChoice>(m.Theme, out var theme) ? theme : ThemeChoice.System;
-    }
-
-    public void Capture(ViewOptions o, Model m)
-    {
-        m.DisplayMode = o.DisplayMode.ToString();
-        m.ShowDeflection = o.ShowDeflection;
-        m.Exaggeration = o.Exaggeration;
-        m.ShowLabels = o.ShowLabels;
-        m.ShowReactions = o.ShowReactions;
-        m.ShowGrid = o.ShowGrid;
-        m.SnapEnabled = o.SnapEnabled;
-        m.GridStep = o.GridStep;
-        m.InspectorVisible = o.InspectorVisible;
-        m.ReduceNoise = o.ReduceNoise;
-        m.NoiseKeep = (int)o.Keep;
-        m.Theme = o.Theme.ToString();
-    }
 }
 
-[JsonSerializable(typeof(SettingsService.Model))]
+[JsonSerializable(typeof(SavedSettings))]
 internal sealed partial class SettingsJsonContext : JsonSerializerContext
 {
 }
