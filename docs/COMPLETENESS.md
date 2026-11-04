@@ -2,7 +2,9 @@
 
 Audited commit: `39ce1a0` on `feat/production-readiness`. Report mode: nothing was fixed.
 Fix pass (2026-11-04): the one Blocker (preset tiles) fixed at `997f7be` and re-proved on desktop and WebAssembly; see
-Findings / Fixed. Everything else below is as audited.
+Findings / Fixed.
+A pass (2026-11-04, after the DI refactor): the functional Major (safe areas) and seven Minors fixed and re-proved; see
+Findings / Fixed. The Android emulator smoke job in CI now launches the Release APK on every push (launch only).
 Runtime proof: Debug `net10.0-desktop` under Xvfb (1600 x 1000 screen, 1440 x 960 window), driven with `xdotool` and the
 Debug fixture hooks, post-state read from the autosave JSON, the saved `.loadpath` file, `settings.json`, `LOADPATH_TRACE`
 and the `VERIFY` stderr lines. WebAssembly: Release publish served locally and driven in headless Chromium (Playwright, 1440 x 900). Android, iOS and
@@ -10,10 +12,11 @@ WinAppSDK were not run here; CI built all five heads at this commit (run 4135127
 Re-checked from the 2026-11-01 review: the autosave now restores its file and its unsaved state (R), a sample is an undoable
 replacement (R), WebAssembly raises the leave-page prompt (R); Esc cancelling a section drag is read in code only (C).
 
-Verdict: **Complete with gaps** (was Incomplete at audit; the preset-tile Blocker is fixed)
+Verdict: **Complete with gaps, 0 functional Majors** (was Incomplete at audit; the preset-tile Blocker and the safe-area
+Major are fixed; the remaining Majors are head Majors: iOS and WinAppSDK never run, Android launch-only)
 Safe to show: draw and solve, drag with live re-solve, undo/redo, save/open/autosave restore, section change, unsaved-changes
-prompt, share code round trip, failures with J / U / Shift+U, palette, phone layout, PRESETS flyout with span / panels /
-depth (commit a typed value with Enter before picking a tile). / Keep off screen: the deflection exaggeration slider (there is none).
+prompt, share code round trip, failures with J / U / Shift+U, palette, phone layout (portrait and landscape), PRESETS
+flyout with span / panels / depth. / Keep off screen: the deflection exaggeration slider (there is none; the palette steps it).
 
 ## Inventory
 
@@ -42,59 +45,63 @@ Critical workflows (derived from SPEC Interaction Brief flows 1-3, Stage 5 and t
 |---|---|---|---|---|---|---|---|
 | 1 | Screens | Complete | R | 0 | 0 | 0 | all 20 surfaces opened (detached-parts banner and "No loads" chip on WebAssembly) |
 | 2 | Navigation | Complete | R | 0 | 0 | 0 | single page by design; fit, outline select, J proven |
-| 3 | Interactions | Partial | R | 0 | 0 | 2 | preset tiles load with the sheet's parameters (fixed); a tile click right after typing a value without Enter only commits it; exaggeration has no control |
+| 3 | Interactions | Partial | R | 0 | 0 | 1 | preset tiles load with the sheet's parameters, a value typed without Enter included (fixed, desktop and WebAssembly); exaggeration has no control |
 | 4 | Logic | Partial | R | 0 | 0 | 1 | forces match method of joints; upsize/lighten as stated; tools can stack a node on an existing one |
 | 5 | Data | Partial | R | 0 | 0 | 1 | desktop file + autosave and WebAssembly browser-storage restore proven; undoing a sample/preset/paste detaches the file |
 | 6 | States | Complete | R | 0 | 0 | 0 | empty, mechanism, failures, refused paste, malformed file; loading N/A (synchronous) |
 | 7 | Forms | Complete | R | 0 | 0 | 0 | number fields commit on Enter; preset fields rebuild thumbnails |
 | 8 | Authentication | N/A | C | 0 | 0 | 0 | single-user local tool, no accounts (confirm) |
-| 9 | Responsive/adaptive UI | Partial | R | 0 | 0 | 2 | rail clips at 390 px height; view not refit after width change |
-| 10 | Platform behavior | Partial | C | 0 | 1 | 1 | no safe-area handling for phones; picker path X on Linux |
-| 11 | Failure handling | Partial | R | 0 | 0 | 2 | autosave/settings failures silent; no global exception log |
-| 12 | Accessibility | Partial | C | 0 | 0 | 1 | all controls named; canvas has no per-element peers (outline is the alternative); tab order and contrast X |
+| 9 | Responsive/adaptive UI | Partial | R | 0 | 0 | 1 | rail wraps at 390 px height and the floating bar stays off the drawing on phones (fixed); view not refit after width change |
+| 10 | Platform behavior | Partial | R | 0 | 0 | 1 | utu:SafeArea keeps the shell inside the visible bounds (fixed; Android emulator dump: title strip 49-98 → 177-226 px); picker path X on Linux |
+| 11 | Failure handling | Complete | R | 0 | 0 | 0 | autosave and settings failures toast in turn with file names (fixed); unhandled and unobserved exceptions are logged and toasted (fixed) |
+| 12 | Accessibility | Partial | R | 0 | 0 | 1 | all controls named, 25.1 names per 1,000 XAML lines; Tab reaches every control and outline row (59 stops on Warren, runtime); input edges 3:1 (fixed); canvas has no per-element peers (outline is the alternative) |
 | 13 | Performance | Complete | R | 0 | 0 | 0 | idle 0.1 % CPU; solve 0.1-0.4 ms; Debug first layout 2.5 s |
 | 14 | Security/privacy | Complete | C | 0 | 0 | 0 | no secrets, no permissions, every LOADPATH_ hook `#if DEBUG` |
 | 15 | Visual quality | Partial | R | 0 | 0 | 3 | fallback face on cold start; mode toggle desync under a fixture; stale node inspector once on WebAssembly |
-| 16 | Testing | Partial | R | 0 | 4 | 1 | 183/183 in CI; android, ios, windows never run; wasm 4 of 7 workflows; no UI automation |
+| 16 | Testing | Partial | R | 0 | 3 | 1 | 261 tests incl. the page model and the container; android launch-smoked in CI, ios and windows never run; wasm 5 of 7 workflows; no UI automation |
 
 ## Critical workflows by head
 
 | Workflow | desktop | wasm | android | ios | windows |
 |---|---|---|---|---|---|
 | 1. Draw and solve | R (autosave: 3 nodes, 3 members, Pin + RollerY, Fy -10; M1 +5.0, M2/M3 -7.1 = method of joints; drag N3 y -1 → 1 re-solves to +2.5/-5.6; one Ctrl+Z / Ctrl+Y) | R (Release in Chromium: same clicks gave N1 Pin, N2 Roller, N3 −10 kN; M1 +5.0, M2/M3 −7.1) | X (no device) | X (no Mac) | X (no Windows) |
-| 2. Save, open, autosave restore | R (Ctrl+S wrote `~/Documents/Loadpath/Untitled.loadpath`; Ctrl+O read it back; kill -9 + relaunch restored N3 x 2.5 as UNSAVED with the file attached; Ctrl+S wrote x 2.5 to that file) | Partial (browser relaunch restored the triangle as UNSAVED from browser storage; Save/Open download pickers not driven) | X | X | X |
+| 2. Save, open, autosave restore | R (A pass: Howe roof, Delete on N2, autosave written dirty with 11 nodes 1.2 s later; kill -9 + relaunch restored it UNSAVED. Before: Ctrl+S wrote `~/Documents/Loadpath/Untitled.loadpath`; Ctrl+O read it back; kill -9 + relaunch restored N3 x 2.5 as UNSAVED with the file attached; Ctrl+S wrote x 2.5 to that file) | Partial (browser relaunch restored the triangle as UNSAVED from browser storage; Save/Open download pickers not driven) | X | X | X |
 | 3. Section change → utilization | R (chip 76.1x4.0: M2 21 % → 9 %; ComboBox CHS 114.3x5.0: autosave `chs114`) | X (not driven) | X | X | X |
-| 4. Unsaved-changes guard | R (Ctrl+N dialog: Cancel kept 3 nodes, Discard gave 0; WM_DELETE_WINDOW → dialog → Discard exited and deleted the autosave) | R (Ctrl+N raised the in-app dialog, Discard cleared it; closing the tab with edits raised `beforeunload`) | X | X | X |
-| 5. Parametric preset (flyout) | R after fix `997f7be` (from Warren 13 N / 23 M: Pratt at 24 m / 8 / 3 m → autosave "Pratt truss" 16 N / 29 M, span 24, height 3, dirty; Ctrl+Z → Warren 13 / 23, clean. K truss at 18 / 4 / 1.5 → 13 N / 24 M, span 18, height 1.5; Ctrl+Z back. Howe at 20 / 10 / 2.5 → 20 N / 37 M, kill -9 + relaunch restored it UNSAVED. Normal width, via ⋯ → Presets…: Warren at 16 / 4 → 9 N / 15 M; Ctrl+Z. Audit: **Broken**) | R after fix (Release in Chromium, fresh profile, empty document: span 24 / panels 8 / depth 3 committed with Enter rebuilt the tiles to 24 m · 16 N · 29 M; Pratt tile → "Pratt truss" UNSAVED, 16 N / 29 M, 3.000 m panels on 24.000 m, flyout closed; Ctrl+Z → Untitled 0 / 0; Ctrl+Y → Pratt again. K truss tile at defaults → 19 N / 36 M, and a reload 8 s later restored it UNSAVED from browser storage. No console errors. Audit: **Broken**) | X | X | X |
+| 4. Unsaved-changes guard | R (Ctrl+N dialog: Cancel kept 3 nodes, Discard gave 0; WM_DELETE_WINDOW → dialog → Discard exited and deleted the autosave. A pass, through CloseGuard: WM_DELETE_WINDOW → dialog; Cancel kept the window and the autosave; again → Discard closed the window and deleted the autosave) | R (Ctrl+N raised the in-app dialog, Discard cleared it; closing the tab with edits raised `beforeunload`) | X | X | X |
+| 5. Parametric preset (flyout) | R (A pass: span 24 / panels 6 committed with Tab, depth 1.6 typed without Enter, one click on Pratt → 6 over capacity, 294 %, trace `preset pratt span=24 panels=6 depth=1.6`; span 30 typed then one click on Fink → 30 m) R after fix `997f7be` (from Warren 13 N / 23 M: Pratt at 24 m / 8 / 3 m → autosave "Pratt truss" 16 N / 29 M, span 24, height 3, dirty; Ctrl+Z → Warren 13 / 23, clean. K truss at 18 / 4 / 1.5 → 13 N / 24 M, span 18, height 1.5; Ctrl+Z back. Howe at 20 / 10 / 2.5 → 20 N / 37 M, kill -9 + relaunch restored it UNSAVED. Normal width, via ⋯ → Presets…: Warren at 16 / 4 → 9 N / 15 M; Ctrl+Z. Audit: **Broken**) | R after fix (Release in Chromium, fresh profile, empty document: span 24 / panels 8 / depth 3 committed with Enter rebuilt the tiles to 24 m · 16 N · 29 M; Pratt tile → "Pratt truss" UNSAVED, 16 N / 29 M, 3.000 m panels on 24.000 m, flyout closed; Ctrl+Z → Untitled 0 / 0; Ctrl+Y → Pratt again. K truss tile at defaults → 19 N / 36 M, and a reload 8 s later restored it UNSAVED from browser storage. No console errors. Audit: **Broken**. A pass, after the DI refactor: Warren sample, then 24 / 6 with Tab and 1.6 typed without Enter, one click on Pratt → nodes at y 1.6, 6 over capacity, 294 % (`docs/evidence/wasm-pratt-one-click.png`)) | X | X | X |
 | 6. Share code round trip | R (Ctrl+Shift+C toast "215 characters", no fallback file; New → 0 nodes; Ctrl+Shift+V restored identical nodes/members; corrupt `LP1.` code refused, document kept) | X | X | X | X |
-| 7. Failures and fixes | R (`LOADPATH_PRESET=pratt:24,6,1.6`: 6 BUCKLES pills and rows; J toast "M8 buckles at 294% · 2 of 6"; U: 6 members → `chs114`, max 294 % → 68 %, "+157.3 kg"; Shift+U: 14 members, −131.8 kg, 88 %) | X | X | X | X |
+| 7. Failures and fixes | R (`LOADPATH_PRESET=pratt:24,6,1.6`: 6 BUCKLES pills and rows; J toast "M8 buckles at 294% · 2 of 6"; U: 6 members → `chs114`, max 294 % → 68 %, "+157.3 kg"; Shift+U: 14 members, −131.8 kg, 88 %) | R (A pass, Release in Chromium: J selected M9 at 294 %; U → M9 CHS 114.3x5.0, WITHIN CAPACITY, max 68 %; Ctrl+Z → 294 % again; `docs/evidence/wasm-presets-failures-upsize.png`) | X (launch smoke only) | X | X |
 
 ## Findings
 
 ### Fixed
+- [Platform behavior, functional Major] No safe-area handling on the phone heads - fixed at `e4a02e0`: `utu:SafeArea` (margin mode) on the title strip (Left, Top, Right), the work area (Left, Right), the status strip (Left, Right, Bottom) and the palette. Proof R: the CI emulator job's window dump (run 41855773486, pixel_6, API 34) has the title strip's LOADPATH at y 177-226 (was 49-98, under the status bar), its buttons at 144-260 (was 16-132), ZOOM 100% at 2264-2306 (was 2327-2369, at the gesture handle) and the content marker at 787-861 (was 755-829); the marker text is unchanged and the job passed. Desktop and WebAssembly have no unsafe area (no change in the width matrix).
+- [Interactions] A tile click right after typing a sheet value without Enter needed a second click - fixed at `dac50ec` and `22d21be`: tiles no longer take focus on a press, the click commits the field being typed in, and the tile's command receives a `PresetChoice` with the fields' values (the bound states had not caught up on WebAssembly). Proof R on desktop (Pratt 24 / 6 / 1.6 with 1.6 not entered: one click, 294 %) and in Chromium (same values, nodes at y 1.6). Tested: `EditorModelTests.A_tile_loads_with_the_values_it_is_handed_clamped_and_the_fields_show_them`.
+- [Responsive] At 844 x 390 the floating tool rail ran into the status strip and cut off free placement - fixed at `6356c62`: the rail's panel (`Controls/WrapStack`) starts a second column when the canvas is shorter than the rail; the rail keeps 24 px off the status strip. Proof R: `docs/evidence/desktop-landscape-rail.png` (light and dark); `WrapStackTests`.
+- [Responsive, from gold-standard notes] At phone width the floating bar covered the truss - fixed at `1b366a7`: `CanvasLayout.FloatingBar` measures the bar and keeps it off the drawn members, load arrows and labels and supports (above the selection, else above the drawing, else below it). Proof R: `docs/evidence/desktop-phone-floating-bar.png` (Warren N3 and Howe N2 at 390 px); `CanvasLayoutTests`.
+- [Accessibility] Field borders were 1.9:1 in both themes - fixed at `a831978`: a `ControlBorder` token (light 3.6 / 3.3 / 3.1:1 on Canvas / SurfaceRaised / Selection, dark 3.8 / 3.5 / 3.1:1) on the number and search fields, the combo box, the check box and the switch track.
+- [Accessibility] Tab entered each item list once (one outline row, chip or tile), and the number fields' text boxes had no name - fixed at `8a6bd7e`. Proof R (`LOADPATH_TRACE=1` focus log): 59 named stops on Warren with nothing selected (rail, inspector actions, title strip, every outline row); with N3 selected the floating bar, "Node X", "Node Y", the four support toggles, "Load X", "Load Y" and "Delete selection" are reached.
+- [Failure handling] The two failure toasts shared one slot and showed full paths - fixed at `cd5c094` (`ToastQueue`, `ToastText`): a failure is never replaced before it has had its time, and paths read as file names. Proof R: settings.json and autosave.loadpath replaced by folders, then `2` and Delete: "Settings not saved: Access to the path 'settings.json' is denied" for 4.5 s, then "Autosave failed: Access to the path 'autosave.loadpath' is denied. Save to keep your work." (`docs/evidence/desktop-failure-toasts.png`); full paths in the log.
 - [Interactions] Preset tiles in the PRESETS flyout loaded nothing (audit: R, the click closed the flyout and the autosave kept the previous document, 2 launches; the palette's presets loaded only at the default parameters) - fixed at `997f7be` (`Views/TitleStrip.xaml.cs` `OnPresetClick`). Cause, proven with trace lines in the tile's Click and in `EditorModel.LoadPreset`: the `ElementName=Strip` command binding resolved (an `AsyncCommand`, `CanExecute("pratt")` true at Click). A button raises Click before it executes its command, and `PresetsFlyout.Hide()` in Click unloaded the sheet at once: right after it the tile had `IsLoaded` false, `DataContext` null and `CommandParameter` null, so the generated command's `CanExecute(null)` was false and `LoadPreset` never ran. Fix: the hide is posted to the dispatcher, so the command runs first. `LoadPreset` now writes a Debug trace line with the parameters it read. Proof R: workflow 5 row above (desktop, both layouts) and WebAssembly (Chromium, Pratt at 24 / 8 / 3 and K truss); trace `preset pratt span=24 panels=8 depth=3`, `preset k span=18 panels=4 depth=1.5`, `preset howe span=20 panels=10 depth=2.5`, `preset warren span=16 panels=4 depth=2`. No unit test: the defect lived in the view's event order (Click, then the command), which the offline tests cannot host; the preset builds at any span / panels / depth are covered by `ShareAndPresetTests` (`Every_preset_is_stable_and_loaded`, `Parameters_clamp`).
+- [Failure handling] No global unhandled-exception handler or log - fixed at `cd5c094`: `App` logs `UnhandledException` and `UnobservedTaskException` and shows a toast; every app class logs through `ILogger`. Autosave and settings write failures were reported since `0adfab0`.
 
 ### Blockers
 None open.
 
 ### Majors (functional)
-- [Platform behavior] No safe-area handling on the phone heads - no `SafeArea`, `VisibleBounds` or edge-to-edge setting anywhere in `Loadpath/` (Toolkit is referenced) - evidence C (absence), effect I - on iOS notch devices and Android 15+ (edge-to-edge enforced) the title strip and the bottom tool strip can sit under the status bar and the gesture bar. Owner: uno-toolkit (`utu:SafeArea` on the page root).
+None open (safe areas fixed; see Fixed).
 
 ### Majors (head)
-- [Testing] Android never run: every workflow X; CI builds it - run workflows 1-7 on an emulator.
+- [Testing] Android launch-only: the CI emulator job installs the Release APK, launches it, finds the first screen and no crash on every push (run 41855773486); workflows 1-7 are not driven there.
 - [Testing] iOS never run: every workflow X; CI builds the simulator head.
 - [Testing] WinAppSDK never run: every workflow X; CI builds x64. Picker owner window (`InitializeWithWindow`) only provable there.
-- [Testing] WebAssembly partly run: workflows 3, 6 and 7 X there (section change, share code through the browser clipboard, failures).
+- [Testing] WebAssembly partly run: workflows 3 and 6 X there (section change, share code through the browser clipboard); workflow 7 driven in the A pass.
 
 ### Minors
-- [Interactions] A tile click right after typing a sheet value without Enter only commits the value: the press blurs the field, the commit rebuilds the six tiles under the pointer (new sketch and size) and the press does not become a Click; the sheet stays open with the new thumbnails and the next click loads with the typed value - `Views/TitleStrip.xaml` tile `ItemsRepeater`, `Presentation/EditorModel.cs` `RebuildPresetsAsync` - evidence R (desktop after the fix: span typed 30 without Enter, Fink tile click → thumbnails 30 m, document unchanged, no `preset` trace; second click → `preset fink span=30`, Fink 7 N / 11 M. Typing the value it already had, then one click, loads). Found in the fix pass.
 - [Interactions] The deflection exaggeration has no control - README.md:32 promises "deflected ghost with exaggeration slider", SPEC flow 3 says "adjust exaggeration in status bar"; only two palette commands step it by 0.1 (`Presentation/EditorEngine.cs:383-384`) and the readout sits in the layers flyout - evidence R (palette twice → legend "×1.2", `settings.json` `"Exaggeration": 1.2`). HANDOFF lists the removal as an open question. Partial.
 - [Data] Undoing a sample, preset or paste returns to the save point but drops the file - `Presentation/EditorEngine.cs:138` sets `FilePath = null`, the undo does not restore it - evidence R (after Ctrl+Z autosave `dirty False, file None`); the next Save asks for a location again.
 - [Logic] The node and member tools can put a node exactly on top of an existing one: node snapping only looks 10 px around the pointer (`Core/Geometry/SnapEngine.cs:32-39`), then grid snap can land on an occupied point and `MemberTool` adds a new node there (`Workspace/Tools/MemberTool.cs:64-70`) - evidence R (WebAssembly: a click 20 px off N1 made N4 at the same (0, −2), likewise N5/N6; the result is 7 nodes, 4 unsupported). Duplicate members are refused, coincident nodes are not.
-- [Responsive] At 844 x 390 (landscape phone, Normal layout) the floating tool rail runs into the status bar and the free-placement toggle is cut off - `Views/ToolRail.xaml` - evidence R (screenshot); still reachable from the palette.
 - [Responsive] Changing the window width keeps the old view: at 1024 px the Warren truss runs off the left edge until Ctrl+0 - evidence R.
-- [Failure handling] Autosave and settings write failures are swallowed - `MainPage.xaml.cs:770` `OnAutosaveTick` catch, `Services/SettingsService.cs:72`; a corrupt autosave is discarded without a word (`Presentation/DocumentSession.cs:197-201`) - evidence C.
-- [Failure handling] No global unhandled-exception handler or log (`App.xaml.cs`); handlers are guarded one by one (`GuardAsync`, `RunAsync`) - evidence C.
 - [Platform behavior] Linux without an xdg-desktop-portal: Open loads the newest `.loadpath` in `~/Documents/Loadpath` with no choice (documented fallback, `Services/FileService.cs:74-80`) - evidence R; the picker path itself X here.
 - [Visual quality] Cold start draws the mono labels (title, toggles) in the fallback face for the first seconds (seen at 0.5 s, and still at 9 s on one loaded run) - evidence R (screenshots); settles without interaction.
 - [Visual quality] With `LOADPATH_MODE=forces` over a saved Utilization mode the toolbar shows UTILIZATION while the canvas draws forces, until the mode changes - `Presentation/EditorModel.cs` `PullOptionsAsync` - evidence R (Debug fixture path; pressing 1 / 2 by hand stays in sync). Worth a check on WebAssembly, which applies settings after the views exist.
@@ -106,18 +113,18 @@ None open.
 - Real touch, pinch and two-finger pan - `xdotool` has one pointer; `LOADPATH_TOUCH=1` proved tap (18 px off N4 selects it) and long press (node menu with 44 px rows) through the touch path - check on Android.
 - Mouse-wheel zoom - X11 button 4/5 arrive as presses on this host (README) - check on Windows or macOS.
 - Platform file pickers (Open / Save as) - no portal in the container - check on Windows and a Linux desktop session.
-- Keyboard tab order, Escape on every dialog, contrast ratios, text scaling - not driven - tab through with a screen reader on Windows.
+- Escape on every dialog, text scaling, a real screen reader - not driven - check on Windows with Narrator. Tab order was driven (A pass, focus log) and contrast computed (text in Tokens.xaml, input edges 3:1).
 - Release cold start - Debug only here (first layout 2.5 s under a shared CPU) - time a Release publish.
 - Failure-row click in the summary inspector - read in code (`InspectorPanel.xaml:127`), not driven; J and the outline select the same members.
 
 ## Noted for other skills
-- uno-audit: `MainPage.xaml.cs` is 789 lines (menus, drag-drop, toast, autosave, sizing, fixtures); the context menu and the section drop push edits from code-behind (`AddNodeEdit`, `SetSectionEdit`).
-- gold-standard-pass: reaction labels overlap the legend when a structure sits low on the sheet; at phone width the floating bar covers the selected member.
+- uno-audit: done. `MainPage.xaml.cs` is 186 lines (was 789); the menu, the section drag, toasts, autosave, sizing and fixtures have their own classes, and the edits go through the engine.
+- gold-standard-pass: reaction labels overlap the legend when a structure sits low on the sheet; at 844 x 390 the wrapped rail sits over the canvas caption ("Truss, 12.000 m span"). (The floating bar over the truss at phone width is fixed.)
 
 ## Unresolved Questions
 - Authentication N/A: single-user local tool with files, no accounts (SPEC scope). Confirm.
 - The seven critical workflows are derived (SPEC flows 1-3, Stage 5, README). Confirm presets as critical (it set the verdict at audit; fixed since).
 - Deflection exaggeration: restore a slider (README, SPEC) or change the docs to "palette only" (HANDOFF open question)?
-- Android, iOS and WinAppSDK have no runtime proof at all. In scope for this sample, or CI build only?
-- Safe areas: run the phone heads on a notch device / Android 15 before calling the layout done.
-- WebAssembly: workflows 3, 6 and 7, and the Save/Open download path, were not driven in Chromium. Run them before calling the browser head done.
+- iOS and WinAppSDK have no runtime proof; Android has a CI launch smoke. In scope for this sample, or CI build only?
+- Safe areas: proven on the API 34 emulator (status and gesture bars); an iOS notch device is still unchecked.
+- WebAssembly: workflows 3 and 6, and the Save/Open download path, were not driven in Chromium.

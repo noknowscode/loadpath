@@ -140,6 +140,11 @@ Re-check of the allow comments:
 ## Remaining
 
 1. **Dependency injection and the MainPage split (owner-approved for the next pass), about 2 days, ~800 lines touched.**
+   **Done in the A pass** (`cd5c094`, follow-ups `bacd11f`, `22d21be`): as planned below, with two differences. The
+   generated view model needs the UI dispatcher, so the tests resolve `EditorModel` directly; and the Extensions theme
+   service is registered per scope (it needs the window and an `IDispatcher`), so `App` opens one scope for the window and
+   `ThemeSwitcher` is scoped. `MainPage.xaml.cs` is 186 lines; the overlay geometry is `Presentation/CanvasLayout` (pure,
+   tested) applied by `Views/CanvasOverlays`. Tests 190 -> 261.
    - Hosting: add `Hosting;Logging;ThemeService` to `UnoFeatures`; `App.OnLaunched` builds
      `this.CreateBuilder(args).Configure(h => h.UseLogging().UseThemeSwitching().ConfigureServices(...))` and keeps
      `Host`. Register `EditorEngine`, `IDocumentFiles -> FileService` (window from the builder), `ISettingsStore ->
@@ -164,8 +169,8 @@ Re-check of the allow comments:
    (`Views/CommandPalette.xaml.cs:81,95`); check focus return to the key sink. 0.5 day.
 5. `ToolTip` and `MenuFlyoutSeparator` templates (`Themes/Controls.xaml:933,950`) restyle colour, radius and padding only:
    `BasedOn` the Fluent style plus lightweight keys, after confirming the keys on Uno 7. 2 hours.
-6. Functional items from `docs/COMPLETENESS.md` stay there (SafeArea on phones, the exaggeration control, coincident
-   nodes, refit on resize, Android/iOS/WinAppSDK runtime proof).
+6. Functional items from `docs/COMPLETENESS.md` stay there (the exaggeration control, coincident nodes, refit on resize,
+   iOS/WinAppSDK runtime proof). SafeArea on phones is done (`e4a02e0`).
 7. Package bumps in `Directory.Packages.props` (Test.Sdk 18.11.0, runner 4.0.1): one line each, owner call.
 
 ## Proposed decisions

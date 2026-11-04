@@ -1,60 +1,66 @@
-# HANDOFF — Loadpath uno-audit
-Updated: 2026-11-04 06:10
+# HANDOFF — Loadpath A pass
+Updated: 2026-11-04 16:00
 
 ## Where we are
-The uno-audit pass ran on `feat/production-readiness` from `1c788fc` (report: `docs/UNO-AUDIT.md`). It removed 15
-unused usings and 13 dead Core members, merged the duplicated `IsDown` and `SafeName` helpers, moved the canvas menu's
-add-node edit and the section drop into `EditorEngine`, bound the palette rows to a generated `RunPalette` command,
-replaced the silent autosave and settings-write catches with toasts, and re-checked every `xaml-lint: allow` comment
-(13 that suppressed nothing are gone; the rest name why the replacement does not fit). The preset-tile fix from
-`997f7be` is unchanged. The owner approved the DI and MainPage split for the next pass; its plan is item 1 of
-"Remaining" in `docs/UNO-AUDIT.md`.
+The A pass ran on `feat/production-readiness` from `e00ff82`. The owner-approved DI refactor and MainPage split
+(`docs/UNO-AUDIT.md`, Remaining 1) is done, the one functional Major (safe areas) is fixed and proven on the CI emulator,
+and the layout, theme, keyboard and toast items from the brief are fixed. `docs/COMPLETENESS.md` verdict: Complete with
+gaps, 0 functional Majors (head Majors: iOS and WinAppSDK never run, Android launch-only, WebAssembly 5 of 7 workflows).
+
+Commits (pushed): `cd5c094` refactor (host, services, MainPage split, toasts), `1b366a7` floating bar off the drawing,
+`e4a02e0` safe area, `a831978` input edges 3:1, `6356c62` rail wraps, `dac50ec` preset one click, `8a6bd7e` Tab reach and
+named fields, `bacd11f` IL2026 at the host build (the WebAssembly job failed on `cd5c094`), `22d21be` preset values handed
+to the command (WebAssembly race), then the docs commit with this file.
 
 ## Last verified state
-- Build: Release `net10.0-desktop`, `net10.0-browserwasm` and `net10.0-android` 0 warnings / 0 errors each.
-  Tests 190/190 (was 183). WinAppSDK and iOS are CI-only.
-- Runtime: Debug desktop under Xvfb, driven with `xdotool`: palette row click (light 1440 px, dark 390 px), Enter in the
-  palette, canvas menu "Add node here" plus Ctrl+Z, section chip dragged onto a member, Shift-click in the outline, and
-  the autosave/settings failure toasts (files replaced by folders). Idle CPU 0 % over 10 s.
-- Git: `feat/production-readiness`, audit commits `e19ef48` to `8b8292c` plus the docs commit with this file.
-- Lint: CARD 0 · HEX 0 · TOKENTHEME 0 · BACKBAR 0 · CODEBEHIND 0 · OVERLAY 0 · RESPONSIVE 0 · BUILTIN 0 · ICON 0.
-  Allowed with reasons: CARD 8 · CODEBEHIND 29 · RESPONSIVE 1. Info: TOKEN 172 · TEMPLATE 11.
+- Build: Debug desktop 0 warnings; Release browserwasm publish 0 compiler warnings (ILLink trim warnings only, from Uno's
+  and MVUX's generated code, as before). CI run 41855773486 at `8a6bd7e`: tests, desktop win/linux, WinAppSDK, Android and
+  the emulator smoke green; WebAssembly failed on IL2026 (fixed in `bacd11f`); macOS jobs were queued. Check the run for
+  the head after `22d21be`.
+- Tests: 261/261 (was 190): page model (`EditorModelTests`), container (`CompositionTests`), settings, toasts, close guard,
+  canvas menu, canvas layout, wrap stack, autosave debounce.
+- Runtime, Debug desktop under Xvfb :464 (`APP_NO_HOTDESIGN=1`, `LIBGL_ALWAYS_SOFTWARE=1`, `xdotool`): widths 390, 599,
+  600, 800, 844 x 390, 1100, 1440 in Light and Dark (`docs/evidence/desktop-widths-*.png`); floating bar above the drawing
+  at 390 px; rail wrapped at 844 x 390; two failure toasts in turn with file names; preset one click with a typed value;
+  palette Enter; canvas menu Add node + Ctrl+Z; section chip dragged onto M3; close prompt Cancel / Discard (WM_DELETE_WINDOW
+  sent with a ctypes script); kill -9 + relaunch restored the autosave UNSAVED; Tab order logged with `LOADPATH_TRACE=1`.
+- WebAssembly: Release publish served locally, driven in headless Chromium (Playwright): Warren sample, presets sheet
+  24 / 6 / 1.6 (last value not entered), Pratt in one click (6 over capacity, 294 %), J, U (68 %), Ctrl+Z
+  (`docs/evidence/wasm-*.png`).
+- Android: emulator job dump at `8a6bd7e`: title strip y 177-226 (was 49-98), ZOOM 100% y 2264-2306 (was 2327-2369),
+  marker found after 11 s; marker text unchanged, so the job's `APP_CONTENT_MARKER` is unchanged.
+- Lint (`xaml-semantic-lint.ps1 -Path Loadpath`): CARD 0 · HEX 0 · TOKENTHEME 0 · BACKBAR 0 · CODEBEHIND 0 · OVERLAY 0 ·
+  RESPONSIVE 0 · BUILTIN 0 · ICON 0. Automation names: 70 / 2,787 XAML lines = 25.1 per 1,000.
 
 ## Guidance applied
-| Skill / rule / decision | Applied at (file:line) |
+| Skill / rule | Applied at |
 |---|---|
-| uno-scaffolding code-behind budget: edits live in the engine, not the page | `Loadpath/Presentation/EditorEngine.cs:193`, `:201` |
-| mvux: generated command bound from a template | `Loadpath/Presentation/EditorModel.cs:437`, `Loadpath/Views/CommandPalette.xaml:34` |
-| dotnet-csharp: narrow catch filters, failures reported | `Loadpath/Presentation/DocumentSession.cs:213`, `Loadpath/Services/SettingsService.cs:80` |
-| uno-toolkit: breakpoints as `{utu:Responsive}` | `Loadpath/MainPage.xaml:28` |
-| winui-xaml: virtualized outline | `Loadpath/Views/OutlinePanel.xaml:75` |
-| skiasharp-uno: paints allocated once | `Loadpath/Workspace/WorkspaceRenderer.cs:21` |
-
-Read, not applied: uno-extensions-services hosting/DI (planned, Remaining item 1); `utu:SafeArea` (COMPLETENESS Major,
-next pass); uno-navigation (single page).
+| uno-extensions-services: host, DI, ILogger, IThemeService | `Loadpath/App.xaml.cs`, `Loadpath/AppServices.cs`, `Loadpath/Services/ThemeSwitcher.cs` |
+| mvux: model tested through its states, commands off the UI thread | `Loadpath/Presentation/EditorModel.cs`, `Loadpath.Tests/EditorModelTests.cs` |
+| uno-toolkit: `utu:SafeArea` (margin mode) | `Loadpath/MainPage.xaml` |
+| winui-xaml: tab navigation in repeaters, named inputs | `Views/OutlinePanel.xaml`, `Controls/NumberField.cs` |
+| dotnet-csharp: constructor injection, narrow catches, async void guarded | `Presentation/DocumentSession.cs`, `Services/CloseGuard.cs`, `MainPage.xaml.cs` |
 
 ## Next actions (in order)
-1. DI and the MainPage split (`docs/UNO-AUDIT.md`, Remaining 1): Hosting + Logging + ThemeService, services registered,
-   `MainPage.xaml.cs` from 764 to about 200 lines, then re-run the seven critical workflows on desktop and WebAssembly.
-2. `utu:SafeArea` on the page root for the phone heads (COMPLETENESS Major), checked on Android.
-3. Owner calls: InfoBar banners, ToggleSplitButton for Reduce noise, the palette as a light-dismiss Popup, the
-   ToolTip/Separator templates (Remaining 2-5), and the two test-package bumps.
+1. Confirm CI is green on the head (WebAssembly after `bacd11f`, iOS and macOS were queued).
+2. Owner calls on the two proposed decisions in README (unhandled exceptions keep the app running; exaggeration stays a
+   palette command), and on the remaining uno-audit items 2-5 and 7 (InfoBar, ToggleSplitButton, light-dismiss palette,
+   ToolTip/Separator templates, test-package bumps).
+3. Minors left in COMPLETENESS: refit after a width change, coincident nodes, undo of a sample detaching the file, WebAssembly
+   stale outline header after a sample loads, workflows 3 and 6 on WebAssembly.
 
-## Open questions
-- Dark mode and Toolkit questions in the previous handoff are settled (README Architecture); still open: the
-  exaggeration control (README promises a slider, there is none) and whether Android/iOS/WinAppSDK need runtime proof.
-- Settings and autosave failures share one toast slot: at launch the autosave message replaces the settings one within
-  a second. Fine for a sample, or should the toast queue?
+## Notes
+- The page resolves its services from `App.Services` (the window scope); the theme service is scoped to that window.
+- The generated `EditorViewModel` needs the UI dispatcher: tests construct `EditorModel` with `TestUiThread`.
+- Keyboard: after Enter on an outline row the row is rebuilt and focus moves to the list's first row (not investigated).
 
 ## Relaunch
 ```bash
 cd /home/user/loadpath
 dotnet build Loadpath/Loadpath.csproj -c Debug -f net10.0-desktop -p:LoadpathTargetFrameworks=net10.0-desktop
 dotnet test Loadpath.Tests/Loadpath.Tests.csproj -p:LoadpathTargetFrameworks=net10.0
-Xvfb :454 -screen 0 1600x1000x24 -nolisten tcp &
-DISPLAY=:454 HOME=<scratch home> APP_NO_HOTDESIGN=1 LIBGL_ALWAYS_SOFTWARE=1 LOADPATH_TRACE=<trace file> \
-  LOADPATH_RESET=1 LOADPATH_SAMPLE=warren Loadpath/bin/Debug/net10.0-desktop/Loadpath
-# Android: -p:AndroidSdkDirectory=/home/user/android-sdk -p:JavaSdkDirectory=/usr/lib/jvm/java-21-openjdk-amd64
+Xvfb :464 -screen 0 1600x1000x24 -nolisten tcp &
+DISPLAY=:464 HOME=<scratch home> APP_NO_HOTDESIGN=1 LIBGL_ALWAYS_SOFTWARE=1 LOADPATH_TRACE=1 \
+  LOADPATH_RESET=1 LOADPATH_SAMPLE=warren Loadpath/bin/Debug/net10.0-desktop/Loadpath   # logs go to the console
+dotnet publish Loadpath/Loadpath.csproj -f net10.0-browserwasm -c Release -p:LoadpathTargetFrameworks=net10.0-browserwasm -o <dir>
 ```
-Fixture hooks (Debug only) are listed at the end of README's Validation section. `tools/drive.sh` and
-`tools/capture.sh` use display :99 and `pkill -x Loadpath`; prefer a private display and killing only your own PID.
