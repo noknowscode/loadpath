@@ -143,7 +143,7 @@ jobs:
       # regex for text the first screen shows, read from the accessibility tree (uiautomator dump); APP_LOGCAT_MARKER is
       # an optional regex the app's own logcat lines must contain.
       APP_PACKAGE: com.loadpath.app
-      APP_ACTIVITY: MainActivity
+      APP_ACTIVITY: NoSuchActivity
       APP_CONTENT_MARKER: Draw a structure and it answers
       APP_LOGCAT_MARKER: ''
       APP_ARTIFACT: loadpath-android
