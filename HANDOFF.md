@@ -11,7 +11,9 @@ Commits (pushed): `cd5c094` refactor (host, services, MainPage split, toasts), `
 `e4a02e0` safe area, `a831978` input edges 3:1, `6356c62` rail wraps, `dac50ec` preset one click, `8a6bd7e` Tab reach and
 named fields, `bacd11f` IL2026 at the host build (the WebAssembly job failed on `cd5c094`), `22d21be` preset values handed
 to the command (WebAssembly race), `17525dc` docs and evidence, `e62c3e4` an unused interface member dropped, and
-`adced8f` the owner's CI concurrency block (a newer push cancels the run it supersedes). Runs created before `adced8f`
+`adced8f` the owner's CI concurrency block (a newer push cancels the run it supersedes), `65aab78` projections guarded
+against out-of-order MVUX updates (CI failed at `8ce6f59` on a model test that read a stale state; the model tests now wait
+for each state and passed 20 runs in a row), and this docs commit (WebAssembly evidence re-run at `65aab78`). Runs created before `adced8f`
 (41855773486, 41860765144, 41861286508, 41861638203) are not in the group and could not be cancelled from here (HTTP 403).
 
 ## Last verified state
@@ -19,16 +21,17 @@ to the command (WebAssembly race), `17525dc` docs and evidence, `e62c3e4` an unu
   and MVUX's generated code, as before). CI run 41855773486 at `8a6bd7e`: tests, desktop win/linux, WinAppSDK, Android and
   the emulator smoke green; WebAssembly failed on IL2026 (fixed in `bacd11f`); macOS jobs were queued. Check the run for
   the head after `22d21be`.
-- Tests: 261/261 (was 190): page model (`EditorModelTests`), container (`CompositionTests`), settings, toasts, close guard,
+- Tests: 261/261 (was 190), 20 consecutive Release runs green: page model (`EditorModelTests`), container (`CompositionTests`), settings, toasts, close guard,
   canvas menu, canvas layout, wrap stack, autosave debounce.
 - Runtime, Debug desktop under Xvfb :464 (`APP_NO_HOTDESIGN=1`, `LIBGL_ALWAYS_SOFTWARE=1`, `xdotool`): widths 390, 599,
   600, 800, 844 x 390, 1100, 1440 in Light and Dark (`docs/evidence/desktop-widths-*.png`); floating bar above the drawing
   at 390 px; rail wrapped at 844 x 390; two failure toasts in turn with file names; preset one click with a typed value;
   palette Enter; canvas menu Add node + Ctrl+Z; section chip dragged onto M3; close prompt Cancel / Discard (WM_DELETE_WINDOW
   sent with a ctypes script); kill -9 + relaunch restored the autosave UNSAVED; Tab order logged with `LOADPATH_TRACE=1`.
-- WebAssembly: Release publish served locally, driven in headless Chromium (Playwright): Warren sample, presets sheet
-  24 / 6 / 1.6 (last value not entered), Pratt in one click (6 over capacity, 294 %), J, U (68 %), Ctrl+Z
-  (`docs/evidence/wasm-*.png`).
+- WebAssembly: Release publish at `65aab78` served locally, driven in headless Chromium (Playwright): Warren sample,
+  presets sheet 24 / 6 / 1.6 (last value not entered), Pratt in one click (6 over capacity, 294 %), J (M9), U (68 %),
+  Ctrl+Z (294 % again), no page errors (`docs/evidence/wasm-*.png`). Under swiftshader the browser lags input by seconds;
+  the driver waits 8-12 s per step.
 - Android: emulator job dump at `8a6bd7e`: title strip y 177-226 (was 49-98), ZOOM 100% y 2264-2306 (was 2327-2369),
   marker found after 11 s; marker text unchanged, so the job's `APP_CONTENT_MARKER` is unchanged.
 - Lint (`xaml-semantic-lint.ps1 -Path Loadpath`): CARD 0 · HEX 0 · TOKENTHEME 0 · BACKBAR 0 · CODEBEHIND 0 · OVERLAY 0 ·
