@@ -5,7 +5,6 @@ using Loadpath.Core.Model;
 using Loadpath.Core.Samples;
 using Loadpath.Core.Geometry;
 using Loadpath.Presentation;
-using Uno.Extensions.Reactive;
 using Xunit;
 
 namespace Loadpath.Tests;

@@ -4,7 +4,6 @@ using Loadpath.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
-using Uno.Extensions;
 
 namespace Loadpath;
 

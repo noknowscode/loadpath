@@ -1,4 +1,3 @@
-using Loadpath.Core.Model;
 using Loadpath.Core.Samples;
 using Loadpath.Presentation;
 using Loadpath.Workspace;

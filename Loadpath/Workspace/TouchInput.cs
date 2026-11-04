@@ -50,7 +50,7 @@ internal sealed class TouchInput
 
     public void Move(uint pointer, Vec2 at, VirtualKeyModifiers keys) => On(_touch.Move(pointer, at), at, keys);
 
-    public void Up(uint pointer, Vec2 at, VirtualKeyModifiers keys) => On(_touch.Up(pointer, at), at, keys);
+    public void Up(uint pointer, Vec2 at, VirtualKeyModifiers keys) => On(_touch.Up(pointer), at, keys);
 
     /// <summary>The platform took the finger away (capture lost, cancelled): a drag ends, a held press never taps.</summary>
     public void Cancel(uint pointer, Vec2 at, VirtualKeyModifiers keys) => On(_touch.Cancel(pointer), at, keys);

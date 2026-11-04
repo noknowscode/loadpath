@@ -1,7 +1,6 @@
 using Loadpath.Controls;
 using Loadpath.Presentation;
 using Microsoft.Extensions.Logging;
-using Uno.Extensions.Toolkit;
 
 namespace Loadpath.Services;
 

@@ -84,7 +84,7 @@ public sealed class TouchTracker
         }
     }
 
-    public TouchSignal Up(uint id, Vec2 at)
+    public TouchSignal Up(uint id)
     {
         if (!Remove(id)) return TouchSignal.None;
         var signal = TouchSignal.None;

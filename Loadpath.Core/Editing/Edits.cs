@@ -240,7 +240,6 @@ public sealed class DuplicateEdit : IEdit
     private readonly int[] _memberIds;
     private readonly Vec2 _offset;
     private readonly Dictionary<int, int> _nodeMap = new();
-    private readonly List<int> _newMembers = new();
     private bool _idsFixed;
     private readonly List<(int Id, Vec2 Pos, SupportKind Support, Vec2 Load)> _newNodes = new();
     private readonly List<(int Id, int Start, int End, Section Section)> _newMemberDefs = new();

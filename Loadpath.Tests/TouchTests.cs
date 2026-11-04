@@ -63,7 +63,7 @@ public class TouchTests
         Assert.Equal(TouchSignal.None, t.Down(1, new Vec2(100, 100), 0));
         Assert.True(t.IsPending);
         Assert.Equal(TouchSignal.None, t.Move(1, new Vec2(103, 102))); // inside the slop
-        Assert.Equal(TouchSignal.Tap, t.Up(1, new Vec2(103, 102)));
+        Assert.Equal(TouchSignal.Tap, t.Up(1));
         Assert.Equal(new Vec2(100, 100), t.PressPoint);
         AssertNoFingerLeft(t);
     }
@@ -85,7 +85,7 @@ public class TouchTests
         Assert.Equal(TouchSignal.BeginDrag, t.Move(7, new Vec2(10, 10 + TouchTracker.SlopPx + 1)));
         Assert.Equal(TouchSignal.Drag, t.Move(7, new Vec2(10, 40)));
         Assert.Equal(TouchSignal.None, t.Tick(5000)); // a drag never turns into a long press
-        Assert.Equal(TouchSignal.EndDrag, t.Up(7, new Vec2(10, 40)));
+        Assert.Equal(TouchSignal.EndDrag, t.Up(7));
         Assert.Equal(new Vec2(10, 10), t.PressPoint);
     }
 
@@ -99,7 +99,7 @@ public class TouchTests
         Assert.Equal(TouchSignal.None, t.Tick(9999));
         // The lift after a long press is spent: no tap, no release.
         Assert.Equal(TouchSignal.None, t.Move(1, new Vec2(80, 80)));
-        Assert.Equal(TouchSignal.None, t.Up(1, new Vec2(80, 80)));
+        Assert.Equal(TouchSignal.None, t.Up(1));
         Assert.False(t.IsPending);
     }
 
@@ -112,12 +112,12 @@ public class TouchTests
         Assert.Equal((new Vec2(100, 100), new Vec2(200, 100)), t.PinchPoints);
         Assert.Equal(TouchSignal.Pinch, t.Move(2, new Vec2(260, 100)));
         // One finger lifts: the other must not resume a tool gesture.
-        Assert.Equal(TouchSignal.None, t.Up(2, new Vec2(260, 100)));
+        Assert.Equal(TouchSignal.None, t.Up(2));
         Assert.Equal(TouchSignal.None, t.Move(1, new Vec2(140, 140)));
-        Assert.Equal(TouchSignal.None, t.Up(1, new Vec2(140, 140)));
+        Assert.Equal(TouchSignal.None, t.Up(1));
         // All up: the next touch starts fresh.
         t.Down(3, new Vec2(5, 5), 100);
-        Assert.Equal(TouchSignal.Tap, t.Up(3, new Vec2(5, 5)));
+        Assert.Equal(TouchSignal.Tap, t.Up(3));
     }
 
     [Fact]

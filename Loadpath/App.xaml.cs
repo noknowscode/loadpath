@@ -3,8 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
-using Uno.Extensions;
-using Uno.Extensions.Hosting;
 
 namespace Loadpath;
 
