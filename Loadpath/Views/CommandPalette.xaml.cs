@@ -64,20 +64,6 @@ public sealed partial class CommandPalette : UserControl
         }
     }
 
-    // xaml-lint: allow codebehind - a row is a button: a click, Enter or Space runs its command
-    private async void OnItemClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is not FrameworkElement { Tag: string id } || Model is not { } model) return;
-        try
-        {
-            await model.RunPalette(id, default);
-        }
-        catch (Exception ex)
-        {
-            model.ReportFailure("Command palette", ex);
-        }
-    }
-
     // xaml-lint: allow codebehind - hover moves the keyboard highlight
     private async void OnItemEntered(object sender, PointerRoutedEventArgs e)
     {

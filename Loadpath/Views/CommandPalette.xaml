@@ -28,10 +28,11 @@
           <ItemsControl ItemsSource="{Binding PaletteItems}" Padding="{StaticResource Inset4}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <!-- A button per command: Tab reaches it, Enter or a click runs it; arrow keys in the query move the highlight. -->
+                <!-- A button per command: Tab reaches it, Enter, Space or a click runs it; arrow keys in the query move the highlight. -->
                 <Button Style="{StaticResource PaletteRowButton}" Height="{utu:Responsive Narrow={StaticResource TouchTarget}, Normal={StaticResource PaletteRowHeight}}"
                         Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Id}"
-                        AutomationProperties.Name="{Binding AutomationName}" Click="OnItemClick" PointerEntered="OnItemEntered">
+                        Command="{Binding DataContext.RunPalette, ElementName=Panel}" CommandParameter="{Binding Id}"
+                        AutomationProperties.Name="{Binding AutomationName}" PointerEntered="OnItemEntered">
                   <Grid ColumnSpacing="{StaticResource Space10}">
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition Width="16" />

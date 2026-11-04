@@ -432,6 +432,8 @@ public partial record EditorModel
         await PublishPaletteAsync(ct);
     }
 
+    /// <summary>Run a palette entry: a row's command (its id) or Enter in the query (the highlighted entry).</summary>
+    [Command]
     public async ValueTask RunPalette(string? id, CancellationToken ct)
     {
         Trace($"palette run id={id} highlight={_paletteHighlight} matches={_paletteMatches.Count}");
