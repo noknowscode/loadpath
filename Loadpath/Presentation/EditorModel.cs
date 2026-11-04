@@ -197,10 +197,10 @@ public partial record EditorModel
     [Command] public void CycleSupport() => Ui(() => _engine.CycleSupportOnSelection());
     [Command] public void AddLoad() => Ui(() => _engine.AddDefaultLoadOnSelection());
     [Command] public void ClearLoads() => Ui(() => _engine.ClearLoadOnSelection());
-    [Command] public void SupportNone() => Ui(() => SetSupport(SupportKind.None));
-    [Command] public void SupportPin() => Ui(() => SetSupport(SupportKind.Pin));
-    [Command] public void SupportRoller() => Ui(() => SetSupport(SupportKind.RollerY));
-    [Command] public void SupportRollerX() => Ui(() => SetSupport(SupportKind.RollerX));
+    [Command] public void SupportNone() => Ui(() => _engine.SetSupportOnSelection(SupportKind.None));
+    [Command] public void SupportPin() => Ui(() => _engine.SetSupportOnSelection(SupportKind.Pin));
+    [Command] public void SupportRoller() => Ui(() => _engine.SetSupportOnSelection(SupportKind.RollerY));
+    [Command] public void SupportRollerX() => Ui(() => _engine.SetSupportOnSelection(SupportKind.RollerX));
     [Command] public void Lighten() => Ui(() => _engine.LightenMembers());
     [Command] public void UpsizeFailing() => Ui(() => _engine.UpsizeFailingMembers());
     [Command] public void SelectMember(string key) => Ui(() => _engine.SelectByKey(key, false));
@@ -214,16 +214,6 @@ public partial record EditorModel
 
     /// <summary>Apply a section to the selected members, by section id (used by the bulk list).</summary>
     [Command] public void ApplySection(string sectionId) => Ui(() => _engine.SetSectionOnSelection(Section.FindById(sectionId)));
-
-    private void SetSupport(SupportKind kind)
-    {
-        var sel = _engine.Selection;
-        if (sel.Single is { IsNode: true } r)
-        {
-            if (_engine.Document.GetNode(r.Id).Support != kind) _engine.History.Do(new Core.Editing.SetSupportEdit(r.Id, kind));
-        }
-        else _engine.SetSupportOnSelection(kind);
-    }
 
     // ---- inspector (InspectorProjection) ----
 

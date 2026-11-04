@@ -261,12 +261,16 @@ public sealed class EditorEngine
         return bounds;
     }
 
+    /// <summary>
+    /// Give every selected node the support, as one undo step. Nodes that already have it are left alone, so choosing
+    /// the support a node has adds no undo step.
+    /// </summary>
     public void SetSupportOnSelection(SupportKind kind)
     {
         var ids = Selection.NodeIds.ToList();
         if (ids.Count == 0) { Toast("Select a node first"); return; }
-        History.BeginTransaction(kind == SupportKind.None ? "Remove supports" : $"Set {kind.Label().ToLowerInvariant()}");
-        foreach (var id in ids) History.Do(new SetSupportEdit(id, kind));
+        History.BeginTransaction(kind == SupportKind.None ? (ids.Count == 1 ? "Remove support" : "Remove supports") : $"Set {kind.Label().ToLowerInvariant()}");
+        foreach (var id in ids.Where(id => Document.GetNode(id).Support != kind)) History.Do(new SetSupportEdit(id, kind));
         History.CommitTransaction();
     }
 

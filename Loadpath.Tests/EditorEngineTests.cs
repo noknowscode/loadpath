@@ -90,4 +90,33 @@ public class EditorEngineTests
         Assert.NotEmpty(engine.Document.Nodes);
         Assert.Null(toast);
     }
+
+    [Fact]
+    public void A_support_set_on_a_selection_skips_the_nodes_that_have_it_and_undoes_in_one_step()
+    {
+        var engine = new EditorEngine();
+        engine.LoadSnapshot(SampleStructures.Build("warren"), "Open", null);
+        // N1 is pinned already; N4 is free.
+        engine.Selection.Replace(new[] { ElementRef.Node(1), ElementRef.Node(4) });
+
+        engine.SetSupportOnSelection(SupportKind.Pin);
+
+        Assert.Equal(SupportKind.Pin, engine.Document.GetNode(4).Support);
+        Assert.Equal("Set pin", engine.History.UndoLabel);
+        engine.History.Undo();
+        Assert.Equal(SupportKind.Pin, engine.Document.GetNode(1).Support);
+        Assert.Equal(SupportKind.None, engine.Document.GetNode(4).Support);
+        Assert.False(engine.History.CanUndo);
+
+        // Every selected node has it already: nothing to undo.
+        engine.Selection.Set(ElementRef.Node(1));
+        engine.SetSupportOnSelection(SupportKind.Pin);
+        Assert.False(engine.History.CanUndo);
+
+        engine.SetSupportOnSelection(SupportKind.None);
+        Assert.Equal("Remove support", engine.History.UndoLabel);
+        engine.Selection.Replace(new[] { ElementRef.Node(7), ElementRef.Node(4) });
+        engine.SetSupportOnSelection(SupportKind.None);
+        Assert.Equal("Remove supports", engine.History.UndoLabel);
+    }
 }
