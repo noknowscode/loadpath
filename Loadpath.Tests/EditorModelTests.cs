@@ -135,6 +135,96 @@ public class EditorModelTests
     }
 
     [Fact]
+    public void SupportPin_pins_the_selected_node_as_one_undo_step()
+    {
+        Warren();
+        Assert.Equal(SupportKind.None, _engine.Document.GetNode(4).Support);
+        _engine.Selection.Set(ElementRef.Node(4));
+
+        _model.SupportPin();
+
+        Assert.Equal(SupportKind.Pin, _engine.Document.GetNode(4).Support);
+        Assert.Equal("Set pin", _engine.History.UndoLabel);
+        _engine.History.Undo();
+        Assert.Equal(SupportKind.None, _engine.Document.GetNode(4).Support);
+        Assert.False(_engine.History.CanUndo);
+    }
+
+    [Fact]
+    public void SupportPin_on_a_node_that_is_already_pinned_adds_no_undo_step()
+    {
+        Warren();
+        var pin = _engine.Document.Nodes.Single(n => n.Support == SupportKind.Pin);
+        _engine.Selection.Set(pin.Ref);
+
+        _model.SupportPin();
+
+        Assert.False(_engine.History.CanUndo);
+    }
+
+    [Fact]
+    public void SupportPin_pins_every_selected_node_at_once_and_asks_for_a_node_without_one()
+    {
+        Warren();
+        _engine.Selection.Replace(new[] { ElementRef.Node(3), ElementRef.Node(4) });
+
+        _model.SupportPin();
+
+        Assert.Equal(SupportKind.Pin, _engine.Document.GetNode(3).Support);
+        Assert.Equal(SupportKind.Pin, _engine.Document.GetNode(4).Support);
+        _engine.History.Undo();
+        Assert.Equal(SupportKind.None, _engine.Document.GetNode(3).Support);
+        Assert.Equal(SupportKind.None, _engine.Document.GetNode(4).Support);
+
+        _engine.Selection.Set(ElementRef.Member(1));
+        _model.SupportPin();
+        Assert.Contains(new ToastMessage("Select a node first", false), _toasts);
+    }
+
+    [Fact]
+    public async Task A_section_picked_in_the_inspector_lands_on_its_member()
+    {
+        Warren();
+        _engine.Selection.Set(ElementRef.Member(1));
+        await When(_model.Inspector, i => i.IsMember);
+        var index = Section.Library.ToList().FindIndex(s => s != _engine.Document.GetMember(1).Section);
+        // The selection moves on before the pick is committed: the pick names its member.
+        _engine.Selection.Set(ElementRef.Member(2));
+
+        await _model.MemberSection.UpdateAsync(_ => new SectionPick(1, index), CancellationToken.None);
+
+        await Until(() => _engine.Document.GetMember(1).Section == Section.Library[index]);
+        Assert.Equal(1, _engine.History.UndoDepth);
+    }
+
+    [Fact]
+    public async Task A_section_pick_outside_the_library_changes_nothing()
+    {
+        Warren();
+        var before = _engine.Document.GetMember(1).Section;
+
+        await _model.MemberSection.UpdateAsync(_ => new SectionPick(1, Section.Library.Count), CancellationToken.None);
+        await _model.MemberSection.UpdateAsync(_ => new SectionPick(1, -1), CancellationToken.None);
+        await Task.Delay(100);
+
+        Assert.Equal(before, _engine.Document.GetMember(1).Section);
+        Assert.False(_engine.History.CanUndo);
+    }
+
+    [Fact]
+    public async Task A_load_typed_in_the_inspector_lands_on_its_node()
+    {
+        Warren();
+        _engine.Selection.Set(ElementRef.Node(4));
+        await When(_model.Inspector, i => i.IsNode && i.Title == "Node N4");
+
+        await _model.NodeLoad.UpdateAsync(_ => new NodeVector(4, 2, -20), CancellationToken.None);
+
+        await Until(() => _engine.Document.GetNode(4).Load == new Vec2(2, -20));
+        Assert.Equal("Set load", _engine.History.UndoLabel);
+    }
+
+    [Fact]
     public async Task Overloaded_members_are_listed_as_failures_with_their_mode()
     {
         _engine.LoadSnapshot(TrussPresets.Build("pratt", new PresetParameters(24, 6, 1.6)), "Load preset", null);
