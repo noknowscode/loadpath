@@ -10,12 +10,12 @@
     "ios"
   ],
   "sourcePath": "Loadpath/Loadpath.csproj",
-  "iconUrl": "https://raw.githubusercontent.com/unoplatform/Uno.Samples/master/studio/loadpath/.studiolive/icon.png",
+  "iconUrl": "https://raw.githubusercontent.com/noknowscode/loadpath/studio/.studiolive/icon.png",
   "screenshots": [
-    "https://raw.githubusercontent.com/unoplatform/Uno.Samples/master/studio/loadpath/.studiolive/screenshots/overview-desktop.png",
-    "https://raw.githubusercontent.com/unoplatform/Uno.Samples/master/studio/loadpath/.studiolive/screenshots/failures-desktop.png",
-    "https://raw.githubusercontent.com/unoplatform/Uno.Samples/master/studio/loadpath/.studiolive/screenshots/truss-phone.png",
-    "https://raw.githubusercontent.com/unoplatform/Uno.Samples/master/studio/loadpath/.studiolive/screenshots/failures-phone.png"
+    "https://raw.githubusercontent.com/noknowscode/loadpath/studio/.studiolive/screenshots/overview-desktop.png",
+    "https://raw.githubusercontent.com/noknowscode/loadpath/studio/.studiolive/screenshots/failures-desktop.png",
+    "https://raw.githubusercontent.com/noknowscode/loadpath/studio/.studiolive/screenshots/truss-phone.png",
+    "https://raw.githubusercontent.com/noknowscode/loadpath/studio/.studiolive/screenshots/failures-phone.png"
   ],
   "showcase": {
     "summary": "A 2D truss workbench that solves as you draw: forces, utilization and deflection follow every drag.",
