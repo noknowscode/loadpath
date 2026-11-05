@@ -16,7 +16,13 @@ public readonly record struct PresetParameters(double Span, int Panels, double D
         Math.Clamp(double.IsFinite(Depth) ? Depth : MinDepth, MinDepth, MaxDepth));
 }
 
+// Plain value equality, as when Core was its own library: no MVUX key equality on Id.
+/// <param name="Id">The preset's stable id.</param>
+/// <param name="Title">The name shown in the presets sheet.</param>
+/// <param name="Description">One line under the title.</param>
 /// <param name="UsesPanels">False for fixed-web roofs, where the panel count does not apply.</param>
+/// <param name="Defaults">The parameters a preset opens with.</param>
+[Uno.Extensions.Equality.ImplicitKeys(IsEnabled = false)]
 public sealed record TrussPreset(string Id, string Title, string Description, bool UsesPanels, PresetParameters Defaults);
 
 /// <summary>

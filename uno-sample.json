@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schemas.platform.uno/sample/v1",
+  "id": "loadpath",
+  "displayName": "Loadpath",
+  "description": "A workbench for 2D pin-jointed trusses that solves as you draw. Place nodes, connect members, pin supports and hang loads, and every member shows the axial force it carries, its utilization and the deflected shape; drag a node and the structure re-solves on every pointer move. For engineering students, makers sketching frames and engineers doing a concept check. Built on an MVUX page model over an imperative editor engine, a SkiaSharp canvas (SKCanvasElement), Uno Toolkit responsive layouts and safe areas, and Uno.Extensions hosting, logging and theme switching, with its own Light and Dark themes on Fluent. Documents, autosave and share codes stay on the device.",
+  "platforms": [
+    "desktop",
+    "wasm",
+    "android",
+    "ios"
+  ],
+  "sourcePath": "Loadpath/Loadpath.csproj",
+  "userConversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Build a desktop-class workbench for designing 2D trusses that solves as you draw:\n- a drafting-sheet canvas with tools to place nodes, connect members, add pin and roller supports, hang loads and pan, with grid snapping and alignment guides\n- live analysis on every edit: member forces as ribbons (tension and compression), a utilization mode, the deflected shape and support reactions; dragging a node re-solves continuously\n- an inspector for the structure, a node, a member (section, material, stress, buckling) or a mixed selection, and a structure outline\n- failures you can step through, with one-step upsize and lighten\n- parametric presets (Pratt, Howe, Warren, K, Fink, scissor) with span, panels and depth\n- undo and redo, a Ctrl+K command palette, a context menu and a floating selection bar\n- save, open, autosave with crash recovery, and share codes to paste a design elsewhere\n- Light and Dark themes, a phone layout with touch (tap, drag, long press, pinch)\n\nUse MVUX, a SkiaSharp canvas, the Uno Toolkit for responsive layout and safe areas, and Uno.Extensions hosting, logging and theme switching. Keep everything local."
+      },
+      {
+        "role": "assistant",
+        "content": "Here's **Loadpath**. It's built and running in the preview: draw a truss or open the Warren sample, and the forces, utilization and deflected shape follow every drag."
+      }
+    ],
+    "suggestedPrompts": [
+      "Add a slider for the deflection exaggeration in the layers sheet",
+      "Export the drawing as an SVG with its legend",
+      "Add a member force table I can copy into a spreadsheet",
+      "Let me add my own sections to the section library"
+    ]
+  },
+  "agentContext": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Loadpath is a workbench for 2D pin-jointed trusses: draw nodes and members, add supports and loads, and it solves as you draw, showing member forces, utilization and the deflected shape."
+      },
+      {
+        "role": "assistant",
+        "content": "Loadpath is an Uno Platform single-project app at Loadpath/Loadpath.csproj (desktop, WebAssembly, Android, iOS and WinAppSDK heads). The UI-free core (namespace Loadpath.Core) lives in Loadpath/Core/ inside the app project; its records with an Id opt out of MVUX key equality ([ImplicitKeys(IsEnabled = false)]). The xunit tests live in the development repository, noknowscode/loadpath.\n\n**Key files:**\n- Loadpath/Core/: the document model (StructureDocument, Node, Member, Section, SupportKind), the direct-stiffness TrussSolver with LinearSolver and SectionSizer (upsize failing members, lighten the rest), EditHistory and the undoable edits, SelectionSet, Viewport and PinchGesture, HitTester and SnapEngine, TouchTracker (tap, drag, long press, pinch), DocumentSerializer (JSON v1), ShareCode (LP1. text codes), Autosave, and the samples and parametric presets (Pratt, Howe, Warren, K, Fink, scissor).\n- Loadpath/App.xaml.cs and AppServices.cs: the Uno.Extensions host (Hosting, Logging, ThemeService) and every service as a singleton; MainPage resolves them from App.Services because the frame creates the page.\n- Loadpath/Presentation/: EditorEngine (the imperative core: document, history, selection, viewport, tools, commands), EditorModel (the MVUX partial record the page binds through the generated EditorViewModel) and its pieces StatusProjection, OptionMirror, InspectorProjection, OutlineProjection, PaletteSearch and PresetGallery; DocumentSession (open, save, share codes, debounced autosave, the unsaved-changes question), SettingsSync, EditorStartup, ToastQueue, CanvasLayout.\n- Loadpath/Workspace/: WorkspaceView (the SKCanvasElement: draws and routes the mouse and wheel), WorkspaceRenderer (all canvas drawing from a RenderSnapshot built by RenderSnapshotBuilder), TouchInput, ViewFitting and ViewportAnimation, WorkspaceInteraction and Tools/ (select, node, member, load, support, pan).\n- Loadpath/Views/: TitleStrip, ToolRail, InspectorPanel, OutlinePanel, StatusBar, CommandPalette, ToastHost, CanvasMenu, CanvasOverlays, SectionDragController, UnsavedChangesDialog.\n- Loadpath/Themes/: Tokens.xaml (Light and Dark colours, fonts, type), Layout.xaml (spacing, sizes, the one responsive layout), Icons.xaml, Controls.xaml (the control styles).\n\n**Patterns and traps:**\n- MVUX: generated commands and ForEach callbacks run on a pool thread; anything that touches the engine goes through IUiThread (EditorModel.Ui). The pieces declare their own states and share the model's SourceContext (set in EditorModel's constructor): a state from another context binds read-only and typed values never arrive. Projections take a ticket (Projection) so an older update cannot land after a newer one.\n- The engine solves on every document change (sub-millisecond for the samples) and raises events; the model projects them into states, the canvas redraws from a snapshot. Views send edits through model commands or engine commands, never edit the document themselves.\n- Uno 7's SKCanvasElement is a Grid: it needs a transparent Background to be hit-testable. A button raises Click before it runs its command, so the presets sheet closes on the dispatcher after the command.\n- No Material: Fluent (XamlControlsResources) plus the app's tokens. The Toolkit is used only for utu:Responsive, ResponsiveView and utu:SafeArea (Normal 600, Wide 1100, Widest 1240; phones get a bottom tool strip and a bottom sheet).\n- Single page, no navigation routes. The theme follows the system and can be pinned Light or Dark (ThemeSwitcher over IThemeService); the Skia palette re-reads the tokens on ActualThemeChanged.\n\n**Services:** nothing is simulated. Files go through the platform pickers; a host with no picker (Linux without a portal) uses Documents/Loadpath and says so. Settings and the autosave live in the app's local folder (browser storage on WebAssembly, which also raises the leave-page prompt with unsaved changes). Share codes go through the clipboard.\n\n**Build:**\n- dotnet build Loadpath/Loadpath.csproj -f net10.0-desktop -p:LoadpathTargetFrameworks=net10.0-desktop\n- Warnings are errors. Debug builds read LOADPATH_* fixture variables (sample, preset, selection, theme, touch emulation) and APP_NO_HOTDESIGN=1; Release reads none. Hot Design and the App MCP are off for Uno.Sdk 7.0.0-dev.115 (NO_UNO_STUDIO in the csproj).\n\nThe app is built and running. The user may ask me to modify it."
+      }
+    ]
+  }
+}

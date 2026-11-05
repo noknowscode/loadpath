@@ -1,5 +1,9 @@
 # Loadpath
 
+- **Owner:** Matthew Mattei (@noknowscode)
+- **Status:** ready for review
+- **What it is:** A 2D truss workbench that solves as you draw: forces, utilization and deflection follow every drag.
+
 A desktop workbench for 2D trusses that solves as you draw. Place nodes, connect them, pin some to the ground, hang loads, and every member shows the force it carries, its utilization, and the deflected shape. Drag a node and the whole load path re-solves on every pointer move.
 
 Built with Uno Platform (`Uno.Sdk 7.0.0-dev.115`, Skia renderer, SkiaSharp 4) for five heads: desktop (Windows, macOS and Linux through Skia), Windows App SDK, WebAssembly, Android and iOS. It follows the system theme (a light blueprint sheet or a dark drafting table), lays itself out for phones, tablets and desktops, and edits by mouse and keyboard or by touch. The product and interaction design are in [`SPEC.md`](SPEC.md); this file covers what shipped, how it is built, and how it was validated.
@@ -11,10 +15,9 @@ Built with Uno Platform (`Uno.Sdk 7.0.0-dev.115`, Skia renderer, SkiaSharp 4) fo
 ```powershell
 dotnet build Loadpath/Loadpath.csproj -f net10.0-desktop -p:LoadpathTargetFrameworks=net10.0-desktop
 dotnet run --project Loadpath/Loadpath.csproj -f net10.0-desktop -p:LoadpathTargetFrameworks=net10.0-desktop
-dotnet test Loadpath.Tests/Loadpath.Tests.csproj -p:LoadpathTargetFrameworks=net10.0
 ```
 
-`LoadpathTargetFrameworks` limits the app to one head, so a build needs only that head's workload. The tests reference the app's plain `net10.0` build (no head, no workload), so they cover the page model, the container, the engine, the tools and the document session as well as Core. Warnings fail the build (`TreatWarningsAsErrors`), except trim analysis, which reports only on Uno's and MVUX's generated code. The other heads: `net10.0-browserwasm` (`wasm-tools` workload), `net10.0-android`, `net10.0-ios` (macOS) and `net10.0-windows10.0.19041` (Windows, x64 or ARM64). CI (`.github/workflows/ci.yml`) builds all five.
+`LoadpathTargetFrameworks` limits the app to one head, so a build needs only that head's workload. This folder holds the one app project Studio opens; the unit tests (xunit) live in the development repository, [noknowscode/loadpath](https://github.com/noknowscode/loadpath), and cover the page model, the container, the engine, the tools, the document session and Core. Warnings fail the build (`TreatWarningsAsErrors`), except trim analysis, which reports only on Uno's and MVUX's generated code. The other heads: `net10.0-browserwasm` (`wasm-tools` workload), `net10.0-android`, `net10.0-ios` (macOS) and `net10.0-windows10.0.19041` (Windows, x64 or ARM64). The development repository's CI builds all five.
 
 In Debug, set `APP_NO_HOTDESIGN=1` to skip `UseStudio()` when no DevServer is reachable (headless runs).
 
@@ -55,7 +58,7 @@ In Debug, set `APP_NO_HOTDESIGN=1` to skip `UseStudio()` when no DevServer is re
 ## Architecture
 
 ```
-Loadpath.Core/      net10.0 class library, no UI dependency
+Loadpath/Core/      the document, the solver and the editing rules, with no UI dependency (namespace Loadpath.Core)
   Model/            StructureDocument, Node, Member, Section, Material
   Analysis/         TrussSolver (direct stiffness), LinearSolver, AnalysisResult, SectionSizer (upsize failing members, lighten the rest)
   Editing/          IEdit, EditHistory (undo/redo, coalescing, transactions), edits
@@ -86,10 +89,6 @@ Loadpath/           Uno single-project app
   Services/         FileService (IDocumentFiles), SettingsService (ISettingsStore), ThemeSwitcher (IThemeService),
                     CloseGuard, DispatcherUiThread
   Themes/           Tokens (Light and Dark), Layout (spacing, sizes, the responsive layout), Icons, Controls
-Loadpath.Tests/     xunit on Core and the app's net10.0 build: solver and LinearSolver, history, geometry, serializer and
-                    malformed documents, the engine, tool cancellation, the document session and autosave, inspector fields,
-                    the page model (EditorModel) and its bindable states, the container, settings, toasts, the close
-                    guard, the canvas layout, the canvas's touch input, frame builder and view fitting
 ```
 
 **Decision: MVUX for the presentation layer, an imperative engine for the document.** `EditorModel` is a `partial record` whose states and feeds carry immutable records (`EditorStatus`, `InspectorContent`, `OutlineItem`, `PaletteItem`); the generated `EditorViewModel` is the page's DataContext and every view binds with `{Binding}`. Buttons bind generated commands; undo and redo are feed-gated (`Command.Create(b => b.Given(Status).When(s => s.CanUndo)...)`). `EditorEngine` owns the document, undo history, selection, viewport and tools, and raises events the model projects into states, because a solve on every pointer move cannot copy an immutable document per frame. Tradeoff: two layers, and a plain `ViewOptions` mirror of the option states for the renderer. The model's pieces (status, options, inspector, outline, palette, presets) declare their own states and share the model's `SourceContext`: the generated view model binds a state of another context read-only.

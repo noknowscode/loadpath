@@ -1,6 +1,8 @@
 namespace Loadpath.Core.Model;
 
+// Plain value equality, as when Core was its own library: no MVUX key equality on Id.
 /// <summary>Cross-section: area in mm², second moment of area in mm⁴. Sections are shared by members.</summary>
+[Uno.Extensions.Equality.ImplicitKeys(IsEnabled = false)]
 public sealed record Section(string Id, string Name, double AreaMm2, double SecondMomentMm4, Material Material)
 {
     /// <summary>Compact label for chips: the size part of the name.</summary>

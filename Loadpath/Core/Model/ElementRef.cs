@@ -2,7 +2,9 @@ namespace Loadpath.Core.Model;
 
 public enum ElementKind { Node, Member }
 
+// Plain value equality, as when Core was its own library: no MVUX key equality on Id.
 /// <summary>A reference to a document element by kind and id. Stable across edits until the element is removed.</summary>
+[Uno.Extensions.Equality.ImplicitKeys(IsEnabled = false)]
 public readonly record struct ElementRef(ElementKind Kind, int Id)
 {
     public static ElementRef Node(int id) => new(ElementKind.Node, id);

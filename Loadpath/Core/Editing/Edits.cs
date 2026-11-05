@@ -51,6 +51,8 @@ public sealed class MoveNodesEdit : ICoalescingEdit
     private readonly int _gesture;
     private Vec2 _delta;
 
+    /// <param name="nodeIds">The nodes to move.</param>
+    /// <param name="delta">How far to move them.</param>
     /// <param name="gesture">Edits with the same non-zero gesture id coalesce; 0 never coalesces.</param>
     public MoveNodesEdit(IEnumerable<int> nodeIds, Vec2 delta, int gesture = 0)
     {
@@ -107,6 +109,8 @@ public sealed class SetLoadEdit : ICoalescingEdit
     private Vec2 _from;
     private readonly int _gesture;
 
+    /// <param name="nodeId">The loaded node.</param>
+    /// <param name="to">The new load vector; zero clears the load.</param>
     /// <param name="gesture">Edits with the same non-zero gesture id coalesce (vector drag); 0 never coalesces.</param>
     public SetLoadEdit(int nodeId, Vec2 to, int gesture = 0) { _nodeId = nodeId; _to = to; _gesture = gesture; }
     public string Label => _to.LengthSquared < 1e-12 ? "Clear load" : "Set load";

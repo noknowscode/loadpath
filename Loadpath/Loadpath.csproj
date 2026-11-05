@@ -1,14 +1,8 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <!--
-      Five heads. Uno.Sdk skips the ones the build OS can't build (iOS off macOS, Windows off Windows).
-      net10.0 is not a head: Loadpath.Tests references it to test the app layer (engine, tools, files).
-    -->
-    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041;net10.0-browserwasm;net10.0-desktop;net10.0</TargetFrameworks>
-    <!--
-      App-only override for single-head builds (tests, CI, RID-specific publish): -p:LoadpathTargetFrameworks=net10.0-desktop.
-      A global -p:TargetFrameworks would also reach Loadpath.Core, a plain net10.0 library, and the test project.
-    -->
+    <!-- Five heads. Uno.Sdk skips the ones the build OS can't build (iOS off macOS, Windows off Windows). -->
+    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041;net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
+    <!-- One head at a time (CI, RID-specific publish): -p:LoadpathTargetFrameworks=net10.0-desktop. -->
     <TargetFrameworks Condition="'$(LoadpathTargetFrameworks)' != ''">$(LoadpathTargetFrameworks)</TargetFrameworks>
 
     <OutputType>Exe</OutputType>
@@ -69,9 +63,4 @@
     <EmbeddedResource Include="Platforms/WebAssembly/WasmScripts/UnsavedChanges.js" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../Loadpath.Core/Loadpath.Core.csproj" />
-    <!-- The page model's internal hooks (tab selection, failure reporting) are tested directly. -->
-    <InternalsVisibleTo Include="Loadpath.Tests" />
-  </ItemGroup>
 </Project>

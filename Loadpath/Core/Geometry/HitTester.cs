@@ -4,6 +4,8 @@ namespace Loadpath.Core.Geometry;
 
 public enum HitKind { None, Node, Member, LoadHandle }
 
+// Plain value equality, as when Core was its own library: no MVUX key equality on Id.
+[Uno.Extensions.Equality.ImplicitKeys(IsEnabled = false)]
 public readonly record struct HitResult(HitKind Kind, int Id)
 {
     public static readonly HitResult None = new(HitKind.None, 0);
