@@ -3,11 +3,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="using:Loadpath.Controls"
              xmlns:utu="using:Uno.Toolkit.UI">
-  <Grid x:Name="Scrim" Background="{ThemeResource ScrimBrush}" PointerPressed="OnScrimPressed">
+  <Grid x:Name="Scrim" Background="{ThemeResource SimpleBackgroundUtilitiesOverlayBrush}" PointerPressed="OnScrimPressed">
     <!-- xaml-lint: allow card - popover chrome, not a card; Toolkit cards need a design theme this Fluent app does not merge (README) -->
     <Border x:Name="Panel" MaxWidth="{StaticResource PaletteMaxWidth}" MaxHeight="{StaticResource PaletteMaxHeight}" HorizontalAlignment="Stretch" VerticalAlignment="Top"
             Margin="{utu:Responsive Narrow={StaticResource PaletteMarginNarrow}, Normal={StaticResource PaletteMargin}}"
-            Background="{ThemeResource SurfaceRaisedBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusPopover}"
+            Background="{ThemeResource SurfaceVariantBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusPopover}"
             PointerPressed="OnPanelPressed">
       <Border.RenderTransform>
         <TranslateTransform x:Name="PanelTranslate" Y="0" />
@@ -18,7 +18,7 @@
           <RowDefinition Height="*" />
           <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Grid Padding="{StaticResource InsetX8}" BorderBrush="{ThemeResource HairlineBrush}" BorderThickness="{StaticResource HairlineBottom}" ColumnSpacing="{StaticResource Space4}">
+        <Grid Padding="{StaticResource InsetX8}" BorderBrush="{ThemeResource OutlineVariantMediumBrush}" BorderThickness="{StaticResource HairlineBottom}" ColumnSpacing="{StaticResource Space4}">
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
           <c:Icon Kind="search" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Margin="{StaticResource GapStart4}" />
           <TextBox x:Name="Query" Grid.Column="1" Style="{StaticResource SearchTextBox}" PlaceholderText="Type a command…"
@@ -50,7 +50,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </ScrollViewer>
-        <Border Grid.Row="2" Padding="{StaticResource Inset12x6}" BorderBrush="{ThemeResource HairlineBrush}" BorderThickness="{StaticResource HairlineTop}">
+        <Border Grid.Row="2" Padding="{StaticResource Inset12x6}" BorderBrush="{ThemeResource OutlineVariantMediumBrush}" BorderThickness="{StaticResource HairlineTop}">
           <TextBlock Text="↑↓ navigate · Enter run · Esc close" Style="{StaticResource CaptionText}" />
         </Border>
       </Grid>

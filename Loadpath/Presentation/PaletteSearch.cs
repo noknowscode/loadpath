@@ -75,7 +75,7 @@ public sealed class PaletteSearch(EditorEngine engine, IUiThread ui, ILogger<Pal
     {
         var items = _matches.Select((c, i) => new PaletteItem(
             c.Id, c.Title, c.Category, c.ShortcutDisplay.Replace("|", " · "), c.Icon ?? "chevron-right", c.Icon is not null,
-            !c.CanExecute, i == _highlight ? "SurfaceHoverBrush" : "TransparentBrush")).ToImmutableList();
+            !c.CanExecute, i == _highlight ? "SurfaceVariantBrush" : "TransparentBrush")).ToImmutableList();
         await PaletteItems.UpdateAsync(_ => items, ct);
     }
 

@@ -3,19 +3,22 @@ using Windows.UI;
 namespace Loadpath.Controls;
 
 /// <summary>
-/// Resolves a token from Themes/Tokens.xaml for an explicit theme. Code has no {ThemeResource}, and a plain
-/// <c>Application.Current.Resources[key]</c> answers with the application's theme, not the window's, so the canvas
-/// palette and the brush-key converters ask for the theme they are drawing in.
+/// Resolves a resource for an explicit theme: a role colour or brush of the Simple theme (<c>PrimaryColor</c>,
+/// <c>OnSurfaceVariantBrush</c>: the palette is Styles/ColorPaletteOverride.xaml) or one of App.xaml's per-theme values
+/// (<c>WarnColor</c>, the canvas alphas). Code has no {ThemeResource}, and a plain <c>Application.Current.Resources[key]</c>
+/// answers with the application's theme, not the window's, so the canvas palette and the brush-key converters ask for the
+/// theme they are drawing in. The walk goes through the merged dictionaries, the theme's generated palette included.
 /// </summary>
 public static class ThemeLookup
 {
-    /// <summary>The theme dictionary keys to try, in order. Tokens.xaml keys its dark palette "Default" (WinUI convention).</summary>
+    /// <summary>The theme dictionary keys to try, in order. The dark palette is keyed "Default" (WinUI convention).</summary>
     private static string[] KeysFor(ElementTheme theme) => theme == ElementTheme.Dark ? ["Dark", "Default"] : ["Light"];
 
+    /// <summary>A colour, or a brush's colour with its opacity folded into the alpha (the state brushes are a role at 8-64 %).</summary>
     public static Color Color(string key, ElementTheme theme, Color fallback) => Value(key, theme) switch
     {
         Color c => c,
-        SolidColorBrush b => b.Color,
+        SolidColorBrush b => Windows.UI.Color.FromArgb((byte)Math.Round(b.Color.A * Math.Clamp(b.Opacity, 0, 1)), b.Color.R, b.Color.G, b.Color.B),
         _ => fallback,
     };
 
@@ -45,7 +48,7 @@ public static class ThemeLookup
 }
 
 /// <summary>
-/// Brushes for the resource keys the model hands to the views ("DangerBrush", "SelectionBrush", …). A converter cannot
+/// Brushes for the resource keys the model hands to the views ("ErrorBrush", "PrimaryContainerBrush", …). A converter cannot
 /// see the element it converts for, and its result is not re-asked when the theme changes, so it hands out one shared
 /// brush per key and <see cref="Apply"/> recolors every shared brush in place when the window's theme changes. The app
 /// sets its theme on the window content only, so the window's theme is every element's theme.

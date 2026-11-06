@@ -5,7 +5,7 @@
   <Style TargetType="c:Icon">
     <Setter Property="Width" Value="{StaticResource IconSize}" />
     <Setter Property="Height" Value="{StaticResource IconSize}" />
-    <Setter Property="Foreground" Value="{ThemeResource InkSecondaryBrush}" />
+    <Setter Property="Foreground" Value="{ThemeResource OnSurfaceVariantBrush}" />
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Template">

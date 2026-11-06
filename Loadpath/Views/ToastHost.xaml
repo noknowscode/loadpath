@@ -9,13 +9,13 @@
     screen reader reads each message as it appears.
   -->
   <!-- xaml-lint: allow card - toast, not a card; Fluent ships no toast control -->
-  <Border x:Name="Chrome" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}" Opacity="0" Background="{ThemeResource InkBrush}">
+  <Border x:Name="Chrome" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}" Opacity="0" Background="{ThemeResource SurfaceInverseBrush}">
     <Border.RenderTransform>
       <TranslateTransform Y="6" />
     </Border.RenderTransform>
     <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
-      <c:Icon x:Name="ErrorMark" Kind="warning" Foreground="{ThemeResource CanvasBrush}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" VerticalAlignment="Center" Visibility="Collapsed" />
-      <TextBlock x:Name="Message" Style="{StaticResource BodyText}" Foreground="{ThemeResource CanvasBrush}" TextWrapping="Wrap" TextTrimming="None"
+      <c:Icon x:Name="ErrorMark" Kind="warning" Foreground="{ThemeResource OnSurfaceInverseBrush}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" VerticalAlignment="Center" Visibility="Collapsed" />
+      <TextBlock x:Name="Message" Style="{StaticResource BodyText}" Foreground="{ThemeResource OnSurfaceInverseBrush}" TextWrapping="Wrap" TextTrimming="None"
                  AutomationProperties.LiveSetting="Polite" />
     </StackPanel>
   </Border>

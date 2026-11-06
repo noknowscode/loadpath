@@ -20,9 +20,9 @@
       MVUX: the presentation model (Uno.Extensions.Reactive).
       Hosting, Logging: the app's services live in one container (AppServices) and log through ILogger.
       ThemeService: IThemeService puts the saved theme choice on the window.
-      Toolkit: utu:Responsive and ResponsiveView for the width layouts, utu:SafeArea for the phone's system bars. Only
-      the helpers are used; ToolkitResources is not merged, so Fluent (XamlControlsResources) plus the app's own tokens
-      and control styles stay the only control theme. No Material.
+      Toolkit: utu:Responsive and ResponsiveView for the width layouts, utu:SafeArea for the phone's system bars.
+      SimpleTheme: the look. App.xaml merges SimpleToolkitTheme with the design's palette (Styles/ColorPaletteOverride.xaml),
+      type ramp and token bases, so Uno Platform Studio's Themes tab drives the app.
     -->
     <UnoFeatures>
       SkiaRenderer;
@@ -31,6 +31,7 @@
       Logging;
       ThemeService;
       Toolkit;
+      SimpleTheme;
     </UnoFeatures>
   </PropertyGroup>
 

@@ -29,18 +29,18 @@ public sealed class StatusProjection(EditorEngine engine)
         var mechanism = false;
         switch (a.Status)
         {
-            case AnalysisStatus.Empty: text = "Empty"; detail = "Place a node to begin"; tone = "InkTertiaryBrush"; break;
-            case AnalysisStatus.NoLoads: text = "No loads"; detail = "Add a load (L) to see forces"; tone = "InkTertiaryBrush"; break;
+            case AnalysisStatus.Empty: text = "Empty"; detail = "Place a node to begin"; tone = "OnSurfaceVariantBrush"; break;
+            case AnalysisStatus.NoLoads: text = "No loads"; detail = "Add a load (L) to see forces"; tone = "OnSurfaceVariantBrush"; break;
             case AnalysisStatus.Unsupported:
-                text = "Unsupported"; detail = "A pin and a roller are needed"; tone = "DangerBrush"; mechanism = true;
+                text = "Unsupported"; detail = "A pin and a roller are needed"; tone = "ErrorBrush"; mechanism = true;
                 mechanismText = "Unsupported — the structure can move freely. Add a pin and a roller (S)."; break;
             case AnalysisStatus.Mechanism:
-                text = "Mechanism"; detail = "The structure can move freely"; tone = "DangerBrush"; mechanism = true;
+                text = "Mechanism"; detail = "The structure can move freely"; tone = "ErrorBrush"; mechanism = true;
                 mechanismText = "Mechanism — the structure can move freely. Triangulate it or add a support."; break;
             default:
                 text = a.MaxUtilization >= 1 ? "Overstressed" : "Solved";
                 detail = $"{a.SolveMilliseconds:0.0} ms";
-                tone = a.MaxUtilization >= 1 ? "DangerBrush" : "OkBrush";
+                tone = a.MaxUtilization >= 1 ? "ErrorBrush" : "OnSurfaceVariantBrush";
                 break;
         }
         var d = a.DetachedNodeIds.Count;

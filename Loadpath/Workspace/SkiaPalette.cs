@@ -4,24 +4,29 @@ using SkiaSharp;
 namespace Loadpath.Workspace;
 
 /// <summary>
-/// The canvas palette for one theme, read from Themes/Tokens.xaml (colors and the per-theme alphas Skia bakes into its
-/// paints). Immutable: the view builds a new one on load and on every ActualThemeChanged and hands it to the renderer,
-/// which swaps it in at the start of the next frame.
+/// The canvas palette for one theme: the Simple theme's role colours (the design's palette, Styles/ColorPaletteOverride.xaml),
+/// App.xaml's Warn and the per-theme alphas Skia bakes into its paints. Construction lines and grid marks are Primary
+/// blended into the paper. Immutable: the view builds a new one on load and on every ActualThemeChanged and hands it to
+/// the renderer, which swaps it in at the start of the next frame.
 /// </summary>
 public sealed class SkiaPalette
 {
-    public required SKColor Canvas { get; init; }
-    public required SKColor Ink { get; init; }
-    public required SKColor InkSecondary { get; init; }
-    public required SKColor InkTertiary { get; init; }
-    /// <summary>Blueprint ink: the structure, its annotations and the accent.</summary>
-    public required SKColor Accent { get; init; }
-    public required SKColor AccentSoft { get; init; }
-    /// <summary>Construction lines: frame, grid marks, extension lines.</summary>
-    public required SKColor AccentFaint { get; init; }
+    /// <summary>The paper (Background).</summary>
+    public required SKColor Background { get; init; }
+    /// <summary>Secondary ink (OnSurfaceVariant): unsolved members, the drawing's caption.</summary>
+    public required SKColor OnSurfaceVariant { get; init; }
+    /// <summary>The blueprint ink (Primary): the structure, its forces, supports, loads and annotations.</summary>
+    public required SKColor Primary { get; init; }
+    /// <summary>The selection wash (PrimaryContainer).</summary>
+    public required SKColor PrimaryContainer { get; init; }
+    /// <summary>Construction lines: frame, grid crosses, extension lines (Primary blended into the paper).</summary>
+    public required SKColor Construction { get; init; }
+    /// <summary>Minor grid dots (Primary blended into the paper, fainter).</summary>
     public required SKColor GridMark { get; init; }
-    public required SKColor Danger { get; init; }
-    public required SKColor DangerSoft { get; init; }
+    /// <summary>Over capacity (Error) and its plate (ErrorContainer).</summary>
+    public required SKColor Error { get; init; }
+    public required SKColor ErrorContainer { get; init; }
+    /// <summary>The amber step of the utilization ramp (App.xaml, no palette role).</summary>
     public required SKColor Warn { get; init; }
 
     /// <summary>Dimmed members (a single member selected, or a detached part).</summary>
@@ -36,7 +41,7 @@ public sealed class SkiaPalette
     public required double DimLineAlpha { get; init; }
     public required double TagAlpha { get; init; }
 
-    /// <summary>Read the palette for a theme (Light or Dark) from the token dictionaries.</summary>
+    /// <summary>Read the palette for a theme (Light or Dark) from the theme's role colours and App.xaml.</summary>
     /// <remarks>A key that does not resolve draws transparent (or fully opaque, for an alpha): visibly wrong, never a stale constant.</remarks>
     public static SkiaPalette FromResources(ElementTheme theme)
     {
@@ -46,18 +51,18 @@ public sealed class SkiaPalette
             return new SKColor(c.R, c.G, c.B, c.A);
         }
         double D(string key) => ThemeLookup.Double(key, theme, 1.0);
+        var background = C("BackgroundColor");
+        var primary = C("PrimaryColor");
         return new SkiaPalette
         {
-            Canvas = C("CanvasColor"),
-            Ink = C("InkColor"),
-            InkSecondary = C("InkSecondaryColor"),
-            InkTertiary = C("InkTertiaryColor"),
-            Accent = C("AccentColor"),
-            AccentSoft = C("AccentSoftColor"),
-            AccentFaint = C("ConstructionColor"),
-            GridMark = C("GridMarkColor"),
-            Danger = C("DangerColor"),
-            DangerSoft = C("DangerSoftColor"),
+            Background = background,
+            OnSurfaceVariant = C("OnSurfaceVariantColor"),
+            Primary = primary,
+            PrimaryContainer = C("PrimaryContainerColor"),
+            Construction = Lerp(background, primary, D("CanvasConstructionAlpha")),
+            GridMark = Lerp(background, primary, D("CanvasGridAlpha")),
+            Error = C("ErrorColor"),
+            ErrorContainer = C("ErrorContainerColor"),
             Warn = C("WarnColor"),
             DimAlpha = D("CanvasDimAlpha"),
             DimInkAlpha = D("CanvasDimInkAlpha"),
@@ -69,11 +74,11 @@ public sealed class SkiaPalette
         };
     }
 
-    /// <summary>Utilization ramp on paper: blueprint → amber → red, saturating at 1.</summary>
+    /// <summary>Utilization ramp on paper: Primary → Warn → Error, saturating at 1.</summary>
     public SKColor Utilization(double u)
     {
         u = Math.Clamp(u, 0, 1);
-        return u < 0.5 ? Lerp(Accent, Warn, u / 0.5) : Lerp(Warn, Danger, (u - 0.5) / 0.5);
+        return u < 0.5 ? Lerp(Primary, Warn, u / 0.5) : Lerp(Warn, Error, (u - 0.5) / 0.5);
     }
 
     public static SKColor Lerp(SKColor a, SKColor b, double t)

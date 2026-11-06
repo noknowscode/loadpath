@@ -3,10 +3,11 @@ namespace Loadpath.Presentation;
 /// <summary>How results read in the panels: signed forces, utilization tones (resource keys), load arrows and support words.</summary>
 internal static class ResultText
 {
-    public static string UtilTone(double util) => util >= 1 ? "DangerBrush" : util >= 0.75 ? "WarnBrush" : "InkBrush";
+    public static string UtilTone(double util) => util >= 1 ? "ErrorBrush" : util >= 0.75 ? "WarnBrush" : "OnSurfaceBrush";
 
+    /// <summary>Tension and compression are the structure's ink (Primary); their sign reads from the word and the line style.</summary>
     public static string ForceTone(bool tension, bool compression, bool danger) =>
-        danger ? "DangerBrush" : tension ? "TensionBrush" : compression ? "CompressionBrush" : "InkTertiaryBrush";
+        danger ? "ErrorBrush" : tension || compression ? "PrimaryBrush" : "OnSurfaceVariantBrush";
 
     public static string SignedKn(double v) => (v >= 0 ? "+" : "−") + $"{Math.Abs(v):0.0}";
 

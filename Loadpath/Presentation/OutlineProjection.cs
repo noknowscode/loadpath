@@ -39,7 +39,7 @@ public sealed class OutlineProjection(EditorEngine engine, IUiThread ui)
             // Round, then add +0.0: -0.0 + 0.0 is +0.0, so a node at x = -1e-12 reads "0" instead of "-0".
             return new OutlineItem($"n{n.Id}", $"N{n.Id}", $"{Math.Round(n.Position.X, 2) + 0.0:0.##}, {Math.Round(n.Position.Y, 2) + 0.0:0.##}",
                 n.HasLoad ? $"{ResultText.Arrow(n.Load)} {n.Load.Length:0.#} kN" : "",
-                "InkBrush", selected ? "SelectionBrush" : "TransparentBrush", n.HasSupport, ResultText.SupportWord(n.Support), false, "");
+                "OnSurfaceBrush", selected ? "PrimaryContainerBrush" : "TransparentBrush", n.HasSupport, ResultText.SupportWord(n.Support), false, "");
         }).ToImmutableList();
         var members = doc.Members.Select(m =>
         {
@@ -49,8 +49,8 @@ public sealed class OutlineProjection(EditorEngine engine, IUiThread ui)
             var res = r ?? default;
             return new OutlineItem($"m{m.Id}", $"M{m.Id}", $"N{m.StartNodeId}-N{m.EndNodeId}",
                 solved ? (Math.Abs(res.AxialForceKn) < 0.05 ? "0.0" : ResultText.SignedKn(res.AxialForceKn)) : "",
-                solved ? (res.IsOverstressed ? "DangerBrush" : "InkBrush") : "InkTertiaryBrush",
-                selected ? "SelectionBrush" : "TransparentBrush", false, "",
+                solved ? (res.IsOverstressed ? "ErrorBrush" : "OnSurfaceBrush") : "OnSurfaceVariantBrush",
+                selected ? "PrimaryContainerBrush" : "TransparentBrush", false, "",
                 solved && res.IsOverstressed, solved ? $"{res.Utilization * 100:0}%" : "");
         }).ToImmutableList();
         await OutlineNodes.UpdateAsync(current => t.IsLatest ? (nodes) : current);

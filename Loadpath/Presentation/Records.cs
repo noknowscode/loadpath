@@ -26,7 +26,7 @@ public record EditorStatus(
     string SolveText,
     bool IsOverCapacity)
 {
-    public static readonly EditorStatus Initial = new("Untitled", false, "InkTertiaryBrush", false, "", false, "", "—", "OkBrush", true, false, false, "Nothing to undo", "Nothing to redo", "EMPTY · PLACE A NODE TO BEGIN", false, "—", false);
+    public static readonly EditorStatus Initial = new("Untitled", false, "OnSurfaceVariantBrush", false, "", false, "", "—", "OnSurfaceVariantBrush", true, false, false, "Nothing to undo", "Nothing to redo", "EMPTY · PLACE A NODE TO BEGIN", false, "—", false);
 }
 
 public record InspectorContent(
@@ -48,10 +48,10 @@ public record InspectorContent(
 {
     public static readonly InspectorContent Empty = new(
         true, false, false, false, "Structure", "Nothing here yet",
-        "0", "0", "none", "none", "—", "—", 0, "OkBrush", "—", false, "", "", "",
+        "0", "0", "none", "none", "—", "—", 0, "OnSurfaceVariantBrush", "—", false, "", "", "",
         false, false, false, true, false, "",
         "", "—", "—", "—", 36, 36, "0",
-        "", "", "", "", "", "InkTertiaryBrush", "", "", "", 0, "OkBrush", "", "",
+        "", "", "", "", "", "OnSurfaceVariantBrush", "", "", "", 0, "OnSurfaceVariantBrush", "", "",
         "", false, false,
         false, "");
 }

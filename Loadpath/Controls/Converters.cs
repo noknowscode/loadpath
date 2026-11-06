@@ -32,7 +32,7 @@ public sealed class TextToVisibilityConverter : IValueConverter
 }
 
 /// <summary>
-/// Resource key (e.g. "DangerBrush") → the themed brush for that key. The brush is shared and recolored in place when
+/// Resource key (e.g. "ErrorBrush") → the themed brush for that key. The brush is shared and recolored in place when
 /// the theme changes (<see cref="ThemeBrushes"/>), so a bound element follows Light and Dark without re-binding.
 /// </summary>
 public sealed class KeyToBrushConverter : IValueConverter
@@ -40,7 +40,7 @@ public sealed class KeyToBrushConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, string language)
     {
         var key = value as string;
-        if (string.IsNullOrEmpty(key)) key = parameter as string ?? "InkBrush";
+        if (string.IsNullOrEmpty(key)) key = parameter as string ?? "OnSurfaceBrush";
         return ThemeBrushes.Get(key);
     }
 
@@ -52,7 +52,7 @@ public sealed class BoolToBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
-        var keys = (parameter as string ?? "InkBrush|InkBrush").Split('|');
+        var keys = (parameter as string ?? "OnSurfaceBrush|OnSurfaceBrush").Split('|');
         return ThemeBrushes.Get(value is true ? keys[0] : keys[^1]);
     }
 

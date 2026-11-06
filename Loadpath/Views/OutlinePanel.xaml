@@ -14,12 +14,12 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
-          <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource OnSurfaceBrush}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource OnSurfaceBrush}" VerticalAlignment="Center" />
           <Border Grid.Column="2" Style="{StaticResource PillBorder}" HorizontalAlignment="Right" c:Motion.Reveal="True" Visibility="{Binding HasBadge, Converter={StaticResource Vis}}">
-            <TextBlock Text="{Binding Badge}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" Foreground="{ThemeResource InkBrush}" />
+            <TextBlock Text="{Binding Badge}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" Foreground="{ThemeResource OnSurfaceBrush}" />
           </Border>
-          <TextBlock Grid.Column="3" Text="{Binding Value}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" TextAlignment="Right" />
+          <TextBlock Grid.Column="3" Text="{Binding Value}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource OnSurfaceBrush}" VerticalAlignment="Center" TextAlignment="Right" />
         </Grid>
       </Button>
     </DataTemplate>
@@ -36,11 +36,11 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
           </Grid.ColumnDefinitions>
-          <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Label}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource OnSurfaceBrush}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="{Binding Detail}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource OnSurfaceBrush}" VerticalAlignment="Center" />
           <TextBlock Grid.Column="2" Text="{Binding Value}" Style="{StaticResource MonoCaption}" Foreground="{Binding ValueToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center" />
           <Border Grid.Column="3" Style="{StaticResource DangerPill}" BorderThickness="{StaticResource Inset0}" c:Motion.Reveal="True" Visibility="{Binding HasPill, Converter={StaticResource Vis}}">
-            <TextBlock Text="{Binding PillText}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" Foreground="{ThemeResource DangerBrush}" />
+            <TextBlock Text="{Binding PillText}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextMicro}" LineHeight="{StaticResource LineMicro}" Foreground="{ThemeResource ErrorBrush}" />
           </Border>
         </Grid>
       </Button>
@@ -52,7 +52,7 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
-    <TextBlock Text="STRUCTURE" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource InkSecondaryBrush}" Margin="{StaticResource OutlineHeaderMargin}" />
+    <TextBlock Text="STRUCTURE" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource OnSurfaceVariantBrush}" Margin="{StaticResource OutlineHeaderMargin}" />
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled">
       <StackPanel Padding="{StaticResource GapBottom16}">
         <TextBlock Text="No elements yet. Press N to place a node." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource Inset16x4}" Visibility="{Binding OutlineIsEmpty, Converter={StaticResource Vis}}" />
@@ -64,8 +64,8 @@
               <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Grid Width="{StaticResource IconSizeMd}">
-              <c:Icon Kind="chevron-down" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource InkSecondaryBrush}" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}}" />
-              <c:Icon Kind="chevron-right" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource InkSecondaryBrush}" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}, ConverterParameter=invert}" />
+              <c:Icon Kind="chevron-down" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource OnSurfaceVariantBrush}" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}}" />
+              <c:Icon Kind="chevron-right" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource OnSurfaceVariantBrush}" Visibility="{Binding NodesExpanded, Converter={StaticResource Vis}, ConverterParameter=invert}" />
             </Grid>
             <TextBlock Grid.Column="1" Text="01" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
             <TextBlock Grid.Column="2" Text="NODES" Style="{StaticResource SectionLabel}" FontSize="{StaticResource TextLabel}" VerticalAlignment="Center" />
@@ -81,8 +81,8 @@
               <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Grid Width="{StaticResource IconSizeMd}">
-              <c:Icon Kind="chevron-down" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource InkSecondaryBrush}" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}}" />
-              <c:Icon Kind="chevron-right" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource InkSecondaryBrush}" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}, ConverterParameter=invert}" />
+              <c:Icon Kind="chevron-down" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource OnSurfaceVariantBrush}" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}}" />
+              <c:Icon Kind="chevron-right" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource OnSurfaceVariantBrush}" Visibility="{Binding MembersExpanded, Converter={StaticResource Vis}, ConverterParameter=invert}" />
             </Grid>
             <TextBlock Grid.Column="1" Text="02" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
             <TextBlock Grid.Column="2" Text="MEMBERS" Style="{StaticResource SectionLabel}" FontSize="{StaticResource TextLabel}" VerticalAlignment="Center" />

@@ -144,7 +144,7 @@ public sealed class InspectorProjection(EditorEngine engine, IUiThread ui)
             var mr = a.IsSolved ? a.For(m.Id) : null;
             return new ConnectedItem($"m{m.Id}", $"M{m.Id}", $"N{m.StartNodeId}–N{m.EndNodeId}",
                 mr is { } f ? (Math.Abs(f.AxialForceKn) < 0.05 ? "0.0" : ResultText.SignedKn(f.AxialForceKn)) : "—",
-                mr is { } t && t.IsOverstressed ? "DangerBrush" : "InkBrush",
+                mr is { } t && t.IsOverstressed ? "ErrorBrush" : "OnSurfaceBrush",
                 mr is { } u ? $"{u.Utilization * 100:0}%" : "",
                 mr is { IsOverstressed: true });
         }).ToImmutableList();
@@ -167,12 +167,12 @@ public sealed class InspectorProjection(EditorEngine engine, IUiThread ui)
             MaterialText = $"{member.Section.Material.Name} · E {member.Section.Material.ElasticModulusGPa:0} GPa · fy {member.Section.Material.YieldStrengthMPa:0} MPa",
             AreaText = $"A {member.Section.AreaMm2:0} mm²  ·  I {member.Section.SecondMomentMm4 / 1e4:0.#} cm⁴",
             ForceKindText = solved ? (mr.IsTension ? "Tension" : mr.IsCompression ? "Compression" : "Zero force") : "Not solved",
-            ForceToneKey = solved ? ResultText.ForceTone(mr.IsTension, mr.IsCompression, mr.IsOverstressed) : "InkTertiaryBrush",
+            ForceToneKey = solved ? ResultText.ForceTone(mr.IsTension, mr.IsCompression, mr.IsOverstressed) : "OnSurfaceVariantBrush",
             ForceText = solved ? $"{Math.Abs(mr.AxialForceKn):0.00} kN" : "—",
             StressText = solved ? $"{Math.Abs(mr.StressMPa):0.0} MPa" : "—",
             Util = solved ? Math.Clamp(mr.Utilization, 0, 1) : 0,
             UtilText = solved ? $"{mr.Utilization * 100:0}%" : "—",
-            UtilToneKey = solved ? ResultText.UtilTone(mr.Utilization) : "OkBrush",
+            UtilToneKey = solved ? ResultText.UtilTone(mr.Utilization) : "OnSurfaceVariantBrush",
             GovernsText = solved ? mr.Failure switch
             {
                 FailureMode.Buckling => "Fails by buckling: the strut bows out",

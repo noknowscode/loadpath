@@ -9,7 +9,7 @@
     the capacity pill and max utilization. Normal keeps snap, zoom and max utilization; a phone keeps zoom and a short
     max utilization. With noise reduced the right end says what is hidden and offers SHOW ALL (just the button on a phone).
   -->
-  <Grid Background="{ThemeResource CanvasBrush}" Padding="{utu:Responsive Narrow={StaticResource StripInsetNarrow}, Normal={StaticResource StripInset}}"
+  <Grid Background="{ThemeResource BackgroundBrush}" Padding="{utu:Responsive Narrow={StaticResource StripInsetNarrow}, Normal={StaticResource StripInset}}"
         ColumnSpacing="{utu:Responsive Narrow={StaticResource Space8}, Normal={StaticResource Space20}}">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="Auto" />
@@ -22,18 +22,18 @@
     <Rectangle Grid.ColumnSpan="5" Style="{StaticResource DashedRule}" VerticalAlignment="Top"
                Margin="{utu:Responsive Narrow={StaticResource StatusRuleMarginNarrow}, Normal={StaticResource StatusRuleMargin}}" />
 
-    <TextBlock x:Name="Cursor" Text="{Binding CursorText}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource InkBrush}" MinWidth="{StaticResource CursorReadoutMinWidth}" VerticalAlignment="Center"
+    <TextBlock x:Name="Cursor" Text="{Binding CursorText}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource OnSurfaceBrush}" MinWidth="{StaticResource CursorReadoutMinWidth}" VerticalAlignment="Center"
                Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}" />
 
     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space16}" VerticalAlignment="Center">
       <TextBlock Style="{StaticResource MonoCaption}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}">
-        <Run Text="SNAP " /><Run Text="{Binding SnapText}" Foreground="{ThemeResource InkBrush}" />
+        <Run Text="SNAP " /><Run Text="{Binding SnapText}" Foreground="{ThemeResource OnSurfaceBrush}" />
       </TextBlock>
       <TextBlock Style="{StaticResource MonoCaption}" VerticalAlignment="Center">
-        <Run Text="ZOOM " /><Run Text="{Binding ZoomText}" Foreground="{ThemeResource InkBrush}" />
+        <Run Text="ZOOM " /><Run Text="{Binding ZoomText}" Foreground="{ThemeResource OnSurfaceBrush}" />
       </TextBlock>
       <TextBlock Style="{StaticResource MonoCaption}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}">
-        <Run Text="SOLVED " /><Run Text="{Binding Status.SolveText}" Foreground="{ThemeResource InkBrush}" />
+        <Run Text="SOLVED " /><Run Text="{Binding Status.SolveText}" Foreground="{ThemeResource OnSurfaceBrush}" />
       </TextBlock>
     </StackPanel>
 
@@ -42,21 +42,21 @@
 
     <!-- Capacity at a glance (moved here from the title strip, where it did not fit beside the commands). -->
     <Border x:Name="StatusPill" Grid.Column="3" Style="{StaticResource StatusPill}" Visibility="{utu:Responsive Narrow=Collapsed, Wide=Visible}"
-            Background="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=DangerSoftBrush|SurfaceRaisedBrush}">
+            Background="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=ErrorContainerBrush|SurfaceVariantBrush}">
       <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}" VerticalAlignment="Center">
-        <c:Icon Kind="warning" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource DangerBrush}"
+        <c:Icon Kind="warning" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Foreground="{ThemeResource ErrorBrush}"
                 Visibility="{Binding Status.PillIsDanger, Converter={StaticResource Vis}}" />
         <Ellipse Width="{StaticResource DotSize}" Height="{StaticResource DotSize}" Fill="{Binding Status.StatusToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center"
                  Visibility="{Binding Status.PillIsDanger, Converter={StaticResource Vis}, ConverterParameter=invert}" />
         <TextBlock Text="{Binding Status.PillText}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" VerticalAlignment="Center"
-                   Foreground="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=DangerBrush|InkSecondaryBrush}" />
+                   Foreground="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=ErrorBrush|OnSurfaceVariantBrush}" />
       </StackPanel>
     </Border>
 
     <!-- Right: what Reduce noise is hiding, with the way back; otherwise the max utilization. -->
     <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="{StaticResource Space12}" VerticalAlignment="Center"
                 c:Motion.Reveal="True" Visibility="{Binding ReduceNoise, Converter={StaticResource Vis}}">
-      <TextBlock Text="{Binding NoiseStatus}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center"
+      <TextBlock Text="{Binding NoiseStatus}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource PrimaryBrush}" VerticalAlignment="Center"
                  Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}" />
       <Button Style="{StaticResource OutlineButton}" Content="SHOW ALL" Command="{Binding ShowAll}" AutomationProperties.Name="Show all layers" />
     </StackPanel>
@@ -64,7 +64,7 @@
                 c:Motion.Reveal="True" Visibility="{Binding ReduceNoise, Converter={StaticResource Vis}, ConverterParameter=invert}">
       <TextBlock Text="{utu:Responsive Narrow='MAX UTIL', Normal='MAX UTILIZATION'}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
       <Border Style="{StaticResource PillBorder}" BorderThickness="{StaticResource Inset0}"
-              Background="{Binding Status.IsOverCapacity, Converter={StaticResource Pick}, ConverterParameter=DangerSoftBrush|TransparentBrush}">
+              Background="{Binding Status.IsOverCapacity, Converter={StaticResource Pick}, ConverterParameter=ErrorContainerBrush|TransparentBrush}">
         <TextBlock Text="{Binding Status.MaxUtilizationText}" Style="{StaticResource MonoCaption}" Foreground="{Binding Status.MaxUtilizationToneKey, Converter={StaticResource Brush}}" />
       </Border>
     </StackPanel>
