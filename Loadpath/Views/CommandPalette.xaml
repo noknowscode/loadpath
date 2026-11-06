@@ -7,7 +7,7 @@
     <!-- xaml-lint: allow card - popover chrome, not a card; Toolkit cards need a design theme this Fluent app does not merge (README) -->
     <Border x:Name="Panel" MaxWidth="{StaticResource PaletteMaxWidth}" MaxHeight="{StaticResource PaletteMaxHeight}" HorizontalAlignment="Stretch" VerticalAlignment="Top"
             Margin="{utu:Responsive Narrow={StaticResource PaletteMarginNarrow}, Normal={StaticResource PaletteMargin}}"
-            Background="{ThemeResource SurfaceVariantBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusPopover}"
+            Background="{ThemeResource SurfaceVariantBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource Radius200CornerRadius}"
             PointerPressed="OnPanelPressed">
       <Border.RenderTransform>
         <TranslateTransform x:Name="PanelTranslate" Y="0" />
@@ -18,9 +18,9 @@
           <RowDefinition Height="*" />
           <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Grid Padding="{StaticResource InsetX8}" BorderBrush="{ThemeResource OutlineVariantMediumBrush}" BorderThickness="{StaticResource HairlineBottom}" ColumnSpacing="{StaticResource Space4}">
+        <Grid Padding="{StaticResource Space100HorizontalThickness}" BorderBrush="{ThemeResource OutlineVariantMediumBrush}" BorderThickness="{StaticResource HairlineBottom}" ColumnSpacing="{StaticResource Space050}">
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-          <c:Icon Kind="search" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Margin="{StaticResource GapStart4}" />
+          <c:Icon Kind="search" Width="{StaticResource IconSizeSmall}" Height="{StaticResource IconSizeSmall}" Margin="{StaticResource Space050LeftThickness}" />
           <TextBox x:Name="Query" Grid.Column="1" Style="{StaticResource SearchTextBox}" PlaceholderText="Type a command…"
                    Text="{Binding PaletteQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" KeyDown="OnQueryKeyDown" AutomationProperties.Name="Command search">
             <!-- The query sits in the palette's header row: the theme's text box without its own fill or frame. -->
@@ -35,22 +35,22 @@
           </TextBox>
         </Grid>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="{StaticResource PaletteListMaxHeight}">
-          <ItemsControl IsTabStop="False" ItemsSource="{Binding PaletteItems}" Padding="{StaticResource Inset4}">
+          <ItemsControl IsTabStop="False" ItemsSource="{Binding PaletteItems}" Padding="{StaticResource Space050Thickness}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <!-- A button per command: Tab reaches it, Enter, Space or a click runs it; arrow keys in the query move the highlight. -->
-                <Button Style="{StaticResource PaletteRowButton}" Height="{utu:Responsive Narrow={StaticResource TouchTarget}, Normal={StaticResource PaletteRowHeight}}"
+                <Button Style="{StaticResource PaletteRowButton}" Height="{utu:Responsive Narrow={StaticResource ControlHeightMediumLarge}, Normal={StaticResource PaletteRowHeight}}"
                         Background="{Binding RowBrushKey, Converter={StaticResource Brush}}" Tag="{Binding Id}"
                         Command="{Binding DataContext.RunPalette, ElementName=Panel}" CommandParameter="{Binding Id}"
                         AutomationProperties.Name="{Binding AutomationName}" PointerEntered="OnItemEntered">
-                  <Grid ColumnSpacing="{StaticResource Space10}">
+                  <Grid ColumnSpacing="{StaticResource Space125}">
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition Width="16" />
                       <ColumnDefinition Width="*" />
                       <ColumnDefinition Width="Auto" />
                       <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <c:Icon Kind="{Binding Icon}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Visibility="{Binding HasIcon, Converter={StaticResource Vis}}" />
+                    <c:Icon Kind="{Binding Icon}" Width="{StaticResource IconSizeSmall}" Height="{StaticResource IconSizeSmall}" Visibility="{Binding HasIcon, Converter={StaticResource Vis}}" />
                     <TextBlock Grid.Column="1" Text="{Binding Title}" Style="{StaticResource BodyText}" VerticalAlignment="Center" Opacity="{Binding IsDisabled, Converter={StaticResource Dim}}" />
                     <TextBlock Grid.Column="2" Text="{Binding Category}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}" />
                     <TextBlock Grid.Column="3" Text="{Binding Shortcut}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" MinWidth="{StaticResource ShortcutMinWidth}" TextAlignment="Right" />

@@ -96,14 +96,14 @@
   <!-- Label above a numeric field (inspector, presets). -->
   <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource MonoSmall}">
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
-    <Setter Property="Margin" Value="{StaticResource GapBottom8}" />
+    <Setter Property="Margin" Value="{StaticResource Space100BottomThickness}" />
   </Style>
 
   <!-- ===== Pills (read-only badges) ===== -->
   <Style x:Key="PillBorder" TargetType="Border">
     <Setter Property="BorderThickness" Value="{StaticResource Hairline}" />
     <Setter Property="BorderBrush" Value="{ThemeResource OutlineVariantBrush}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusFullCornerRadius}" />
     <Setter Property="Padding" Value="{StaticResource PillInset}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
@@ -115,8 +115,8 @@
   <!-- Capacity pill in the status bar: a raised chip, red-washed when something fails. -->
   <Style x:Key="StatusPill" TargetType="Border">
     <Setter Property="Height" Value="{StaticResource RowHeightCompact}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusRound}" />
-    <Setter Property="Padding" Value="{StaticResource InsetX12}" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusFullCornerRadius}" />
+    <Setter Property="Padding" Value="{StaticResource Space150HorizontalThickness}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
@@ -133,9 +133,9 @@
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="{StaticResource Hairline}" />
-    <Setter Property="Padding" Value="{StaticResource InsetX8}" />
-    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSm}" />
-    <Setter Property="Height" Value="{StaticResource ControlHeightSm}" />
+    <Setter Property="Padding" Value="{StaticResource Space100HorizontalThickness}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightSmall}" />
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="FontFamily" Value="{ThemeResource BodyMediumFontFamily}" />
     <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
@@ -143,7 +143,7 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="UseSystemFocusVisuals" Value="False" />
     <Setter Property="IsTabStop" Value="True" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
@@ -222,7 +222,7 @@
                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="{StaticResource FocusRingOutset}"
-                    BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusPopover}" />
+                    BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource Radius200CornerRadius}" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -238,19 +238,19 @@
   <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource FilledButtonStyle}">
     <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
     <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
-    <Setter Property="Padding" Value="{StaticResource InsetX18}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
-    <Setter Property="Height" Value="{StaticResource ControlHeight}" />
-    <Setter Property="MinHeight" Value="{StaticResource ControlHeight}" />
+    <Setter Property="Padding" Value="{StaticResource Space200HorizontalThickness}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightMedium}" />
   </Style>
 
   <Style x:Key="LinkButton" TargetType="Button" BasedOn="{StaticResource TextButtonStyle}">
     <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
     <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
-    <Setter Property="Padding" Value="{StaticResource InsetX8}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
-    <Setter Property="Height" Value="{StaticResource ControlHeight}" />
-    <Setter Property="MinHeight" Value="{StaticResource ControlHeight}" />
+    <Setter Property="Padding" Value="{StaticResource Space100HorizontalThickness}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightMedium}" />
   </Style>
 
   <Style x:Key="OutlineButton" TargetType="Button" BasedOn="{StaticResource OutlinedButtonStyle}">
@@ -258,25 +258,25 @@
     <Setter Property="BorderBrush" Value="{ThemeResource OutlineVariantBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
     <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
-    <Setter Property="Padding" Value="{StaticResource InsetX12}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
-    <Setter Property="Height" Value="{StaticResource ControlHeight}" />
-    <Setter Property="MinHeight" Value="{StaticResource ControlHeight}" />
+    <Setter Property="Padding" Value="{StaticResource Space150HorizontalThickness}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightMedium}" />
   </Style>
 
   <Style x:Key="DangerTextButton" TargetType="Button" BasedOn="{StaticResource SimpleDangerSubtleButtonStyle}">
     <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
     <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
-    <Setter Property="Padding" Value="{StaticResource InsetX8}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
-    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSm}" />
+    <Setter Property="Padding" Value="{StaticResource Space100HorizontalThickness}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSmall}" />
   </Style>
 
   <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
-    <Setter Property="Width" Value="{StaticResource ControlHeightSm}" />
-    <Setter Property="Height" Value="{StaticResource ControlHeightSm}" />
-    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSm}" />
-    <Setter Property="Padding" Value="{StaticResource Inset0}" />
+    <Setter Property="Width" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="Padding" Value="{StaticResource Space0Thickness}" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
   </Style>
 
@@ -285,24 +285,24 @@
     (Tab, Enter, Space), screen readers name them, and they show the hover wash and focus ring like every other button.
   -->
   <Style x:Key="RowButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
-    <Setter Property="Height" Value="{StaticResource RowHeight}" />
-    <Setter Property="MinHeight" Value="{StaticResource RowHeight}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSmall}" />
     <Setter Property="Padding" Value="{StaticResource OutlineRowInset}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="BorderThickness" Value="{StaticResource Inset0}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusNone}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Space0Thickness}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius0CornerRadius}" />
   </Style>
   <Style x:Key="PaletteRowButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
-    <Setter Property="Padding" Value="{StaticResource InsetX8}" />
+    <Setter Property="Padding" Value="{StaticResource Space100HorizontalThickness}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="BorderThickness" Value="{StaticResource Inset0}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Space0Thickness}" />
   </Style>
   <Style x:Key="ChipButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
     <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{ThemeResource OutlineVariantBrush}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusHairline}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius050CornerRadius}" />
     <Setter Property="Padding" Value="{StaticResource Inset6x3}" />
     <Setter Property="Height" Value="Auto" />
     <Setter Property="MinHeight" Value="{StaticResource ChipMinHeight}" />
@@ -311,15 +311,15 @@
 
   <!-- Icon button sized for a fingertip (phone layout). -->
   <Style x:Key="TouchIconButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
-    <Setter Property="Width" Value="{StaticResource TouchTarget}" />
-    <Setter Property="Height" Value="{StaticResource TouchTarget}" />
-    <Setter Property="MinHeight" Value="{StaticResource TouchTarget}" />
+    <Setter Property="Width" Value="{StaticResource ControlHeightMediumLarge}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMediumLarge}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightMediumLarge}" />
   </Style>
 
   <!-- Tool palette button: 40 px, icon follows Foreground, single-key label in the bottom-right corner. -->
   <Style x:Key="ToolButtonStyle" TargetType="c:ToolButton">
-    <Setter Property="Width" Value="{StaticResource ToolButtonSize}" />
-    <Setter Property="Height" Value="{StaticResource ToolButtonSize}" />
+    <Setter Property="Width" Value="{StaticResource ControlHeightMedium}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{ThemeResource PrimaryBrush}" />
     <Setter Property="UseSystemFocusVisuals" Value="False" />
@@ -399,15 +399,15 @@
                 </VisualState>
               </VisualStateGroup>
             </VisualStateManager.VisualStateGroups>
-            <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="{StaticResource RadiusField}" />
+            <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius100CornerRadius}" />
             <Border x:Name="ActiveWash" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource PrimaryContainerBrush}"
-                    BorderBrush="{ThemeResource PrimaryVariantLightBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusField}" />
-            <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource OnSurfaceHoverBrush}" CornerRadius="{StaticResource RadiusField}" />
-            <c:Icon x:Name="Glyph" Kind="{TemplateBinding IconKind}" Foreground="{TemplateBinding Foreground}" Width="{StaticResource IconSizeLg}" Height="{StaticResource IconSizeLg}" Margin="{StaticResource ToolGlyphMargin}" />
+                    BorderBrush="{ThemeResource PrimaryVariantLightBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius100CornerRadius}" />
+            <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource OnSurfaceHoverBrush}" CornerRadius="{StaticResource Radius100CornerRadius}" />
+            <c:Icon x:Name="Glyph" Kind="{TemplateBinding IconKind}" Foreground="{TemplateBinding Foreground}" Width="{StaticResource IconSizeSmall}" Height="{StaticResource IconSizeSmall}" Margin="{StaticResource ToolGlyphMargin}" />
             <TextBlock x:Name="Key" Text="{TemplateBinding KeyLabel}" Style="{StaticResource MonoSmall}" Foreground="{ThemeResource OnSurfaceVariantBrush}"
                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="{StaticResource ToolKeyLabelMargin}" IsHitTestVisible="False" />
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="{StaticResource FocusRingOutset}"
-                    BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusPopover}" />
+                    BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource Radius200CornerRadius}" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -417,8 +417,8 @@
   <Style TargetType="c:ToolButton" BasedOn="{StaticResource ToolButtonStyle}" />
   <!-- The bottom tool strip on a phone: 44 px fingertip targets. -->
   <Style x:Key="TouchToolButton" TargetType="c:ToolButton" BasedOn="{StaticResource ToolButtonStyle}">
-    <Setter Property="Width" Value="{StaticResource TouchTarget}" />
-    <Setter Property="Height" Value="{StaticResource TouchTarget}" />
+    <Setter Property="Width" Value="{StaticResource ControlHeightMediumLarge}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMediumLarge}" />
   </Style>
 
   <!--
@@ -429,8 +429,8 @@
   <Style x:Key="SegmentToggle" TargetType="ToggleButton">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
-    <Setter Property="Padding" Value="{StaticResource InsetX14}" />
-    <Setter Property="Height" Value="{StaticResource ControlHeight}" />
+    <Setter Property="Padding" Value="{StaticResource Space150HorizontalThickness}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -523,7 +523,7 @@
             <ContentPresenter x:Name="Label" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" Margin="{TemplateBinding Padding}"
                               FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="{StaticResource FocusRingInset}"
-                    BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusHairline}" />
+                    BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource Radius050CornerRadius}" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -534,20 +534,20 @@
   <Style x:Key="SegmentGroup" TargetType="Border">
     <Setter Property="BorderBrush" Value="{ThemeResource OutlineVariantBrush}" />
     <Setter Property="BorderThickness" Value="{StaticResource Hairline}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusHairline}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius050CornerRadius}" />
     <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
   </Style>
 
   <!-- A square toggle with an icon (multi-select in the floating bar): the segment cell's checked wash, on its own. -->
   <Style x:Key="IconToggle" TargetType="ToggleButton" BasedOn="{StaticResource SegmentToggle}">
-    <Setter Property="Width" Value="{StaticResource ControlHeightSm}" />
-    <Setter Property="Height" Value="{StaticResource ControlHeightSm}" />
-    <Setter Property="Padding" Value="{StaticResource Inset0}" />
+    <Setter Property="Width" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="Padding" Value="{StaticResource Space0Thickness}" />
     <Setter Property="HorizontalAlignment" Value="Center" />
   </Style>
   <Style x:Key="TouchIconToggle" TargetType="ToggleButton" BasedOn="{StaticResource IconToggle}">
-    <Setter Property="Width" Value="{StaticResource TouchTarget}" />
-    <Setter Property="Height" Value="{StaticResource TouchTarget}" />
+    <Setter Property="Width" Value="{StaticResource ControlHeightMediumLarge}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMediumLarge}" />
   </Style>
 
   <!--
@@ -558,8 +558,8 @@
   <Style x:Key="SwitchToggle" TargetType="ToggleButton">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
-    <Setter Property="Padding" Value="{StaticResource InsetX12}" />
-    <Setter Property="Height" Value="{StaticResource ControlHeight}" />
+    <Setter Property="Padding" Value="{StaticResource Space150HorizontalThickness}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
     <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
@@ -653,11 +653,11 @@
               </VisualStateGroup>
             </VisualStateManager.VisualStateGroups>
             <Border x:Name="Hover" Opacity="0" Background="{ThemeResource SurfaceVariantBrush}" />
-            <StackPanel x:Name="Body" Orientation="Horizontal" Spacing="{StaticResource Space10}" Margin="{TemplateBinding Padding}" VerticalAlignment="Center">
+            <StackPanel x:Name="Body" Orientation="Horizontal" Spacing="{StaticResource Space125}" Margin="{TemplateBinding Padding}" VerticalAlignment="Center">
               <Grid Width="{StaticResource SwitchTrackWidth}" Height="{StaticResource SwitchTrackHeight}" VerticalAlignment="Center">
-                <Rectangle RadiusX="{StaticResource SwitchTrackRadius}" RadiusY="{StaticResource SwitchTrackRadius}" Fill="{ThemeResource OutlineBrush}" />
-                <Rectangle x:Name="TrackOn" Opacity="0" RadiusX="{StaticResource SwitchTrackRadius}" RadiusY="{StaticResource SwitchTrackRadius}" Fill="{ThemeResource PrimaryBrush}" />
-                <Ellipse Width="{StaticResource SwitchKnobSize}" Height="{StaticResource SwitchKnobSize}" Fill="{ThemeResource OnPrimaryBrush}" HorizontalAlignment="Left" Margin="{StaticResource KnobMargin}">
+                <Rectangle RadiusX="{StaticResource Radius200}" RadiusY="{StaticResource Radius200}" Fill="{ThemeResource OutlineBrush}" />
+                <Rectangle x:Name="TrackOn" Opacity="0" RadiusX="{StaticResource Radius200}" RadiusY="{StaticResource Radius200}" Fill="{ThemeResource PrimaryBrush}" />
+                <Ellipse Width="{StaticResource SwitchKnobSize}" Height="{StaticResource SwitchKnobSize}" Fill="{ThemeResource OnPrimaryBrush}" HorizontalAlignment="Left" Margin="{StaticResource Space025LeftThickness}">
                   <Ellipse.RenderTransform>
                     <TranslateTransform x:Name="KnobShift" X="0" />
                   </Ellipse.RenderTransform>
@@ -667,7 +667,7 @@
                                 FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" VerticalAlignment="Center" />
             </StackPanel>
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="{StaticResource FocusRingInset}"
-                    BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusHairline}" />
+                    BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource Radius050CornerRadius}" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -678,7 +678,7 @@
   <Style x:Key="Keycap" TargetType="Border">
     <Setter Property="BorderBrush" Value="{ThemeResource OutlineVariantBrush}" />
     <Setter Property="BorderThickness" Value="{StaticResource Hairline}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusHairline}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius050CornerRadius}" />
     <Setter Property="Padding" Value="{StaticResource KeycapInset}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
@@ -702,7 +702,7 @@
   <!-- Rules between tool groups: across the floating rail, upright in the phone strip. -->
   <Style x:Key="RailRule" TargetType="Rectangle">
     <Setter Property="Height" Value="1" />
-    <Setter Property="Margin" Value="{StaticResource Inset4x4}" />
+    <Setter Property="Margin" Value="{StaticResource Space050Thickness}" />
     <Setter Property="Fill" Value="{ThemeResource OutlineVariantMediumBrush}" />
   </Style>
   <Style x:Key="StripRule" TargetType="Rectangle">
@@ -713,8 +713,8 @@
 
   <!-- Layer check box: the theme's check box at a list row's height. -->
   <Style x:Key="LayerCheckBox" TargetType="CheckBox" BasedOn="{StaticResource CheckBoxStyle}">
-    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSm}" />
-    <Setter Property="Padding" Value="{StaticResource GapStart8}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="Padding" Value="{StaticResource Space100LeftThickness}" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
@@ -723,8 +723,8 @@
     <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{ThemeResource OutlineVariantBrush}" />
     <Setter Property="BorderThickness" Value="{StaticResource Hairline}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
-    <Setter Property="Padding" Value="{StaticResource Inset0}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
+    <Setter Property="Padding" Value="{StaticResource Space0Thickness}" />
     <Setter Property="MaxWidth" Value="{StaticResource SheetMaxWidth}" />
     <Setter Property="MaxHeight" Value="{StaticResource SheetMaxHeight}" />
   </Style>
@@ -734,10 +734,10 @@
     <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
     <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="Padding" Value="{StaticResource FieldInset}" />
-    <Setter Property="MinHeight" Value="{StaticResource FieldHeight}" />
-    <Setter Property="Height" Value="{StaticResource FieldHeight}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightMedium}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
     <Setter Property="MinWidth" Value="0" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusHairline}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius050CornerRadius}" />
     <Setter Property="TextAlignment" Value="Right" />
     <Setter Property="SelectionHighlightColor" Value="{ThemeResource PrimaryBrush}" />
   </Style>
@@ -745,12 +745,12 @@
   <!-- The command palette's query: the theme's text box in the body face; the palette clears its frame (CommandPalette.xaml). -->
   <Style x:Key="SearchTextBox" TargetType="TextBox" BasedOn="{StaticResource OutlinedTextBoxStyle}">
     <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
-    <Setter Property="Padding" Value="{StaticResource InsetX8}" />
-    <Setter Property="MinHeight" Value="{StaticResource FieldHeight}" />
-    <Setter Property="Height" Value="{StaticResource FieldHeight}" />
+    <Setter Property="Padding" Value="{StaticResource Space100HorizontalThickness}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightMedium}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
     <Setter Property="Background" Value="{StaticResource TransparentBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource TransparentBrush}" />
-    <Setter Property="BorderThickness" Value="{StaticResource Inset0}" />
+    <Setter Property="BorderThickness" Value="{StaticResource Space0Thickness}" />
     <Setter Property="SelectionHighlightColor" Value="{ThemeResource PrimaryBrush}" />
   </Style>
 
@@ -763,49 +763,49 @@
   <Style TargetType="MenuFlyoutPresenter" BasedOn="{StaticResource MenuFlyoutPresenterStyle}">
     <Setter Property="BorderBrush" Value="{ThemeResource OutlineVariantBrush}" />
     <Setter Property="BorderThickness" Value="{StaticResource Hairline}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusPopover}" />
-    <Setter Property="Padding" Value="{StaticResource Inset4}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius200CornerRadius}" />
+    <Setter Property="Padding" Value="{StaticResource Space050Thickness}" />
     <Setter Property="MinWidth" Value="{StaticResource MenuMinWidth}" />
   </Style>
 
   <Style x:Key="MenuItemStyle" TargetType="MenuFlyoutItem" BasedOn="{StaticResource MenuFlyoutItemStyle}">
-    <Setter Property="Padding" Value="{StaticResource InsetX8}" />
-    <Setter Property="MinHeight" Value="{StaticResource RowHeight}" />
-    <Setter Property="Height" Value="{StaticResource RowHeight}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
+    <Setter Property="Padding" Value="{StaticResource Space100HorizontalThickness}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
   </Style>
   <Style TargetType="MenuFlyoutItem" BasedOn="{StaticResource MenuItemStyle}" />
 
   <Style x:Key="ToggleMenuItemStyle" TargetType="ToggleMenuFlyoutItem" BasedOn="{StaticResource ToggleMenuFlyoutItemStyle}">
-    <Setter Property="Padding" Value="{StaticResource InsetX8}" />
-    <Setter Property="MinHeight" Value="{StaticResource RowHeight}" />
-    <Setter Property="Height" Value="{StaticResource RowHeight}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
+    <Setter Property="Padding" Value="{StaticResource Space100HorizontalThickness}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
   </Style>
   <Style TargetType="ToggleMenuFlyoutItem" BasedOn="{StaticResource ToggleMenuItemStyle}" />
 
   <Style x:Key="RadioMenuItemStyle" TargetType="RadioMenuFlyoutItem" BasedOn="{StaticResource RadioMenuFlyoutItemStyle}">
-    <Setter Property="Padding" Value="{StaticResource InsetX8}" />
-    <Setter Property="MinHeight" Value="{StaticResource RowHeight}" />
-    <Setter Property="Height" Value="{StaticResource RowHeight}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
+    <Setter Property="Padding" Value="{StaticResource Space100HorizontalThickness}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightSmall}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
   </Style>
   <Style TargetType="RadioMenuFlyoutItem" BasedOn="{StaticResource RadioMenuItemStyle}" />
 
   <Style x:Key="TouchMenuItem" TargetType="MenuFlyoutItem" BasedOn="{StaticResource MenuItemStyle}">
-    <Setter Property="Padding" Value="{StaticResource InsetX12}" />
-    <Setter Property="MinHeight" Value="{StaticResource TouchTarget}" />
-    <Setter Property="Height" Value="{StaticResource TouchTarget}" />
+    <Setter Property="Padding" Value="{StaticResource Space150HorizontalThickness}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightMediumLarge}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMediumLarge}" />
   </Style>
   <Style x:Key="TouchToggleMenuItem" TargetType="ToggleMenuFlyoutItem" BasedOn="{StaticResource ToggleMenuItemStyle}">
-    <Setter Property="Padding" Value="{StaticResource InsetX12}" />
-    <Setter Property="MinHeight" Value="{StaticResource TouchTarget}" />
-    <Setter Property="Height" Value="{StaticResource TouchTarget}" />
+    <Setter Property="Padding" Value="{StaticResource Space150HorizontalThickness}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightMediumLarge}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMediumLarge}" />
   </Style>
   <Style x:Key="TouchRadioMenuItem" TargetType="RadioMenuFlyoutItem" BasedOn="{StaticResource RadioMenuItemStyle}">
-    <Setter Property="Padding" Value="{StaticResource InsetX12}" />
-    <Setter Property="MinHeight" Value="{StaticResource TouchTarget}" />
-    <Setter Property="Height" Value="{StaticResource TouchTarget}" />
+    <Setter Property="Padding" Value="{StaticResource Space150HorizontalThickness}" />
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeightMediumLarge}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMediumLarge}" />
   </Style>
 
   <Style TargetType="MenuFlyoutSeparator" BasedOn="{StaticResource MenuFlyoutSeparatorStyle}">
@@ -818,12 +818,12 @@
     <Setter Property="BorderBrush" Value="{ThemeResource SurfaceInverseBrush}" />
     <Setter Property="FontSize" Value="{ThemeResource CaptionSmallFontSize}" />
     <Setter Property="Padding" Value="{StaticResource Inset8x4}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusField}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius100CornerRadius}" />
   </Style>
 
   <!-- NumberField: mono value + unit suffix. -->
   <Style TargetType="c:NumberField">
-    <Setter Property="Height" Value="{StaticResource FieldHeight}" />
+    <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="Template">
       <Setter.Value>
@@ -831,7 +831,7 @@
           <Grid>
             <TextBox x:Name="PART_Box" Style="{StaticResource FieldTextBox}" Padding="{StaticResource FieldInsetWithUnit}" />
             <TextBlock Text="{TemplateBinding Unit}" Style="{StaticResource MonoSmall}"
-                       HorizontalAlignment="Right" VerticalAlignment="Center" Margin="{StaticResource UnitSuffixMargin}" IsHitTestVisible="False" />
+                       HorizontalAlignment="Right" VerticalAlignment="Center" Margin="{StaticResource Space125RightThickness}" IsHitTestVisible="False" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>
@@ -846,7 +846,7 @@
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="MinHeight" Value="{StaticResource UtilizationTrackHeight}" />
     <Setter Property="Height" Value="{StaticResource UtilizationTrackHeight}" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusHairline}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius050CornerRadius}" />
     <Setter Property="Background" Value="{ThemeResource OutlineVariantMediumBrush}" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />

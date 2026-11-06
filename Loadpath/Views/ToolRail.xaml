@@ -12,10 +12,10 @@
   <!-- xaml-lint: allow card - tool palette chrome (a strip on phones), not a card; no Toolkit card theme under Fluent (README) -->
   <Border Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}"
           BorderThickness="{utu:Responsive Narrow={StaticResource HairlineTop}, Normal={StaticResource Hairline}}"
-          CornerRadius="{utu:Responsive Narrow={StaticResource RadiusNone}, Normal={StaticResource RadiusPopover}}"
-          Padding="{StaticResource StripPanelInset}">
+          CornerRadius="{utu:Responsive Narrow={StaticResource Radius0CornerRadius}, Normal={StaticResource Radius200CornerRadius}}"
+          Padding="{StaticResource Space050Thickness}">
     <ScrollViewer HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
-      <c:WrapStack Orientation="{utu:Responsive Narrow=Horizontal, Normal=Vertical}" Spacing="{StaticResource Space2}" HorizontalAlignment="Center">
+      <c:WrapStack Orientation="{utu:Responsive Narrow=Horizontal, Normal=Vertical}" Spacing="{StaticResource Space025}" HorizontalAlignment="Center">
         <c:ToolButton Style="{utu:Responsive Narrow={StaticResource TouchToolButton}, Normal={StaticResource ToolButtonStyle}}"
                       IconKind="select" KeyLabel="V" IsActive="{Binding IsSelectActive}" Command="{Binding SelectTool}" ToolTipService.ToolTip="Select   V" AutomationProperties.Name="Select tool" />
         <c:ToolButton Style="{utu:Responsive Narrow={StaticResource TouchToolButton}, Normal={StaticResource ToolButtonStyle}}"

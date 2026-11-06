@@ -5,31 +5,31 @@
              x:Name="Panel">
   <UserControl.Resources>
     <Style x:Key="Row" TargetType="Grid">
-      <Setter Property="Height" Value="{StaticResource RowHeight}" />
-      <Setter Property="ColumnSpacing" Value="{StaticResource Space8}" />
+      <Setter Property="Height" Value="{StaticResource ControlHeightSmall}" />
+      <Setter Property="ColumnSpacing" Value="{StaticResource Space100}" />
     </Style>
     <!-- One numbered section of the inspector; dashed rules sit between sections. -->
     <Style x:Key="Section" TargetType="StackPanel">
       <Setter Property="Padding" Value="{StaticResource InspectorSectionInset}" />
     </Style>
     <Style x:Key="Rule" TargetType="Rectangle" BasedOn="{StaticResource DashedRule}">
-      <Setter Property="Margin" Value="{StaticResource GapStart20}" />
+      <Setter Property="Margin" Value="{StaticResource Space250LeftThickness}" />
     </Style>
     <!-- Inspector actions share the 40 px height of its fields and section picker. -->
     <Style x:Key="InspectorAction" TargetType="Button" BasedOn="{StaticResource OutlineButton}">
-      <Setter Property="Height" Value="{StaticResource FieldHeight}" />
-      <Setter Property="MinHeight" Value="{StaticResource FieldHeight}" />
+      <Setter Property="Height" Value="{StaticResource ControlHeightMedium}" />
+      <Setter Property="MinHeight" Value="{StaticResource ControlHeightMedium}" />
     </Style>
     <Style x:Key="Header" TargetType="StackPanel">
       <Setter Property="Padding" Value="{StaticResource InspectorHeaderInset}" />
-      <Setter Property="Spacing" Value="{StaticResource Space6}" />
+      <Setter Property="Spacing" Value="{StaticResource Space075}" />
     </Style>
     <Style x:Key="Eyebrow" TargetType="TextBlock" BasedOn="{StaticResource MonoSmall}">
       <Setter Property="Foreground" Value="{ThemeResource OnSurfaceVariantBrush}" />
     </Style>
     <Style x:Key="SectionNumber" TargetType="TextBlock" BasedOn="{StaticResource SectionLabel}">
       <Setter Property="Foreground" Value="{ThemeResource PrimaryBrush}" />
-      <Setter Property="Margin" Value="{StaticResource UnitSuffixMargin}" />
+      <Setter Property="Margin" Value="{StaticResource Space125RightThickness}" />
     </Style>
   </UserControl.Resources>
 
@@ -51,7 +51,7 @@
           </StackPanel>
           <Rectangle Style="{StaticResource Rule}" />
           <StackPanel Style="{StaticResource Section}">
-            <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom6}">
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Space075BottomThickness}">
               <TextBlock Text="01" Style="{StaticResource SectionNumber}" /><TextBlock Text="MODEL" Style="{StaticResource SectionLabel}" />
             </StackPanel>
             <Grid Style="{StaticResource Row}">
@@ -82,7 +82,7 @@
           </StackPanel>
           <Rectangle Style="{StaticResource Rule}" />
           <StackPanel Style="{StaticResource Section}">
-            <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom6}">
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Space075BottomThickness}">
               <TextBlock Text="02" Style="{StaticResource SectionNumber}" /><TextBlock Text="RESULT" Style="{StaticResource SectionLabel}" />
             </StackPanel>
             <Grid Style="{StaticResource Row}">
@@ -90,23 +90,23 @@
               <TextBlock Text="Max utilization" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
               <TextBlock Grid.Column="1" Text="{Binding Inspector.MaxUtilText}" Style="{StaticResource ValueText}" Foreground="{Binding Inspector.MaxUtilToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center" />
             </Grid>
-            <ProgressBar Style="{StaticResource UtilizationBarStyle}" Value="{Binding Inspector.MaxUtil}" Foreground="{Binding Inspector.MaxUtilToneKey, Converter={StaticResource Brush}}" Margin="{StaticResource GapBottom8}" AutomationProperties.Name="Max utilization" />
+            <ProgressBar Style="{StaticResource UtilizationBarStyle}" Value="{Binding Inspector.MaxUtil}" Foreground="{Binding Inspector.MaxUtilToneKey, Converter={StaticResource Brush}}" Margin="{StaticResource Space100BottomThickness}" AutomationProperties.Name="Max utilization" />
             <Grid Style="{StaticResource Row}">
               <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
               <TextBlock Text="Max deflection" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
               <TextBlock Grid.Column="1" Text="{Binding Inspector.MaxDeflectionText}" Style="{StaticResource ValueText}" VerticalAlignment="Center" />
             </Grid>
-            <Button Style="{StaticResource InspectorAction}" Command="{Binding JumpToCritical}" HorizontalAlignment="Stretch" Margin="{StaticResource GapTop10}"
+            <Button Style="{StaticResource InspectorAction}" Command="{Binding JumpToCritical}" HorizontalAlignment="Stretch" Margin="{StaticResource Space125TopThickness}"
                     Visibility="{Binding Inspector.HasCritical, Converter={StaticResource Vis}}" AutomationProperties.Name="Jump to critical member">
-              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
-                <c:Icon Kind="target" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Foreground="{ThemeResource OnSurfaceBrush}" />
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space100}">
+                <c:Icon Kind="target" Width="{StaticResource IconSizeSmall}" Height="{StaticResource IconSizeSmall}" Foreground="{ThemeResource OnSurfaceBrush}" />
                 <TextBlock Text="{Binding Inspector.CriticalText, Converter={StaticResource Upper}}" Style="{StaticResource ButtonLabel}" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
-            <Button Style="{StaticResource InspectorAction}" Command="{Binding Lighten}" HorizontalAlignment="Stretch" Margin="{StaticResource GapTop8}"
+            <Button Style="{StaticResource InspectorAction}" Command="{Binding Lighten}" HorizontalAlignment="Stretch" Margin="{StaticResource Space100TopThickness}"
                     c:Motion.Reveal="True" Visibility="{Binding CanLighten, Converter={StaticResource Vis}}"
                     ToolTipService.ToolTip="Lightest same-material section that keeps every member within capacity   Shift+U" AutomationProperties.Name="Lighten members">
-              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space125}">
                 <TextBlock Text="LIGHTEN MEMBERS" Style="{StaticResource ButtonLabel}" VerticalAlignment="Center" />
                 <Border Style="{StaticResource Keycap}">
                   <TextBlock Text="SHIFT U" Style="{StaticResource KeycapText}" />
@@ -114,18 +114,18 @@
               </StackPanel>
             </Button>
             <!-- Members over capacity, worst first. The failure mode is spelled out; red only reinforces it. -->
-            <StackPanel Margin="{StaticResource GapTop14}" c:Motion.Reveal="True" Visibility="{Binding HasFailures, Converter={StaticResource Vis}}">
-              <Grid Margin="{StaticResource GapBottom4}">
+            <StackPanel Margin="{StaticResource Space150TopThickness}" c:Motion.Reveal="True" Visibility="{Binding HasFailures, Converter={StaticResource Vis}}">
+              <Grid Margin="{StaticResource Space050BottomThickness}">
                 <TextBlock Text="OVER CAPACITY" Style="{StaticResource MonoSmall}" Foreground="{ThemeResource ErrorBrush}" />
                 <TextBlock Text="{Binding FailuresHeader}" Style="{StaticResource MonoSmall}" HorizontalAlignment="Right" />
               </Grid>
               <ItemsControl IsTabStop="False" ItemsSource="{Binding Failures}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <Button Style="{StaticResource QuietButton}" Height="{StaticResource TouchTarget}" Padding="{StaticResource Inset0}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                    <Button Style="{StaticResource QuietButton}" Height="{StaticResource ControlHeightMediumLarge}" Padding="{StaticResource Space0Thickness}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                             Command="{Binding DataContext.SelectMember, ElementName=Panel}" CommandParameter="{Binding Key}"
                             AutomationProperties.Name="{Binding AutomationName}">
-                      <Grid ColumnSpacing="{StaticResource Space10}">
+                      <Grid ColumnSpacing="{StaticResource Space125}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <TextBlock Text="{Binding Label}" Style="{StaticResource MonoLabel}" Foreground="{ThemeResource OnSurfaceBrush}" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -140,9 +140,9 @@
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
-              <Button Style="{StaticResource InspectorAction}" Command="{Binding UpsizeFailing}" HorizontalAlignment="Stretch" Margin="{StaticResource GapTop10}"
+              <Button Style="{StaticResource InspectorAction}" Command="{Binding UpsizeFailing}" HorizontalAlignment="Stretch" Margin="{StaticResource Space125TopThickness}"
                       ToolTipService.ToolTip="Lightest library section that carries each failing member   U" AutomationProperties.Name="Upsize failing members">
-                <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space125}">
                   <TextBlock Text="UPSIZE FAILING MEMBERS" Style="{StaticResource ButtonLabel}" VerticalAlignment="Center" />
                   <Border Style="{StaticResource Keycap}">
                     <TextBlock Text="U" Style="{StaticResource KeycapText}" />
@@ -154,7 +154,7 @@
           <StackPanel c:Motion.Reveal="True" Visibility="{Binding ShowResultDetails, Converter={StaticResource Vis}}">
             <Rectangle Style="{StaticResource Rule}" Visibility="{Binding Inspector.ReactionsText, Converter={StaticResource VisText}}" />
             <StackPanel Style="{StaticResource Section}" c:Motion.Reveal="True" Visibility="{Binding Inspector.ReactionsText, Converter={StaticResource VisText}}">
-              <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom10}">
+              <StackPanel Orientation="Horizontal" Margin="{StaticResource Space125BottomThickness}">
                 <TextBlock Text="03" Style="{StaticResource SectionNumber}" /><TextBlock Text="REACTIONS" Style="{StaticResource SectionLabel}" />
               </StackPanel>
               <TextBlock Text="{Binding Inspector.ReactionsText}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource OnSurfaceBrush}" LineHeight="{StaticResource LineLoose}" />
@@ -172,10 +172,10 @@
           </StackPanel>
           <Rectangle Style="{StaticResource Rule}" />
           <StackPanel Style="{StaticResource Section}">
-            <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom14}">
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Space150BottomThickness}">
               <TextBlock Text="01" Style="{StaticResource SectionNumber}" /><TextBlock Text="POSITION" Style="{StaticResource SectionLabel}" />
             </StackPanel>
-            <Grid ColumnSpacing="{StaticResource Space12}">
+            <Grid ColumnSpacing="{StaticResource Space150}">
               <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock Text="X" Style="{StaticResource FieldLabel}" />
@@ -189,7 +189,7 @@
           </StackPanel>
           <Rectangle Style="{StaticResource Rule}" />
           <StackPanel Style="{StaticResource Section}">
-            <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom14}">
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Space150BottomThickness}">
               <TextBlock Text="02" Style="{StaticResource SectionNumber}" /><TextBlock Text="SUPPORT" Style="{StaticResource SectionLabel}" />
             </StackPanel>
             <Border Style="{StaticResource SegmentGroup}">
@@ -198,18 +198,18 @@
                   <ColumnDefinition Width="*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="*" /><ColumnDefinition Width="1" />
                   <ColumnDefinition Width="*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <ToggleButton Style="{StaticResource SegmentToggle}" Padding="{StaticResource InsetX2}" Content="NONE" IsChecked="{Binding Inspector.IsFree}" Command="{Binding SupportNone}" AutomationProperties.Name="No support" />
+                <ToggleButton Style="{StaticResource SegmentToggle}" Padding="{StaticResource Space025HorizontalThickness}" Content="NONE" IsChecked="{Binding Inspector.IsFree}" Command="{Binding SupportNone}" AutomationProperties.Name="No support" />
                 <Rectangle Grid.Column="1" Fill="{ThemeResource OutlineVariantBrush}" />
-                <ToggleButton Grid.Column="2" Style="{StaticResource SegmentToggle}" Padding="{StaticResource InsetX2}" Content="PIN" IsChecked="{Binding Inspector.IsPin}" Command="{Binding SupportPin}" AutomationProperties.Name="Pin support" />
+                <ToggleButton Grid.Column="2" Style="{StaticResource SegmentToggle}" Padding="{StaticResource Space025HorizontalThickness}" Content="PIN" IsChecked="{Binding Inspector.IsPin}" Command="{Binding SupportPin}" AutomationProperties.Name="Pin support" />
                 <Rectangle Grid.Column="3" Fill="{ThemeResource OutlineVariantBrush}" />
-                <ToggleButton Grid.Column="4" Style="{StaticResource SegmentToggle}" Padding="{StaticResource InsetX2}" Content="ROLLER X" IsChecked="{Binding Inspector.IsRoller}" Command="{Binding SupportRoller}"
+                <ToggleButton Grid.Column="4" Style="{StaticResource SegmentToggle}" Padding="{StaticResource Space025HorizontalThickness}" Content="ROLLER X" IsChecked="{Binding Inspector.IsRoller}" Command="{Binding SupportRoller}"
                               ToolTipService.ToolTip="Fixed in y, free to roll in x" AutomationProperties.Name="Roller support, free in x" />
                 <Rectangle Grid.Column="5" Fill="{ThemeResource OutlineVariantBrush}" />
-                <ToggleButton Grid.Column="6" Style="{StaticResource SegmentToggle}" Padding="{StaticResource InsetX2}" Content="ROLLER Y" IsChecked="{Binding Inspector.IsRollerX}" Command="{Binding SupportRollerX}"
+                <ToggleButton Grid.Column="6" Style="{StaticResource SegmentToggle}" Padding="{StaticResource Space025HorizontalThickness}" Content="ROLLER Y" IsChecked="{Binding Inspector.IsRollerX}" Command="{Binding SupportRollerX}"
                               ToolTipService.ToolTip="Fixed in x, free to roll in y" AutomationProperties.Name="Roller support, free in y" />
               </Grid>
             </Border>
-            <Grid Style="{StaticResource Row}" Margin="{StaticResource GapTop8}" c:Motion.Reveal="True" Visibility="{Binding Inspector.HasReaction, Converter={StaticResource Vis}}">
+            <Grid Style="{StaticResource Row}" Margin="{StaticResource Space100TopThickness}" c:Motion.Reveal="True" Visibility="{Binding Inspector.HasReaction, Converter={StaticResource Vis}}">
               <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
               <TextBlock Text="Reaction" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
               <TextBlock Grid.Column="1" Text="{Binding Inspector.ReactionText}" Style="{StaticResource ValueText}" VerticalAlignment="Center" />
@@ -217,10 +217,10 @@
           </StackPanel>
           <Rectangle Style="{StaticResource Rule}" />
           <StackPanel Style="{StaticResource Section}">
-            <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom14}">
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Space150BottomThickness}">
               <TextBlock Text="03" Style="{StaticResource SectionNumber}" /><TextBlock Text="LOAD" Style="{StaticResource SectionLabel}" />
             </StackPanel>
-            <Grid ColumnSpacing="{StaticResource Space12}">
+            <Grid ColumnSpacing="{StaticResource Space150}">
               <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock Text="FX" Style="{StaticResource FieldLabel}" />
@@ -231,17 +231,17 @@
                 <c:NumberField Value="{Binding NodeLoad.Y, Mode=TwoWay}" Unit="kN" Decimals="1" Step="1" AutomationProperties.Name="Load Y" />
               </StackPanel>
             </Grid>
-            <TextBlock Text="Negative Fy points down. Drag the arrow tail on the drawing to aim it." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource GapTop12}" />
+            <TextBlock Text="Negative Fy points down. Drag the arrow tail on the drawing to aim it." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource Space150TopThickness}" />
           </StackPanel>
 
           <!-- Result details: a Reduce-noise layer -->
           <StackPanel c:Motion.Reveal="True" Visibility="{Binding ShowResultDetails, Converter={StaticResource Vis}}">
             <Rectangle Style="{StaticResource Rule}" />
             <StackPanel Style="{StaticResource Section}">
-              <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom14}">
+              <StackPanel Orientation="Horizontal" Margin="{StaticResource Space150BottomThickness}">
                 <TextBlock Text="04" Style="{StaticResource SectionNumber}" /><TextBlock Text="DISPLACEMENT" Style="{StaticResource SectionLabel}" />
               </StackPanel>
-              <Grid ColumnSpacing="{StaticResource Space20}">
+              <Grid ColumnSpacing="{StaticResource Space250}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="72" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <!-- Direction of travel: center dot, line to the displaced position (fixed length, so small motions still read). -->
                 <Grid Width="72" Height="72" VerticalAlignment="Top">
@@ -279,7 +279,7 @@
             </StackPanel>
             <Rectangle Style="{StaticResource Rule}" />
             <StackPanel Style="{StaticResource Section}">
-              <Grid Margin="{StaticResource GapBottom8}">
+              <Grid Margin="{StaticResource Space100BottomThickness}">
                 <StackPanel Orientation="Horizontal">
                   <TextBlock Text="05" Style="{StaticResource SectionNumber}" /><TextBlock Text="CONNECTED MEMBERS" Style="{StaticResource SectionLabel}" />
                 </StackPanel>
@@ -288,14 +288,14 @@
               <ItemsControl IsTabStop="False" ItemsSource="{Binding ConnectedMembers}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <Grid Height="{StaticResource RowHeight}" ColumnSpacing="{StaticResource Space12}">
+                    <Grid Height="{StaticResource ControlHeightSmall}" ColumnSpacing="{StaticResource Space150}">
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="48" />
                       </Grid.ColumnDefinitions>
                       <TextBlock Text="{Binding Label}" Style="{StaticResource MonoLabel}" Foreground="{ThemeResource OnSurfaceBrush}" VerticalAlignment="Center" />
                       <TextBlock Grid.Column="1" Text="{Binding Endpoints}" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
                       <TextBlock Grid.Column="2" Text="{Binding Force}" Style="{StaticResource MonoCaption}" Foreground="{Binding ForceToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center" />
-                      <Border Grid.Column="3" HorizontalAlignment="Right" Style="{StaticResource PillBorder}" BorderThickness="{StaticResource Inset0}"
+                      <Border Grid.Column="3" HorizontalAlignment="Right" Style="{StaticResource PillBorder}" BorderThickness="{StaticResource Space0Thickness}"
                               Background="{Binding UtilIsDanger, Converter={StaticResource Pick}, ConverterParameter=ErrorContainerBrush|TransparentBrush}">
                         <TextBlock Text="{Binding Util}" Style="{StaticResource PillText}"
                                    Foreground="{Binding UtilIsDanger, Converter={StaticResource Pick}, ConverterParameter=ErrorBrush|OnSurfaceVariantBrush}" />
@@ -317,7 +317,7 @@
           </StackPanel>
           <Rectangle Style="{StaticResource Rule}" />
           <StackPanel Style="{StaticResource Section}">
-            <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom6}">
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Space075BottomThickness}">
               <TextBlock Text="01" Style="{StaticResource SectionNumber}" /><TextBlock Text="GEOMETRY" Style="{StaticResource SectionLabel}" />
             </StackPanel>
             <Grid Style="{StaticResource Row}">
@@ -333,24 +333,24 @@
           </StackPanel>
           <Rectangle Style="{StaticResource Rule}" />
           <StackPanel Style="{StaticResource Section}">
-            <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom14}">
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Space150BottomThickness}">
               <TextBlock Text="02" Style="{StaticResource SectionNumber}" /><TextBlock Text="SECTION" Style="{StaticResource SectionLabel}" />
             </StackPanel>
             <ComboBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding MemberSection.Index, Mode=TwoWay}"
-                      HorizontalAlignment="Stretch" MinHeight="{StaticResource FieldHeight}" Height="{StaticResource FieldHeight}" AutomationProperties.Name="Section">
+                      HorizontalAlignment="Stretch" MinHeight="{StaticResource ControlHeightMedium}" Height="{StaticResource ControlHeightMedium}" AutomationProperties.Name="Section">
               <ComboBox.ItemTemplate>
                 <DataTemplate>
                   <TextBlock Text="{Binding Name}" Style="{StaticResource BodyText}" />
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
-            <TextBlock Text="{Binding Inspector.MaterialText}" Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource GapTop10}" />
-            <TextBlock Text="{Binding Inspector.AreaText}" Style="{StaticResource MonoCaption}" Margin="{StaticResource GapTop2}" />
-            <TextBlock Text="Drag a section onto any member, or pick one to apply it here." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource GapTop10}" />
+            <TextBlock Text="{Binding Inspector.MaterialText}" Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource Space125TopThickness}" />
+            <TextBlock Text="{Binding Inspector.AreaText}" Style="{StaticResource MonoCaption}" Margin="{StaticResource Space025TopThickness}" />
+            <TextBlock Text="Drag a section onto any member, or pick one to apply it here." Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource Space125TopThickness}" />
             <!-- The chips overflow one 296 px row; a uniform grid wraps them into rows of four instead of clipping. -->
-            <ItemsRepeater TabFocusNavigation="Local" ItemsSource="{Binding Sections}" Margin="{StaticResource GapTop8}">
+            <ItemsRepeater TabFocusNavigation="Local" ItemsSource="{Binding Sections}" Margin="{StaticResource Space100TopThickness}">
               <ItemsRepeater.Layout>
-                <UniformGridLayout MinItemWidth="{StaticResource ChipMinWidth}" MinItemHeight="{StaticResource ChipMinHeight}" MinColumnSpacing="{StaticResource Space4}" MinRowSpacing="{StaticResource Space4}" ItemsStretch="Fill" />
+                <UniformGridLayout MinItemWidth="{StaticResource ChipMinWidth}" MinItemHeight="{StaticResource ChipMinHeight}" MinColumnSpacing="{StaticResource Space050}" MinRowSpacing="{StaticResource Space050}" ItemsStretch="Fill" />
               </ItemsRepeater.Layout>
               <ItemsRepeater.ItemTemplate>
                 <DataTemplate>
@@ -368,7 +368,7 @@
           </StackPanel>
           <Rectangle Style="{StaticResource Rule}" />
           <StackPanel Style="{StaticResource Section}">
-            <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom6}">
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Space075BottomThickness}">
               <TextBlock Text="03" Style="{StaticResource SectionNumber}" /><TextBlock Text="RESULT" Style="{StaticResource SectionLabel}" />
             </StackPanel>
             <Grid Style="{StaticResource Row}">
@@ -384,19 +384,19 @@
             <ProgressBar Style="{StaticResource UtilizationBarStyle}" Value="{Binding Inspector.Util}" Foreground="{Binding Inspector.UtilToneKey, Converter={StaticResource Brush}}" AutomationProperties.Name="Utilization" />
             <!-- Result details: a Reduce-noise layer -->
             <StackPanel c:Motion.Reveal="True" Visibility="{Binding ShowResultDetails, Converter={StaticResource Vis}}">
-              <Grid Style="{StaticResource Row}" Margin="{StaticResource GapTop6}">
+              <Grid Style="{StaticResource Row}" Margin="{StaticResource Space075TopThickness}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <TextBlock Text="Stress" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Text="{Binding Inspector.StressText}" Style="{StaticResource ValueText}" VerticalAlignment="Center" />
               </Grid>
-              <TextBlock Text="{Binding Inspector.GovernsText}" Style="{StaticResource CaptionText}" Margin="{StaticResource GapTop2}" />
+              <TextBlock Text="{Binding Inspector.GovernsText}" Style="{StaticResource CaptionText}" Margin="{StaticResource Space025TopThickness}" />
               <Grid Style="{StaticResource Row}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <TextBlock Text="Buckling" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Text="{Binding Inspector.BucklingText}" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource OnSurfaceBrush}" VerticalAlignment="Center" />
               </Grid>
             </StackPanel>
-            <Button Style="{StaticResource InspectorAction}" Command="{Binding SplitMember}" Content="SPLIT AT MIDPOINT" Margin="{StaticResource GapTop12}" AutomationProperties.Name="Split at midpoint" />
+            <Button Style="{StaticResource InspectorAction}" Command="{Binding SplitMember}" Content="SPLIT AT MIDPOINT" Margin="{StaticResource Space150TopThickness}" AutomationProperties.Name="Split at midpoint" />
           </StackPanel>
         </StackPanel>
 
@@ -406,15 +406,15 @@
             <TextBlock Text="INSPECTOR · SELECTION" Style="{StaticResource Eyebrow}" />
             <TextBlock Text="{Binding Inspector.Title}" Style="{StaticResource DisplayText}" />
             <TextBlock Text="{Binding Inspector.Subtitle}" Style="{StaticResource SecondaryText}" />
-            <TextBlock Text="{Binding Inspector.MixedText}" Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource GapTop6}" />
+            <TextBlock Text="{Binding Inspector.MixedText}" Style="{StaticResource CaptionText}" TextWrapping="Wrap" Margin="{StaticResource Space075TopThickness}" />
           </StackPanel>
           <StackPanel c:Motion.Reveal="True" Visibility="{Binding Inspector.MixedHasNodes, Converter={StaticResource Vis}}">
             <Rectangle Style="{StaticResource Rule}" />
-            <StackPanel Style="{StaticResource Section}" Spacing="{StaticResource Space8}">
-              <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom6}">
+            <StackPanel Style="{StaticResource Section}" Spacing="{StaticResource Space100}">
+              <StackPanel Orientation="Horizontal" Margin="{StaticResource Space075BottomThickness}">
                 <TextBlock Text="01" Style="{StaticResource SectionNumber}" /><TextBlock Text="NODES" Style="{StaticResource SectionLabel}" />
               </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space6}">
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space075}">
                 <Button Style="{StaticResource InspectorAction}" Content="PIN" Command="{Binding SupportPin}" AutomationProperties.Name="Pin selected nodes" />
                 <Button Style="{StaticResource InspectorAction}" Content="ROLLER" Command="{Binding SupportRoller}" AutomationProperties.Name="Roller on selected nodes" />
                 <Button Style="{StaticResource InspectorAction}" Content="NO SUPPORT" Command="{Binding SupportNone}" AutomationProperties.Name="Remove supports" />
@@ -424,13 +424,13 @@
           </StackPanel>
           <StackPanel c:Motion.Reveal="True" Visibility="{Binding Inspector.MixedHasMembers, Converter={StaticResource Vis}}">
             <Rectangle Style="{StaticResource Rule}" />
-            <StackPanel Style="{StaticResource Section}" Spacing="{StaticResource Space4}">
-              <StackPanel Orientation="Horizontal" Margin="{StaticResource GapBottom6}">
+            <StackPanel Style="{StaticResource Section}" Spacing="{StaticResource Space050}">
+              <StackPanel Orientation="Horizontal" Margin="{StaticResource Space075BottomThickness}">
                 <TextBlock Text="02" Style="{StaticResource SectionNumber}" /><TextBlock Text="MEMBERS · SET SECTION" Style="{StaticResource SectionLabel}" />
               </StackPanel>
               <ItemsControl IsTabStop="False" ItemsSource="{Binding Sections}">
                 <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate><StackPanel Spacing="{StaticResource Space2}" /></ItemsPanelTemplate>
+                  <ItemsPanelTemplate><StackPanel Spacing="{StaticResource Space025}" /></ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
@@ -451,8 +451,8 @@
     <StackPanel Grid.Row="1" c:Motion.Reveal="True" Visibility="{Binding Inspector.IsSummary, Converter={StaticResource Vis}, ConverterParameter=invert}">
       <Rectangle Style="{StaticResource DashedRule}" />
       <Button Style="{StaticResource DangerTextButton}" Command="{Binding DeleteSelection}" Margin="{StaticResource InspectorFooterMargin}" AutomationProperties.Name="Delete selection">
-        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
-          <c:Icon Kind="delete" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Foreground="{ThemeResource ErrorBrush}" />
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space100}">
+          <c:Icon Kind="delete" Width="{StaticResource IconSizeSmall}" Height="{StaticResource IconSizeSmall}" Foreground="{ThemeResource ErrorBrush}" />
           <TextBlock Text="DELETE NODE" Style="{StaticResource ButtonLabel}" VerticalAlignment="Center" Visibility="{Binding Inspector.IsNode, Converter={StaticResource Vis}}" />
           <TextBlock Text="DELETE MEMBER" Style="{StaticResource ButtonLabel}" VerticalAlignment="Center" Visibility="{Binding Inspector.IsMember, Converter={StaticResource Vis}}" />
           <TextBlock Text="DELETE SELECTION" Style="{StaticResource ButtonLabel}" VerticalAlignment="Center" Visibility="{Binding Inspector.IsMixed, Converter={StaticResource Vis}}" />

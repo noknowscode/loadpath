@@ -22,7 +22,8 @@ public sealed partial class TitleStrip : UserControl
     {
         if (DocumentName.Visibility != Visibility.Visible) return;
         var cap = Application.Current.Resources.TryGetValue("DocumentNameMaxWidth", out var m) && m is double d ? d : double.PositiveInfinity;
-        var gap = Application.Current.Resources.TryGetValue("Space16", out var g) && g is double gd ? gd : 0;
+        // The strip's gap before the right cluster: the theme's Space200 token (16 px on its 8 px unit).
+        var gap = ThemeLookup.Double("Space200", ActualTheme, 0);
         var strip = ((Grid)Content).Padding;
         var others = LeftCluster.DesiredSize.Width - DocumentNameText.DesiredSize.Width;
         var room = ActualWidth - strip.Left - strip.Right - RightCluster.DesiredSize.Width - gap - others;

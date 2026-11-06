@@ -60,11 +60,11 @@
         <!-- Mechanism / unsupported banner -->
 
         <!-- xaml-lint: allow card - status banner, not a card; InfoBar is the Fluent match (docs/UNO-AUDIT.md, Remaining) -->
-        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{utu:Responsive Narrow={StaticResource BannerMarginNarrow}, Normal={StaticResource BannerMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}"
+        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{utu:Responsive Narrow={StaticResource BannerMarginNarrow}, Normal={StaticResource BannerMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource Radius100CornerRadius}"
                 Background="{ThemeResource ErrorContainerBrush}" BorderBrush="{ThemeResource ErrorLowBrush}" BorderThickness="{StaticResource Hairline}"
                 c:Motion.Reveal="True" Visibility="{Binding Status.IsMechanism, Converter={StaticResource Vis}}" IsHitTestVisible="False">
-          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
-            <c:Icon Kind="warning" Foreground="{ThemeResource ErrorBrush}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" />
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space100}">
+            <c:Icon Kind="warning" Foreground="{ThemeResource ErrorBrush}" Width="{StaticResource IconSizeSmall}" Height="{StaticResource IconSizeSmall}" />
             <TextBlock Text="{Binding Status.MechanismText}" Style="{StaticResource BodyText}" Foreground="{ThemeResource ErrorBrush}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None" />
           </StackPanel>
         </Border>
@@ -72,11 +72,11 @@
         <!-- Detached parts notice (warning, not failure) -->
 
         <!-- xaml-lint: allow card - status banner, not a card; InfoBar is the Fluent match (docs/UNO-AUDIT.md, Remaining) -->
-        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{utu:Responsive Narrow={StaticResource BannerMarginNarrow}, Normal={StaticResource BannerMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource RadiusField}"
+        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="{utu:Responsive Narrow={StaticResource BannerMarginNarrow}, Normal={StaticResource BannerMargin}}" Padding="{StaticResource Inset14x8}" CornerRadius="{StaticResource Radius100CornerRadius}"
                 Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}" BorderThickness="{StaticResource Hairline}"
                 c:Motion.Reveal="True" Visibility="{Binding Status.HasDetached, Converter={StaticResource Vis}}" IsHitTestVisible="False">
-          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space8}">
-            <c:Icon Kind="warning" Foreground="{ThemeResource OnSurfaceVariantBrush}" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" />
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space100}">
+            <c:Icon Kind="warning" Foreground="{ThemeResource OnSurfaceVariantBrush}" Width="{StaticResource IconSizeSmall}" Height="{StaticResource IconSizeSmall}" />
             <TextBlock Text="{Binding Status.DetachedText}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None" />
           </StackPanel>
         </Border>
@@ -85,7 +85,7 @@
         <!-- A paper plate behind the text so the registration marks do not run through it. -->
         <Border x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{ThemeResource BackgroundBrush}" Padding="{utu:Responsive Narrow={StaticResource EmptyStateInsetNarrow}, Normal={StaticResource EmptyStateInset}}"
                 c:Motion.Reveal="True" Visibility="{Binding Status.IsEmpty, Converter={StaticResource Vis}}">
-        <StackPanel Spacing="{StaticResource Space14}" MaxWidth="{StaticResource EmptyStateMaxWidth}">
+        <StackPanel Spacing="{StaticResource Space150}" MaxWidth="{StaticResource EmptyStateMaxWidth}">
           <TextBlock Text="Fig. 00" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" />
           <TextBlock Text="Draw a structure and it answers." Style="{StaticResource DisplayText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="None" />
           <!-- Keyboard instructions from Normal up; on a phone the same steps through the tool strip. -->
@@ -99,14 +99,14 @@
             <Run Text=" S " FontFamily="{StaticResource MonoFontFamily}" FontWeight="Medium" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="for supports and" />
             <Run Text=" L " FontFamily="{StaticResource MonoFontFamily}" FontWeight="Medium" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="for loads. Every change re-solves instantly." />
           </TextBlock>
-          <TextBlock Text="Or start from a sample" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" Margin="{StaticResource GapTop10}" />
-          <StackPanel Orientation="{utu:Responsive Narrow=Vertical, Normal=Horizontal}" Spacing="{StaticResource Space8}" HorizontalAlignment="Center">
+          <TextBlock Text="Or start from a sample" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" Margin="{StaticResource Space125TopThickness}" />
+          <StackPanel Orientation="{utu:Responsive Narrow=Vertical, Normal=Horizontal}" Spacing="{StaticResource Space100}" HorizontalAlignment="Center">
             <Button Style="{StaticResource OutlineButton}" Content="WARREN TRUSS" Command="{Binding SampleWarren}" AutomationProperties.Name="Load Warren truss sample" />
             <Button Style="{StaticResource OutlineButton}" Content="CANTILEVER" Command="{Binding SampleCantilever}" AutomationProperties.Name="Load cantilever sample" />
             <Button Style="{StaticResource OutlineButton}" Content="HOWE ROOF" Command="{Binding SampleRoof}" AutomationProperties.Name="Load Howe roof sample" />
           </StackPanel>
           <Button Style="{StaticResource LinkButton}" HorizontalAlignment="Center" Command="{Binding PasteDesign}" AutomationProperties.Name="Paste a design from a share code">
-            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space125}">
               <TextBlock Text="OR PASTE A SHARE CODE" Style="{StaticResource ButtonLabel}" VerticalAlignment="Center" />
               <Border Style="{StaticResource Keycap}" Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}">
                 <TextBlock Text="CTRL SHIFT V" Style="{StaticResource KeycapText}" />
@@ -120,10 +120,10 @@
 
         <!-- xaml-lint: allow card - selection toolbar that follows the viewport, not a card; CommandBarFlyout cannot track a moving anchor -->
         <Border x:Name="FloatingBar" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed"
-                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusPopover}" Padding="{StaticResource FloatingBarInset}">
-          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
-            <TextBlock Text="{Binding Inspector.SelectionLabel}" Style="{StaticResource MonoLabel}" Foreground="{ThemeResource PrimaryBrush}" VerticalAlignment="Center" Margin="{StaticResource GapEnd8}" />
-            <Rectangle Width="1" Height="{StaticResource RuleShort}" Fill="{ThemeResource OutlineVariantMediumBrush}" Margin="{StaticResource GapEnd4}" />
+                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource Radius200CornerRadius}" Padding="{StaticResource FloatingBarInset}">
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space025}">
+            <TextBlock Text="{Binding Inspector.SelectionLabel}" Style="{StaticResource MonoLabel}" Foreground="{ThemeResource PrimaryBrush}" VerticalAlignment="Center" Margin="{StaticResource Space100RightThickness}" />
+            <Rectangle Width="1" Height="{StaticResource RuleShort}" Fill="{ThemeResource OutlineVariantMediumBrush}" Margin="{StaticResource Space050RightThickness}" />
             <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding CycleSupport}" ToolTipService.ToolTip="Cycle support" Visibility="{Binding Inspector.SelectionHasNodes, Converter={StaticResource Vis}}" AutomationProperties.Name="Cycle support">
               <c:Icon Kind="support" Foreground="{ThemeResource PrimaryBrush}" />
             </Button>
@@ -139,7 +139,7 @@
             <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding DeleteSelection}" ToolTipService.ToolTip="Delete   Del" AutomationProperties.Name="Delete">
               <c:Icon Kind="delete" Foreground="{ThemeResource ErrorBrush}" />
             </Button>
-            <Rectangle Width="1" Height="{StaticResource RuleShort}" Fill="{ThemeResource OutlineVariantMediumBrush}" Margin="{StaticResource InsetX2}" />
+            <Rectangle Width="1" Height="{StaticResource RuleShort}" Fill="{ThemeResource OutlineVariantMediumBrush}" Margin="{StaticResource Space025HorizontalThickness}" />
             <!-- The touch stand-in for Shift: while on, taps add to the selection or take an element out of it. -->
             <ToggleButton Style="{utu:Responsive Narrow={StaticResource TouchIconToggle}, Normal={StaticResource IconToggle}}" IsChecked="{Binding MultiSelect, Mode=TwoWay, Converter={StaticResource Checked}}"
                           ToolTipService.ToolTip="Multi-select: taps add to the selection   (or hold Shift)" AutomationProperties.Name="Multi-select">
@@ -152,7 +152,7 @@
 
         <!-- xaml-lint: allow card - drag ghost that follows the pointer, not a card -->
         <Border x:Name="DragGhost" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed" IsHitTestVisible="False"
-                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusField}" Padding="{StaticResource Inset6x3}">
+                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource Radius100CornerRadius}" Padding="{StaticResource Inset6x3}">
           <TextBlock x:Name="DragGhostText" Style="{StaticResource MonoCaption}" Foreground="{ThemeResource OnSurfaceBrush}" />
         </Border>
 
@@ -165,7 +165,7 @@
                   Grid.Row="{utu:Responsive Narrow=1, Normal=0}"
                   HorizontalAlignment="{utu:Responsive Narrow=Stretch, Normal=Left}"
                   VerticalAlignment="{utu:Responsive Narrow=Stretch, Normal=Top}"
-                  Margin="{utu:Responsive Narrow={StaticResource Inset0}, Normal={StaticResource RailMargin}}" />
+                  Margin="{utu:Responsive Narrow={StaticResource Space0Thickness}, Normal={StaticResource RailMargin}}" />
 
       <!--
         Inspector host: a docked column from Wide up, a side sheet over the canvas at Normal, a bottom sheet on a phone.
@@ -178,24 +178,24 @@
             Width="{utu:Responsive Narrow=NaN, Normal={StaticResource InspectorWidth}}"
             Height="{utu:Responsive Narrow={StaticResource BottomSheetHeight}, Normal=NaN}"
             Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}"
-            BorderThickness="{utu:Responsive Narrow={StaticResource HairlineTop}, Normal={StaticResource HairlineStart}, Wide={StaticResource Inset0}}"
+            BorderThickness="{utu:Responsive Narrow={StaticResource HairlineTop}, Normal={StaticResource HairlineStart}, Wide={StaticResource Space0Thickness}}"
             c:Motion.Reveal="True" Visibility="{Binding InspectorShown, Converter={StaticResource Vis}}">
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid Padding="{StaticResource InspectorTabsInset}" ColumnSpacing="{StaticResource Space8}" Visibility="{utu:Responsive Narrow=Visible, Widest=Collapsed}">
+        <Grid Padding="{StaticResource InspectorTabsInset}" ColumnSpacing="{StaticResource Space100}" Visibility="{utu:Responsive Narrow=Visible, Widest=Collapsed}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
           <Border Style="{StaticResource SegmentGroup}" HorizontalAlignment="Left">
             <StackPanel Orientation="Horizontal">
-              <ToggleButton Style="{StaticResource SegmentToggle}" Height="{utu:Responsive Narrow={StaticResource TouchTarget}, Normal={StaticResource ControlHeight}}"
+              <ToggleButton Style="{StaticResource SegmentToggle}" Height="{utu:Responsive Narrow={StaticResource ControlHeightMediumLarge}, Normal={StaticResource ControlHeightMedium}}"
                             Content="INSPECTOR" IsChecked="{Binding InspectorTabSelected, Mode=TwoWay, Converter={StaticResource Checked}}" Command="{Binding ShowInspectorTab}" AutomationProperties.Name="Inspector tab" />
               <Rectangle Width="1" Fill="{ThemeResource OutlineVariantBrush}" />
-              <ToggleButton Style="{StaticResource SegmentToggle}" Height="{utu:Responsive Narrow={StaticResource TouchTarget}, Normal={StaticResource ControlHeight}}"
+              <ToggleButton Style="{StaticResource SegmentToggle}" Height="{utu:Responsive Narrow={StaticResource ControlHeightMediumLarge}, Normal={StaticResource ControlHeightMedium}}"
                             Content="STRUCTURE" IsChecked="{Binding OutlineTabSelected, Mode=TwoWay, Converter={StaticResource Checked}}" Command="{Binding ShowOutlineTab}" AutomationProperties.Name="Structure outline tab" />
             </StackPanel>
           </Border>

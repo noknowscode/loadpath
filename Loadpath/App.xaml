@@ -17,14 +17,16 @@
         <!-- The look comes from the Simple theme. Its palette is the design's, in Styles/ColorPaletteOverride.xaml (the
              file Uno Platform Studio's Themes tab edits); pages, styles and the canvas use the role brushes it
              generates (OnSurfaceBrush, PrimaryBrush, OutlineVariantBrush...). The type is Inter (DefaultFontFamily) on
-             the design's ramp (Styles/TypographyOverride.xaml), with JetBrains Mono for figures. -->
-        <utus:SimpleToolkitTheme DefaultFontFamily="ms-appx:///Assets/Fonts/Inter-Regular.ttf#Inter"
+             the design's ramp (Styles/TypographyOverride.xaml), with JetBrains Mono for figures. Spacing runs on an
+             8 px unit (Space025 = 2 ... Space250 = 20) and radii on 4 (Radius050 = 2: fields and segments,
+             Radius100 = 4: buttons, Radius200 = 8: popovers, RadiusFull: pills). -->
+        <utus:SimpleToolkitTheme DefaultSpacing="8" DefaultCornerRadius="4" DefaultDensity="Regular"
+                                 DefaultFontFamily="ms-appx:///Assets/Fonts/Inter-Regular.ttf#Inter"
                                  FontOverrideSource="ms-appx:///Styles/TypographyOverride.xaml">
           <utus:SimpleToolkitTheme.Colors>
             <ut:ThemeColors xmlns:ut="using:Uno.Themes" OverrideSource="ms-appx:///Styles/ColorPaletteOverride.xaml" />
           </utus:SimpleToolkitTheme.Colors>
         </utus:SimpleToolkitTheme>
-        <ResourceDictionary Source="ms-appx:///Themes/Tokens.xaml" />
         <ResourceDictionary Source="ms-appx:///Themes/Layout.xaml" />
         <ResourceDictionary Source="ms-appx:///Themes/Icons.xaml" />
         <ResourceDictionary Source="ms-appx:///Themes/Controls.xaml" />
