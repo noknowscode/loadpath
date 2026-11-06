@@ -6,8 +6,8 @@ namespace Loadpath.Workspace;
 /// <summary>
 /// The canvas palette for one theme: the Simple theme's role colours (the design's palette, Styles/ColorPaletteOverride.xaml),
 /// App.xaml's Warn and the per-theme alphas Skia bakes into its paints. Construction lines and grid marks are Primary
-/// blended into the paper. Immutable: the view builds a new one on load and on every ActualThemeChanged and hands it to
-/// the renderer, which swaps it in at the start of the next frame.
+/// blended into the paper. Immutable: the view builds a new one on load, on every ActualThemeChanged and when the palette
+/// itself changes (ThemeLookup.PaletteChanged), and hands it to the renderer, which swaps it in at the start of the next frame.
 /// </summary>
 public sealed class SkiaPalette
 {
@@ -51,19 +51,21 @@ public sealed class SkiaPalette
             return new SKColor(c.R, c.G, c.B, c.A);
         }
         double D(string key) => ThemeLookup.Double(key, theme, 1.0);
-        var background = C("BackgroundColor");
-        var primary = C("PrimaryColor");
+        // The role brushes, not the palette's colours: ThemeLookup watches a brush it hands out, so a palette edit
+        // that recolours them raises ThemeLookup.PaletteChanged and the view reads a new palette.
+        var background = C("BackgroundBrush");
+        var primary = C("PrimaryBrush");
         return new SkiaPalette
         {
             Background = background,
-            OnSurfaceVariant = C("OnSurfaceVariantColor"),
+            OnSurfaceVariant = C("OnSurfaceVariantBrush"),
             Primary = primary,
-            PrimaryContainer = C("PrimaryContainerColor"),
+            PrimaryContainer = C("PrimaryContainerBrush"),
             Construction = Lerp(background, primary, D("CanvasConstructionAlpha")),
             GridMark = Lerp(background, primary, D("CanvasGridAlpha")),
-            Error = C("ErrorColor"),
-            ErrorContainer = C("ErrorContainerColor"),
-            Warn = C("WarnColor"),
+            Error = C("ErrorBrush"),
+            ErrorContainer = C("ErrorContainerBrush"),
+            Warn = C("WarnBrush"),
             DimAlpha = D("CanvasDimAlpha"),
             DimInkAlpha = D("CanvasDimInkAlpha"),
             HaloAlpha = D("CanvasHaloAlpha"),

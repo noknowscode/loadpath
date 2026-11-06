@@ -70,10 +70,20 @@ public sealed partial class WorkspaceView : SKCanvasElement
         // to the page, so the canvas took no input and the press pulled keyboard focus off the key sink.
         Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         SizeChanged += (_, e) => OnSizeChanged(e.NewSize);
-        Unloaded += (_, _) => _animation?.Stop();
-        // The canvas palette follows the theme: read once now (the theme the page starts in), then on every change.
+        Unloaded += (_, _) =>
+        {
+            _animation?.Stop();
+            ThemeLookup.PaletteChanged -= OnPaletteChanged;
+        };
+        // The canvas palette follows the theme: read once now (the theme the page starts in), then on every Light/Dark
+        // change and every edit of the palette itself (Studio's Themes tab).
         _renderer = new WorkspaceRenderer(SkiaPalette.FromResources(ThemeBrushes.Theme));
-        Loaded += (_, _) => ApplyThemePalette();
+        Loaded += (_, _) =>
+        {
+            ThemeLookup.PaletteChanged -= OnPaletteChanged;
+            ThemeLookup.PaletteChanged += OnPaletteChanged;
+            ApplyThemePalette();
+        };
         ActualThemeChanged += (_, _) => ApplyThemePalette();
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
@@ -87,6 +97,8 @@ public sealed partial class WorkspaceView : SKCanvasElement
 #endif
         _ = LoadTypefacesAsync();
     }
+
+    private void OnPaletteChanged(object? sender, EventArgs e) => ApplyThemePalette();
 
     private void ApplyThemePalette()
     {
