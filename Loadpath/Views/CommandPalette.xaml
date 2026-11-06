@@ -4,7 +4,7 @@
              xmlns:c="using:Loadpath.Controls"
              xmlns:utu="using:Uno.Toolkit.UI">
   <Grid x:Name="Scrim" Background="{ThemeResource SimpleBackgroundUtilitiesOverlayBrush}" PointerPressed="OnScrimPressed">
-    <!-- xaml-lint: allow card - popover chrome, not a card; Toolkit cards need a design theme this Fluent app does not merge (README) -->
+    <!-- xaml-lint: allow card - popover chrome over a scrim, not a card -->
     <Border x:Name="Panel" MaxWidth="{StaticResource PaletteMaxWidth}" MaxHeight="{StaticResource PaletteMaxHeight}" HorizontalAlignment="Stretch" VerticalAlignment="Top"
             Margin="{utu:Responsive Narrow={StaticResource PaletteMarginNarrow}, Normal={StaticResource PaletteMargin}}"
             Background="{ThemeResource SurfaceVariantBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource Radius200CornerRadius}"

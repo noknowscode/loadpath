@@ -2,7 +2,7 @@
   "$schema": "https://schemas.platform.uno/sample/v1",
   "id": "loadpath",
   "displayName": "Loadpath",
-  "description": "A workbench for 2D pin-jointed trusses that solves as you draw. Place nodes, connect members, pin supports and hang loads, and every member shows the axial force it carries, its utilization and the deflected shape; drag a node and the structure re-solves on every pointer move. For engineering students, makers sketching frames and engineers doing a concept check. Built on an MVUX page model over an imperative editor engine, a SkiaSharp canvas (SKCanvasElement), Uno Toolkit responsive layouts and safe areas, and Uno.Extensions hosting, logging and theme switching, with its own Light and Dark themes on Fluent. Documents, autosave and share codes stay on the device.",
+  "description": "A workbench for 2D pin-jointed trusses that solves as you draw. Place nodes, connect members, pin supports and hang loads, and every member shows the axial force it carries, its utilization and the deflected shape; drag a node and the structure re-solves on every pointer move. For engineering students, makers sketching frames and engineers doing a concept check. Built on an MVUX page model over an imperative editor engine, a SkiaSharp canvas (SKCanvasElement), Uno Toolkit responsive layouts and safe areas, and Uno.Extensions hosting, logging and theme switching, with the blueprint look in Light and Dark on the Simple theme of Uno Themes, its palette in one file. Documents, autosave and share codes stay on the device.",
   "platforms": [
     "desktop",
     "wasm",
@@ -29,7 +29,7 @@
       "A SkiaSharp canvas (SKCanvasElement) that re-solves and redraws the truss on every pointer move",
       "An MVUX page model, split into projections, over an imperative editor engine with undo and redo",
       "Responsive layouts from phone to wide desktop with utu:Responsive and utu:SafeArea, and touch: tap, drag, long press and pinch",
-      "Light and Dark themes on Fluent with the app's own tokens, switched through the Extensions theme service",
+      "Light and Dark on the Simple theme: the design's palette in one override file, role brushes, semantic text and control styles, followed by the Skia canvas",
       "Local-first documents: platform file pickers, a debounced autosave that restores after a crash, and share codes",
       "Uno.Extensions hosting, dependency injection and logging, with page-model tests that run offline"
     ],
