@@ -94,10 +94,10 @@
                      Text="Pick the node tool below and tap to place nodes, the member tool to connect them, then add supports and loads. Every change re-solves instantly. Two fingers pan and zoom; press and hold for more." />
           <TextBlock Style="{StaticResource SecondaryText}" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="None"
                      Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}">
-            <Run Text="Press" /><Run Text=" N " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="and click to place nodes," />
-            <Run Text=" M " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="to connect them," />
-            <Run Text=" S " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="for supports and" />
-            <Run Text=" L " FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="for loads. Every change re-solves instantly." />
+            <Run Text="Press" /><Run Text=" N " FontFamily="{StaticResource MonoFontFamily}" FontWeight="Medium" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="and click to place nodes," />
+            <Run Text=" M " FontFamily="{StaticResource MonoFontFamily}" FontWeight="Medium" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="to connect them," />
+            <Run Text=" S " FontFamily="{StaticResource MonoFontFamily}" FontWeight="Medium" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="for supports and" />
+            <Run Text=" L " FontFamily="{StaticResource MonoFontFamily}" FontWeight="Medium" Foreground="{ThemeResource OnSurfaceBrush}" /><Run Text="for loads. Every change re-solves instantly." />
           </TextBlock>
           <TextBlock Text="Or start from a sample" Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" Margin="{StaticResource GapTop10}" />
           <StackPanel Orientation="{utu:Responsive Narrow=Vertical, Normal=Horizontal}" Spacing="{StaticResource Space8}" HorizontalAlignment="Center">
@@ -107,7 +107,7 @@
           </StackPanel>
           <Button Style="{StaticResource LinkButton}" HorizontalAlignment="Center" Command="{Binding PasteDesign}" AutomationProperties.Name="Paste a design from a share code">
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space10}">
-              <TextBlock Text="OR PASTE A SHARE CODE" VerticalAlignment="Center" />
+              <TextBlock Text="OR PASTE A SHARE CODE" Style="{StaticResource ButtonLabel}" VerticalAlignment="Center" />
               <Border Style="{StaticResource Keycap}" Visibility="{utu:Responsive Narrow=Collapsed, Normal=Visible}">
                 <TextBlock Text="CTRL SHIFT V" Style="{StaticResource KeycapText}" />
               </Border>
@@ -122,7 +122,7 @@
         <Border x:Name="FloatingBar" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed"
                 Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource OutlineVariantBrush}" BorderThickness="{StaticResource Hairline}" CornerRadius="{StaticResource RadiusPopover}" Padding="{StaticResource FloatingBarInset}">
           <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
-            <TextBlock Text="{Binding Inspector.SelectionLabel}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" Foreground="{ThemeResource PrimaryBrush}" VerticalAlignment="Center" Margin="{StaticResource GapEnd8}" />
+            <TextBlock Text="{Binding Inspector.SelectionLabel}" Style="{StaticResource MonoLabel}" Foreground="{ThemeResource PrimaryBrush}" VerticalAlignment="Center" Margin="{StaticResource GapEnd8}" />
             <Rectangle Width="1" Height="{StaticResource RuleShort}" Fill="{ThemeResource OutlineVariantMediumBrush}" Margin="{StaticResource GapEnd4}" />
             <Button Style="{utu:Responsive Narrow={StaticResource TouchIconButton}, Normal={StaticResource IconButton}}" Command="{Binding CycleSupport}" ToolTipService.ToolTip="Cycle support" Visibility="{Binding Inspector.SelectionHasNodes, Converter={StaticResource Vis}}" AutomationProperties.Name="Cycle support">
               <c:Icon Kind="support" Foreground="{ThemeResource PrimaryBrush}" />

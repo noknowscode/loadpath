@@ -16,8 +16,10 @@
         <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
         <!-- The look comes from the Simple theme. Its palette is the design's, in Styles/ColorPaletteOverride.xaml (the
              file Uno Platform Studio's Themes tab edits); pages, styles and the canvas use the role brushes it
-             generates (OnSurfaceBrush, PrimaryBrush, OutlineVariantBrush...). -->
-        <utus:SimpleToolkitTheme>
+             generates (OnSurfaceBrush, PrimaryBrush, OutlineVariantBrush...). The type is Inter (DefaultFontFamily) on
+             the design's ramp (Styles/TypographyOverride.xaml), with JetBrains Mono for figures. -->
+        <utus:SimpleToolkitTheme DefaultFontFamily="ms-appx:///Assets/Fonts/Inter-Regular.ttf#Inter"
+                                 FontOverrideSource="ms-appx:///Styles/TypographyOverride.xaml">
           <utus:SimpleToolkitTheme.Colors>
             <ut:ThemeColors xmlns:ut="using:Uno.Themes" OverrideSource="ms-appx:///Styles/ColorPaletteOverride.xaml" />
           </utus:SimpleToolkitTheme.Colors>

@@ -48,7 +48,7 @@
                 Visibility="{Binding Status.PillIsDanger, Converter={StaticResource Vis}}" />
         <Ellipse Width="{StaticResource DotSize}" Height="{StaticResource DotSize}" Fill="{Binding Status.StatusToneKey, Converter={StaticResource Brush}}" VerticalAlignment="Center"
                  Visibility="{Binding Status.PillIsDanger, Converter={StaticResource Vis}, ConverterParameter=invert}" />
-        <TextBlock Text="{Binding Status.PillText}" Style="{StaticResource MonoCaption}" FontFamily="{StaticResource MonoFontMedium}" VerticalAlignment="Center"
+        <TextBlock Text="{Binding Status.PillText}" Style="{StaticResource MonoLabel}" VerticalAlignment="Center"
                    Foreground="{Binding Status.PillIsDanger, Converter={StaticResource Pick}, ConverterParameter=ErrorBrush|OnSurfaceVariantBrush}" />
       </StackPanel>
     </Border>

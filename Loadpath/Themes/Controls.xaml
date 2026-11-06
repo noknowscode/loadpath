@@ -3,52 +3,98 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:c="using:Loadpath.Controls">
 
-  <!-- ===== Text ===== -->
-  <Style x:Key="BodyText" TargetType="TextBlock">
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+  <!--
+    ===== Text =====
+    The design's ramp is the theme's type scale (Styles/TypographyOverride.xaml over DefaultFontFamily Inter). The role
+    styles are based on the semantic styles (BodyMedium, LabelSmall...) and add the role's colour, the design's line
+    height and one line; the mono ones swap in MonoFontFamily for figures and sheet labels. Simple's implicit TextBlock
+    style sets OnSurfaceBrush and wrapping, so every TextBlock in the app names a style: ButtonLabel, colourless, for
+    text that takes its colour from the button it sits in.
+  -->
+  <Style x:Key="BodyText" TargetType="TextBlock" BasedOn="{StaticResource BodyMedium}">
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
     <Setter Property="LineHeight" Value="{StaticResource LineBody}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
   <Style x:Key="SecondaryText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceVariantBrush}" />
   </Style>
-  <Style x:Key="CaptionText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
-    <Setter Property="FontSize" Value="{StaticResource TextLabel}" />
-    <Setter Property="LineHeight" Value="{StaticResource LineCaption}" />
+  <Style x:Key="CaptionText" TargetType="TextBlock" BasedOn="{StaticResource BodySmall}">
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceVariantBrush}" />
+    <Setter Property="LineHeight" Value="{StaticResource LineCaption}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
-  <!-- Section label: mono, small, the "01 Position" register of the drawing sheet. -->
-  <Style x:Key="SectionLabel" TargetType="TextBlock">
-    <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
-    <Setter Property="FontSize" Value="{StaticResource TextCaption}" />
+  <Style x:Key="DisplayText" TargetType="TextBlock" BasedOn="{StaticResource HeadlineSmall}">
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
-    <Setter Property="LineHeight" Value="{StaticResource LineLabel}" />
-  </Style>
-  <Style x:Key="DisplayText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
-    <Setter Property="FontFamily" Value="{StaticResource UiFontMedium}" />
-    <Setter Property="FontSize" Value="{StaticResource TextDisplay}" />
     <Setter Property="LineHeight" Value="{StaticResource LineDisplay}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
-  <Style x:Key="MediumText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
-    <Setter Property="FontFamily" Value="{StaticResource UiFontMedium}" />
-  </Style>
-  <Style x:Key="ValueText" TargetType="TextBlock">
-    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextValue}" />
+  <Style x:Key="MediumText" TargetType="TextBlock" BasedOn="{StaticResource LabelMedium}">
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
     <Setter Property="LineHeight" Value="{StaticResource LineBody}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
-  <Style x:Key="MonoCaption" TargetType="TextBlock" BasedOn="{StaticResource ValueText}">
-    <Setter Property="FontSize" Value="{StaticResource TextLabel}" />
-    <Setter Property="LineHeight" Value="{StaticResource LineCaption}" />
+
+  <!-- Mono: figures and the drawing sheet's labels -->
+  <!-- A value: mono at the body size. -->
+  <Style x:Key="ValueText" TargetType="TextBlock" BasedOn="{StaticResource BodyMedium}">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
+    <Setter Property="LineHeight" Value="{StaticResource LineBody}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+  </Style>
+  <!-- A secondary figure or caption in mono. -->
+  <Style x:Key="MonoCaption" TargetType="TextBlock" BasedOn="{StaticResource BodySmall}">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceVariantBrush}" />
+    <Setter Property="LineHeight" Value="{StaticResource LineCaption}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+  </Style>
+  <!-- An id or a strong caption (N1, M12, the status chip): mono medium at the caption size, ink. -->
+  <Style x:Key="MonoLabel" TargetType="TextBlock" BasedOn="{StaticResource LabelSmall}">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
+    <Setter Property="LineHeight" Value="{StaticResource LineCaption}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+  </Style>
+  <!-- Micro text: counts, group titles in sheets, chip labels. -->
+  <Style x:Key="MonoSmall" TargetType="TextBlock" BasedOn="{StaticResource CaptionSmall}">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="Foreground" Value="{ThemeResource OnSurfaceVariantBrush}" />
+    <Setter Property="LineHeight" Value="{StaticResource LineCaption}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+  </Style>
+  <!-- Text inside a pill or under a tile: micro text on a tight line. -->
+  <Style x:Key="PillText" TargetType="TextBlock" BasedOn="{StaticResource MonoSmall}">
+    <Setter Property="LineHeight" Value="{StaticResource LineMicro}" />
+  </Style>
+  <!-- Section label: mono medium, small, the "01 Position" register of the drawing sheet. -->
+  <Style x:Key="SectionLabel" TargetType="TextBlock" BasedOn="{StaticResource LabelExtraSmall}">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
+    <Setter Property="LineHeight" Value="{StaticResource LineLabel}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+  </Style>
+  <!-- The wordmark: mono medium at the large label size, in the accent. -->
+  <Style x:Key="WordmarkText" TargetType="TextBlock" BasedOn="{StaticResource LabelLarge}">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="Foreground" Value="{ThemeResource PrimaryBrush}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+  </Style>
+  <!-- A label inside a button: mono medium at the label size and no colour, so it keeps the button's. -->
+  <Style x:Key="ButtonLabel" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
+    <Setter Property="FontWeight" Value="{ThemeResource LabelSmallFontWeight}" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
   </Style>
 
   <!-- Label above a numeric field (inspector, presets). -->
-  <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource MonoCaption}">
-    <Setter Property="FontSize" Value="{StaticResource TextCaption}" />
+  <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource MonoSmall}">
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
     <Setter Property="Margin" Value="{StaticResource GapBottom8}" />
   </Style>
@@ -84,8 +130,8 @@
     <Setter Property="MinHeight" Value="{StaticResource ControlHeightSm}" />
     <Setter Property="Height" Value="{StaticResource ControlHeightSm}" />
     <Setter Property="MinWidth" Value="0" />
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+    <Setter Property="FontFamily" Value="{ThemeResource BodyMediumFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="UseSystemFocusVisuals" Value="False" />
@@ -165,6 +211,7 @@
                               Foreground="{TemplateBinding Foreground}"
                               FontFamily="{TemplateBinding FontFamily}"
                               FontSize="{TemplateBinding FontSize}"
+                              FontWeight="{TemplateBinding FontWeight}"
                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="{StaticResource FocusRingOutset}"
@@ -178,8 +225,9 @@
   <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
     <Setter Property="Background" Value="{ThemeResource PrimaryBrush}" />
     <Setter Property="Foreground" Value="{ThemeResource OnPrimaryBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
-    <Setter Property="FontSize" Value="{StaticResource TextLabel}" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
+    <Setter Property="FontWeight" Value="{ThemeResource LabelSmallFontWeight}" />
     <Setter Property="Padding" Value="{StaticResource InsetX18}" />
     <Setter Property="Height" Value="{StaticResource ControlHeight}" />
     <Setter Property="MinHeight" Value="{StaticResource ControlHeight}" />
@@ -187,8 +235,9 @@
 
   <Style x:Key="LinkButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
     <Setter Property="Foreground" Value="{ThemeResource PrimaryBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
-    <Setter Property="FontSize" Value="{StaticResource TextLabel}" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
+    <Setter Property="FontWeight" Value="{ThemeResource LabelSmallFontWeight}" />
     <Setter Property="Height" Value="{StaticResource ControlHeight}" />
     <Setter Property="MinHeight" Value="{StaticResource ControlHeight}" />
   </Style>
@@ -196,15 +245,17 @@
   <Style x:Key="OutlineButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
     <Setter Property="BorderBrush" Value="{ThemeResource OutlineVariantBrush}" />
     <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
-    <Setter Property="FontSize" Value="{StaticResource TextLabel}" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
+    <Setter Property="FontWeight" Value="{ThemeResource LabelSmallFontWeight}" />
     <Setter Property="Padding" Value="{StaticResource InsetX12}" />
   </Style>
 
   <Style x:Key="DangerTextButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
     <Setter Property="Foreground" Value="{ThemeResource ErrorBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
-    <Setter Property="FontSize" Value="{StaticResource TextLabel}" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
+    <Setter Property="FontWeight" Value="{ThemeResource LabelSmallFontWeight}" />
     <Setter Property="Padding" Value="{StaticResource Inset0}" />
     <Setter Property="HorizontalAlignment" Value="Left" />
   </Style>
@@ -341,7 +392,7 @@
                     BorderBrush="{ThemeResource PrimaryVariantLightBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusField}" />
             <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource OnSurfaceHoverBrush}" CornerRadius="{StaticResource RadiusField}" />
             <c:Icon x:Name="Glyph" Kind="{TemplateBinding IconKind}" Foreground="{TemplateBinding Foreground}" Width="{StaticResource IconSizeLg}" Height="{StaticResource IconSizeLg}" Margin="{StaticResource ToolGlyphMargin}" />
-            <TextBlock x:Name="Key" Text="{TemplateBinding KeyLabel}" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource TextMicro}" Foreground="{ThemeResource OnSurfaceVariantBrush}"
+            <TextBlock x:Name="Key" Text="{TemplateBinding KeyLabel}" Style="{StaticResource MonoSmall}" Foreground="{ThemeResource OnSurfaceVariantBrush}"
                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="{StaticResource ToolKeyLabelMargin}" IsHitTestVisible="False" />
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="{StaticResource FocusRingOutset}"
                     BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusPopover}" />
@@ -370,8 +421,9 @@
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
-    <Setter Property="FontSize" Value="{StaticResource TextLabel}" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
+    <Setter Property="FontWeight" Value="{ThemeResource LabelSmallFontWeight}" />
     <Setter Property="UseSystemFocusVisuals" Value="False" />
     <Setter Property="Template">
       <Setter.Value>
@@ -456,7 +508,7 @@
             <Border x:Name="Hover" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource SurfaceVariantBrush}" />
             <Border x:Name="Wash" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource PrimaryContainerBrush}" BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1" />
             <ContentPresenter x:Name="Label" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" Margin="{TemplateBinding Padding}"
-                              FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="{StaticResource FocusRingInset}"
                     BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusHairline}" />
           </Grid>
@@ -496,8 +548,9 @@
     <Setter Property="Padding" Value="{StaticResource InsetX12}" />
     <Setter Property="Height" Value="{StaticResource ControlHeight}" />
     <Setter Property="MinWidth" Value="0" />
-    <Setter Property="FontFamily" Value="{StaticResource MonoFontMedium}" />
-    <Setter Property="FontSize" Value="{StaticResource TextLabel}" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource LabelSmallFontSize}" />
+    <Setter Property="FontWeight" Value="{ThemeResource LabelSmallFontWeight}" />
     <Setter Property="UseSystemFocusVisuals" Value="False" />
     <Setter Property="Template">
       <Setter.Value>
@@ -598,7 +651,7 @@
                 </Ellipse>
               </Grid>
               <ContentPresenter Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
-                                FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" />
+                                FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" VerticalAlignment="Center" />
             </StackPanel>
             <Border x:Name="FocusRing" Opacity="0" IsHitTestVisible="False" Margin="{StaticResource FocusRingInset}"
                     BorderBrush="{ThemeResource PrimaryBrush}" BorderThickness="1.5" CornerRadius="{StaticResource RadiusHairline}" />
@@ -617,8 +670,8 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style x:Key="KeycapText" TargetType="TextBlock">
-    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextMicro}" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource CaptionSmallFontSize}" />
     <Setter Property="LineHeight" Value="{StaticResource LineTight}" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceVariantBrush}" />
   </Style>
@@ -647,8 +700,8 @@
 
   <!-- CheckBox: lightweight keys only (themed, in Tokens.xaml), so the platform template keeps its states and accessibility. -->
   <Style x:Key="LayerCheckBox" TargetType="CheckBox">
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+    <Setter Property="FontFamily" Value="{ThemeResource BodyMediumFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="MinHeight" Value="{StaticResource ControlHeightSm}" />
     <Setter Property="Padding" Value="{StaticResource GapStart8}" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -671,8 +724,8 @@
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{ThemeResource OutlineBrush}" />
     <Setter Property="BorderThickness" Value="{StaticResource Hairline}" />
-    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextValue}" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="Padding" Value="{StaticResource FieldInset}" />
     <Setter Property="MinHeight" Value="{StaticResource FieldHeight}" />
     <Setter Property="Height" Value="{StaticResource FieldHeight}" />
@@ -733,8 +786,8 @@
   </Style>
 
   <Style x:Key="SearchTextBox" TargetType="TextBox" BasedOn="{StaticResource FieldTextBox}">
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextValue}" />
+    <Setter Property="FontFamily" Value="{ThemeResource BodyMediumFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="TextAlignment" Value="Left" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="{StaticResource Inset0}" />
@@ -756,8 +809,8 @@
   <Style x:Key="MenuItemStyle" TargetType="MenuFlyoutItem">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+    <Setter Property="FontFamily" Value="{ThemeResource BodyMediumFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="Padding" Value="{StaticResource InsetX8}" />
     <Setter Property="MinHeight" Value="{StaticResource MenuItemHeight}" />
     <Setter Property="Height" Value="{StaticResource MenuItemHeight}" />
@@ -800,7 +853,7 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <TextBlock x:Name="TextBlock" Text="{TemplateBinding Text}" Foreground="{TemplateBinding Foreground}"
-                         FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" />
+                         FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" VerticalAlignment="Center" />
               <TextBlock x:Name="KeyboardAcceleratorTextBlock" Grid.Column="1" Text="{TemplateBinding KeyboardAcceleratorTextOverride}"
                          Style="{StaticResource MonoCaption}" Foreground="{ThemeResource OnSurfaceVariantBrush}" VerticalAlignment="Center" />
             </Grid>
@@ -859,7 +912,7 @@
         </Grid.ColumnDefinitions>
         <c:Icon x:Name="CheckGlyph" Kind="check" Width="{StaticResource IconSizeSm}" Height="{StaticResource IconSizeSm}" Opacity="0" Foreground="{ThemeResource PrimaryBrush}" />
         <TextBlock Grid.Column="1" Text="{TemplateBinding Text}" Foreground="{TemplateBinding Foreground}"
-                   FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" />
+                   FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" VerticalAlignment="Center" />
         <TextBlock Grid.Column="2" Text="{TemplateBinding KeyboardAcceleratorTextOverride}"
                    Style="{StaticResource MonoCaption}" Foreground="{ThemeResource OnSurfaceVariantBrush}" VerticalAlignment="Center" />
       </Grid>
@@ -869,8 +922,8 @@
   <Style TargetType="ToggleMenuFlyoutItem">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+    <Setter Property="FontFamily" Value="{ThemeResource BodyMediumFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="Padding" Value="{StaticResource InsetX8}" />
     <Setter Property="MinHeight" Value="{StaticResource MenuItemHeight}" />
     <Setter Property="Height" Value="{StaticResource MenuItemHeight}" />
@@ -881,8 +934,8 @@
   <Style TargetType="RadioMenuFlyoutItem">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+    <Setter Property="FontFamily" Value="{ThemeResource BodyMediumFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="Padding" Value="{StaticResource InsetX8}" />
     <Setter Property="MinHeight" Value="{StaticResource MenuItemHeight}" />
     <Setter Property="Height" Value="{StaticResource MenuItemHeight}" />
@@ -899,8 +952,8 @@
   <Style x:Key="TouchToggleMenuItem" TargetType="ToggleMenuFlyoutItem">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+    <Setter Property="FontFamily" Value="{ThemeResource BodyMediumFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="Padding" Value="{StaticResource InsetX12}" />
     <Setter Property="MinHeight" Value="{StaticResource TouchTarget}" />
     <Setter Property="Height" Value="{StaticResource TouchTarget}" />
@@ -910,8 +963,8 @@
   <Style x:Key="TouchRadioMenuItem" TargetType="RadioMenuFlyoutItem">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextBody}" />
+    <Setter Property="FontFamily" Value="{ThemeResource BodyMediumFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource BodyMediumFontSize}" />
     <Setter Property="Padding" Value="{StaticResource InsetX12}" />
     <Setter Property="MinHeight" Value="{StaticResource TouchTarget}" />
     <Setter Property="Height" Value="{StaticResource TouchTarget}" />
@@ -937,8 +990,8 @@
     <Setter Property="Foreground" Value="{ThemeResource OnSurfaceInverseBrush}" />
     <Setter Property="BorderBrush" Value="{ThemeResource SurfaceInverseBrush}" />
     <Setter Property="BorderThickness" Value="{StaticResource Hairline}" />
-    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-    <Setter Property="FontSize" Value="{StaticResource TextCaption}" />
+    <Setter Property="FontFamily" Value="{ThemeResource CaptionSmallFontFamily}" />
+    <Setter Property="FontSize" Value="{ThemeResource CaptionSmallFontSize}" />
     <Setter Property="Padding" Value="{StaticResource Inset8x4}" />
     <Setter Property="Template">
       <Setter.Value>
@@ -946,7 +999,7 @@
           <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                   BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource RadiusField}" Padding="{TemplateBinding Padding}">
             <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
-                              FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" Foreground="{TemplateBinding Foreground}" />
+                              FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}" />
           </Border>
         </ControlTemplate>
       </Setter.Value>
@@ -962,7 +1015,7 @@
         <ControlTemplate TargetType="c:NumberField">
           <Grid>
             <TextBox x:Name="PART_Box" Style="{StaticResource FieldTextBox}" Padding="{StaticResource FieldInsetWithUnit}" />
-            <TextBlock Text="{TemplateBinding Unit}" Style="{StaticResource MonoCaption}" FontSize="{StaticResource TextCaption}" Foreground="{ThemeResource OnSurfaceVariantBrush}"
+            <TextBlock Text="{TemplateBinding Unit}" Style="{StaticResource MonoSmall}"
                        HorizontalAlignment="Right" VerticalAlignment="Center" Margin="{StaticResource UnitSuffixMargin}" IsHitTestVisible="False" />
           </Grid>
         </ControlTemplate>
