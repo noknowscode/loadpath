@@ -22,7 +22,17 @@
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
           <c:Icon Kind="search" Width="{StaticResource IconSizeMd}" Height="{StaticResource IconSizeMd}" Margin="{StaticResource GapStart4}" />
           <TextBox x:Name="Query" Grid.Column="1" Style="{StaticResource SearchTextBox}" PlaceholderText="Type a command…"
-                   Text="{Binding PaletteQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" KeyDown="OnQueryKeyDown" AutomationProperties.Name="Command search" />
+                   Text="{Binding PaletteQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" KeyDown="OnQueryKeyDown" AutomationProperties.Name="Command search">
+            <!-- The query sits in the palette's header row: the theme's text box without its own fill or frame. -->
+            <TextBox.Resources>
+              <StaticResource x:Key="OutlinedTextBoxBackground" ResourceKey="TransparentBrush" />
+              <StaticResource x:Key="OutlinedTextBoxBackgroundPointerOver" ResourceKey="TransparentBrush" />
+              <StaticResource x:Key="OutlinedTextBoxBackgroundFocused" ResourceKey="TransparentBrush" />
+              <StaticResource x:Key="OutlinedTextBoxBorderBrush" ResourceKey="TransparentBrush" />
+              <StaticResource x:Key="OutlinedTextBoxBorderBrushPointerOver" ResourceKey="TransparentBrush" />
+              <StaticResource x:Key="OutlinedTextBoxBorderBrushFocused" ResourceKey="TransparentBrush" />
+            </TextBox.Resources>
+          </TextBox>
         </Grid>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="{StaticResource PaletteListMaxHeight}">
           <ItemsControl IsTabStop="False" ItemsSource="{Binding PaletteItems}" Padding="{StaticResource Inset4}">
