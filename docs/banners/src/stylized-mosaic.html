@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>stylized-mosaic</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* The preset catalogue as a wall of drawing sheets: Pratt, Howe, Warren, K truss, Fink roof and scissor roof, each
+     loaded from Presets at its defaults and solved, Light and Dark alternating (the twelfth sheet is the Warren sample),
+     tilted back on the night drafting table and falling off at the edges. Ground: Dark Background and PrimaryContainer. */
+  .stage { background: radial-gradient(80% 90% at 50% 45%, var(--n-pc), var(--n-paper) 85%); }
+  .wall { position: absolute; left: 600px; top: 315px; width: 1488px; height: 578px; margin: -289px 0 0 -744px;
+    transform: perspective(1800px) rotateX(24deg) rotateY(-14deg) rotateZ(-6deg) scale(.86); }
+  .tile { position: absolute; width: 360px; height: 181.9px; border-radius: 5px; overflow: hidden; background: var(--paper);
+    box-shadow: 0 0 0 1px rgba(230,233,240,.14), 0 14px 26px -8px rgba(0,0,0,.6); }
+  .tile.night { background: var(--n-paper); }
+  .tile img { width: 100%; height: 100%; }
+  .fade { position: absolute; inset: 0; background: radial-gradient(58% 64% at 50% 50%, rgba(16,20,27,0) 45%, rgba(16,20,27,.72) 80%, rgba(16,20,27,.95) 100%); }
+  /* depth of field: the outer columns soften, the middle two stay sharp */
+  .tile.far { filter: blur(1.6px); }
+</style></head>
+<body><div class="stage grain on-night" style="--grain:.05">
+  <div class="wall">
+    <div class="tile far" style="left:0px;top:0px"><img src="cap/tile-pratt-light@1.25x.png"></div>
+    <div class="tile night" style="left:376px;top:0px"><img src="cap/tile-k-dark@1.25x.png"></div>
+    <div class="tile" style="left:752px;top:0px"><img src="cap/tile-fink-light@1.25x.png"></div>
+    <div class="tile night far" style="left:1128px;top:0px"><img src="cap/tile-howe-dark@1.25x.png"></div>
+    <div class="tile night far" style="left:0px;top:198px"><img src="cap/tile-scissor-dark@1.25x.png"></div>
+    <div class="tile" style="left:376px;top:198px"><img src="cap/tile-warren-light@1.25x.png"></div>
+    <div class="tile night" style="left:752px;top:198px"><img src="cap/tile-pratt-dark@1.25x.png"></div>
+    <div class="tile far" style="left:1128px;top:198px"><img src="cap/tile-k-light@1.25x.png"></div>
+    <div class="tile far" style="left:0px;top:396px"><img src="cap/tile-howe-light@1.25x.png"></div>
+    <div class="tile night" style="left:376px;top:396px"><img src="cap/tile-fink-dark@1.25x.png"></div>
+    <div class="tile" style="left:752px;top:396px"><img src="cap/tile-scissor-light@1.25x.png"></div>
+    <div class="tile night far" style="left:1128px;top:396px"><img src="cap/tile-warren-sample-dark@1.25x.png"></div>
+  </div>
+  <div class="fade"></div>
+</div></body></html>

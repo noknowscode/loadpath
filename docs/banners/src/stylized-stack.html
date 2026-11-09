@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>stylized-stack</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* One drawing, four renderings, stacked like tracing layers: the Warren sample's canvas in Forces (Light), Utilization
+     (Dark), Utilization (Light) and Forces (Dark) on top, all at the same framing so the truss lines up through the
+     stack. Dashed construction lines (Dark Primary, low alpha) tie the corners, as on an exploded drawing.
+     Ground: Dark Background into PrimaryContainer with the canvas grid. */
+  .stage { background: radial-gradient(70% 90% at 50% 42%, color-mix(in srgb, var(--n-pc) 85%, var(--primary)) 0%, var(--n-pc) 36%, var(--n-paper) 90%); }
+  .crosses { --cross: rgba(143,160,255,.14); --fade: 80% 90% at 50% 45%; }
+  .iso { position: absolute; left: 600px; top: 314px; width: 0; height: 0; transform-style: preserve-3d;
+    transform: rotateX(56deg) rotateZ(-32deg); }
+  .layer { position: absolute; width: 500px; height: 197.2px; left: -250px; top: -98.6px; border-radius: 5px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(230,233,240,.18), 0 24px 40px -10px rgba(0,0,0,.55); }
+  .layer img { width: 100%; height: 100%; }
+  .post { position: absolute; width: 0; height: 360px; border-left: 1px dashed rgba(143,160,255,.40); transform-origin: 0 0; }
+  .l0 { transform: translateZ(-180px); }
+  .l1 { transform: translateZ(-60px); }
+  .l2 { transform: translateZ(60px); }
+  .l3 { transform: translateZ(180px); }
+</style></head>
+<body><div class="stage grain on-night" style="--grain:.06">
+  <div class="crosses"></div>
+  <div class="iso">
+    <div class="post" style="left:-250px;top:-98.6px;transform:translateZ(-180px) rotateX(90deg)"></div>
+    <div class="post" style="left:250px;top:-98.6px;transform:translateZ(-180px) rotateX(90deg)"></div>
+    <div class="post" style="left:250px;top:98.6px;transform:translateZ(-180px) rotateX(90deg)"></div>
+    <div class="post" style="left:-250px;top:98.6px;transform:translateZ(-180px) rotateX(90deg)"></div>
+    <div class="layer l0"><img src="cap/layer-forces-light@1.5x.png"></div>
+    <div class="layer l1"><img src="cap/layer-util-dark@1.5x.png"></div>
+    <div class="layer l2"><img src="cap/layer-util-light@1.5x.png"></div>
+    <div class="layer l3"><img src="cap/layer-forces-dark@1.5x.png"></div>
+  </div>
+</div></body></html>

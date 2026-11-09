@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>showcase-daynight</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* Day and night: the Warren truss on the light sheet in front, its utilization on the dark table behind; the ground
+     turns from paper (Background, PrimaryContainer) to the night table (Background, PrimaryContainer, Dark). */
+  .stage { background: linear-gradient(118deg, var(--paper) 0%, var(--pc) 34%, color-mix(in srgb, var(--n-pc) 70%, var(--primary)) 58%, var(--n-pc) 74%, var(--n-paper) 100%); }
+  .crosses.day { --cross: rgba(52,70,214,.22); --fade: 60% 90% at 18% 50%; }
+  .crosses.night { --cross: rgba(143,160,255,.16); --fade: 55% 90% at 86% 46%; }
+  .win.back { left: 532px; top: 38px; width: 630px; --bar: 22px; }
+  .win.front { left: 40px; top: 150px; width: 630px; --bar: 22px; }
+</style></head>
+<body><div class="stage grain">
+  <div class="crosses day"></div>
+  <div class="crosses night"></div>
+  <div class="win night back"><div class="bar"><i></i><i></i><i></i><b></b></div><img src="cap/desk-util-dark@2x.png"></div>
+  <div class="win front"><div class="bar"><i></i><i></i><i></i><b></b></div><img src="cap/desk-warren-light@2x.png"></div>
+</div></body></html>

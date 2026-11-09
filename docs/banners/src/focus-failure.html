@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>focus-failure</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* The failure highlight on the light sheet: an overloaded Pratt truss (the app's own fixture, 24 m span, 6 panels,
+     1.6 m deep) whose top chord buckles: red pills name the mode and the utilization (BUCKLES 204 %, 261 %, 294 %) and
+     each failing strut carries its first Euler mode as a dashed red bow. In front, the inspector's result and its
+     failure list, worst first, with the step-through command. Ground: PrimaryContainer (a touch of SurfaceVariant and
+     PrimaryVariantLight), so the paper-white sheet reads against it, with the canvas grid and the frame's dashed hairline. */
+  .stage { background: radial-gradient(80% 90% at 40% 30%, color-mix(in srgb, var(--pc) 70%, var(--raised)) 0%, var(--pc) 60%, color-mix(in srgb, var(--pc) 82%, var(--primary-soft)) 100%); }
+  .crosses { --cross: rgba(52,70,214,.22); --fade: 80% 90% at 50% 48%; }
+  .frame { position: absolute; inset: 16px; border: 1px dashed rgba(52,70,214,.30); border-radius: 2px; }
+  .plane { position: absolute; left: -20px; top: 156px; width: 816px; transform-origin: 100% 50%; border-radius: 8px; overflow: hidden;
+    transform: perspective(1500px) rotateY(-12deg) rotateZ(-1.5deg);
+    box-shadow: 0 0 0 1px rgba(52,70,214,.20), 0 2px 4px rgba(21,23,26,.06), 0 22px 44px -14px rgba(21,23,26,.28);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 16%); mask-image: linear-gradient(90deg, transparent 0%, #000 12%); }
+  .plane img, .card img { width: 100%; height: auto; }
+  .card { position: absolute; left: 806px; top: 92px; width: 330px; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(21,23,26,.10), 0 2px 4px rgba(21,23,26,.06), 0 18px 34px -10px rgba(21,23,26,.22), 0 50px 90px -30px rgba(21,23,26,.35); }
+</style></head>
+<body><div class="stage grain">
+  <div class="crosses"></div>
+  <div class="frame"></div>
+  <div class="plane"><img src="cap/pratt-fail-light@3x.png"></div>
+  <div class="card"><img src="cap/inspector-failures-light@3x.png"></div>
+</div></body></html>

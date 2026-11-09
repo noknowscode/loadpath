@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>focus-utilization</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* The utilization ramp at night: the Warren sample in Utilization mode, each member coloured along the ramp from
+     Primary through Warn towards Error with its percent label (5 % blue to the 87 % end post), and beside it the
+     inspector's result for that end post, member M12: compression, the 87 % bar in Warn, stress and the buckling check.
+     Ground: Dark Background with a PrimaryContainer haze; a faint Warn glow sits behind the card. */
+  .stage { background: radial-gradient(70% 90% at 60% 30%, var(--n-pc) 0%, var(--n-paper) 85%); }
+  .crosses { --cross: rgba(143,160,255,.13); --fade: 70% 80% at 60% 50%; }
+  .plane { position: absolute; left: -30px; top: 132px; width: 832px; transform-origin: 100% 50%; border-radius: 8px; overflow: hidden;
+    transform: perspective(1500px) rotateY(-13deg) rotateZ(-1deg);
+    box-shadow: 0 0 0 1px rgba(143,160,255,.14), 0 24px 50px -12px rgba(0,0,0,.6);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 22%); mask-image: linear-gradient(90deg, transparent 0%, #000 22%); }
+  .plane img, .card img { width: 100%; height: auto; }
+  .glow { position: absolute; left: 752px; top: 228px; width: 420px; height: 300px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(227,166,75,.13), rgba(227,166,75,0)); filter: blur(10px); }
+  .card { position: absolute; left: 760px; top: 252px; width: 396px; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(143,160,255,.16), 0 18px 36px -10px rgba(0,0,0,.6), 0 48px 90px -30px rgba(0,0,0,.75); }
+</style></head>
+<body><div class="stage grain on-night" style="--grain:.05">
+  <div class="crosses"></div>
+  <div class="plane"><img src="cap/util-macro-dark@3x.png"></div>
+  <div class="glow"></div>
+  <div class="card"><img src="cap/inspector-result-dark@3x.png"></div>
+</div></body></html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loadpath banners</title>
+<style>
+  :root { --bg: #F7F8FB; --surface: #EEF0F7; --ink: #15171A; --muted: #4D535C; --line: rgba(21,23,26,.10); --accent: #3446D6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #10141B; --surface: #181D27; --ink: #E6E9F0; --muted: #A9B1BF; --line: rgba(230,233,240,.10); --accent: #8FA0FF; } }
+  :root[data-theme="dark"] { --bg: #10141B; --surface: #181D27; --ink: #E6E9F0; --muted: #A9B1BF; --line: rgba(230,233,240,.10); --accent: #8FA0FF; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif; }
+  main { max-width: 1320px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -.01em; }
+  .lede { color: var(--muted); margin: 0 0 32px; max-width: 70ch; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 36px 0 12px; font-family: ui-monospace, monospace; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 20px; }
+  figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  figure img { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; background: var(--line); }
+  figure.hero img { aspect-ratio: 16 / 9; }
+  figcaption { padding: 12px 14px 14px; }
+  figcaption b { display: block; font-size: 15px; }
+  figcaption span { display: block; color: var(--muted); font-size: 13px; }
+  figcaption a { color: var(--accent); font-size: 13px; text-decoration: none; margin-right: 12px; }
+</style></head>
+<body><main>
+  <h1>Loadpath banners</h1>
+  <p class="lede">Gallery banners for the Loadpath sample (a 2D truss workbench that solves as you draw), composed from real Release WebAssembly captures of the app at 2x and 3x. Every final is 1200 × 630 at 1x and 2400 × 1260 at 2x; the two strongest also come as a 1920 × 1080 hero. Sources and capture details are in README.md.</p>
+  <div id="sections"></div>
+</main>
+<script>
+  const F = [
+    ["showcase", "showcase-desk", "The workbench in a desktop window (Warren truss, member M12 selected, its inspector open; Light) between a Dark phone with the overloaded Pratt and its inspector sheet and a Light phone with the Howe roof truss, on the light blueprint sheet."],
+    ["showcase", "showcase-phones", "Three phones on a deep blueprint ground: the Warren truss with its inspector sheet (Dark), the Howe roof in Utilization (Light, centre, raised) and the overloaded Pratt with its red failure pills (Dark)."],
+    ["showcase", "showcase-daynight", "The Warren truss on the light sheet in front, the same truss in Utilization on the dark drafting table behind, on a ground that turns from paper to night."],
+    ["focused", "focus-truss", "The Skia truss canvas at night: the Warren sample's member forces drawn by line style (tension open, compression hatched), loads, reactions, the deflected ghost and the dimension chain, laid back on the drafting table."],
+    ["focused", "focus-utilization", "The Warren truss in Utilization mode (Dark): members on the ramp from Primary through Warn towards Error with percent labels, and the inspector's result for the 87 % end post M12."],
+    ["focused", "focus-failure", "An overloaded Pratt truss on the light sheet: red BUCKLES pills with utilization, dashed red Euler bows on the failing struts, and the inspector's failure list worst first."],
+    ["focused", "focus-palette", "The Ctrl+K command palette searched for \"toggle\" (six view toggles with their shortcuts), sharp over the blurred Dark workbench it opens on."],
+    ["stylized", "stylized-split", "One workbench, Light and Dark, on one turned window cut by a single diagonal at the Warren web's 63.4 degree angle."],
+    ["stylized", "stylized-stack", "The Warren sample's canvas in four renderings (Forces and Utilization, Light and Dark) stacked like tracing layers, tied by dashed construction lines."],
+    ["stylized", "stylized-mosaic", "The six parametric presets (Pratt, Howe, Warren, K truss, Fink and scissor roof) at their defaults, Light and Dark alternating, as a tilted wall of drawing sheets with soft outer columns."],
+    ["titled", "focus-truss-titled", "focus-truss with the display name set as the app's own wordmark: LOADPATH in JetBrains Mono Medium in Dark Primary."]
+  ];
+  const H = [
+    ['focus-truss-hero', 'Hero 1920 × 1080 of focus-truss.'],
+    ['stylized-split-hero', 'Hero 1920 × 1080 of stylized-split.'],
+  ];
+  const root = document.getElementById('sections');
+  const card = (src, name, family, text, links, hero) => `<figure class="${hero ? 'hero' : ''}"><img src="${src}" alt="${name}" loading="lazy"><figcaption><b>${name}</b><span>${family}</span><span>${text}</span>${links}</figcaption></figure>`;
+  for (const fam of ['showcase', 'focused', 'stylized', 'titled']) {
+    const items = F.filter(f => f[0] === fam).map(([f, n, t]) => card(`finals/${n}@1x.png`, n, f, t,
+      `<a href="finals/${n}@1x.png">1x</a><a href="finals/${n}@2x.png">2x</a>`));
+    root.insertAdjacentHTML('beforeend', `<h2>${fam === 'titled' ? 'optional · titled' : fam}</h2><div class="grid">${items.join('')}</div>`);
+  }
+  root.insertAdjacentHTML('beforeend', `<h2>hero</h2><div class="grid">${H.map(([n, t]) => card(`finals/${n}.png`, n, 'hero', t, `<a href="finals/${n}.png">1920 × 1080</a>`, true)).join('')}</div>`);
+</script>
+</body></html>

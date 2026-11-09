@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>focus-palette</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* The command palette (Ctrl+K) over the Warren workbench at night, searched for "toggle": the six toggles with their
+     shortcuts. The screen behind it is the same capture, laid back and out of focus; the palette, cut from it, sits flat
+     and sharp on top at its native pixels in the 2x export (520 CSS px from a 1040 px capture), lifted by a shadow, over
+     the blurred copy of itself. Ground: Dark Background with a PrimaryContainer haze. */
+  .stage { background: radial-gradient(80% 80% at 50% 40%, var(--n-pc), var(--n-paper) 80%); }
+  .rig { position: absolute; left: 0; top: 0; width: 1200px; height: 630px; transform-origin: 50% 50%;
+    transform: perspective(2000px) rotateX(9deg) rotateZ(-1.5deg); }
+  .back { position: absolute; left: -77px; top: 70px; width: 1354px; filter: blur(2.6px) brightness(.8);
+    -webkit-mask-image: radial-gradient(70% 70% at 50% 40%, #000 55%, transparent 100%); mask-image: radial-gradient(70% 70% at 50% 40%, #000 55%, transparent 100%); }
+  .panel { position: absolute; width: 520px; left: 340px; top: 152px; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(143,160,255,.12), 0 18px 40px -8px rgba(0,0,0,.65), 0 50px 90px -30px rgba(0,0,0,.8); }
+  .panel img, .back img { width: 100%; height: auto; }
+  .vignette { position: absolute; inset: 0; background: radial-gradient(90% 90% at 50% 45%, rgba(16,20,27,0) 50%, rgba(8,10,14,.6) 100%); }
+</style></head>
+<body><div class="stage grain on-night" style="--grain:.05">
+  <div class="rig">
+    <div class="back"><img src="cap/desk-palette-dark@2x.png"></div>
+  </div>
+  <div class="vignette"></div>
+  <div class="panel"><img src="cap/palette-dark@2x.png"></div>
+</div></body></html>

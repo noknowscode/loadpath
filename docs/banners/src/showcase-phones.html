@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>showcase-phones</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* Three phones on a deep blueprint: Primary (Light) sunk into the night paper, with the canvas's "+" grid and the
+     frame's dashed hairline in OnPrimary at low alpha, like white lines on a cyanotype. */
+  .stage { background:
+      radial-gradient(64% 76% at 50% 38%, color-mix(in srgb, var(--primary) 78%, var(--n-paper)) 0%, color-mix(in srgb, var(--primary) 46%, var(--n-paper)) 62%, color-mix(in srgb, var(--primary) 30%, var(--n-paper)) 100%); }
+  .crosses { --cross: rgba(255,255,255,.16); --fade: 86% 92% at 50% 44%; }
+  .frame { position: absolute; inset: 16px; border: 1px dashed rgba(255,255,255,.22); border-radius: 2px; }
+  .glow { position: absolute; left: 30%; right: 30%; bottom: 10px; height: 70px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(12,16,32,.45), rgba(12,16,32,0)); filter: blur(8px); }
+  .p1 { left: 205px; top: 106px; width: 232px; height: 478px; --bezel: 8px; --r: 36px; }
+  .p2 { left: 473px; top: 52px; width: 254px; height: 526px; --bezel: 8px; --r: 38px; }
+  .p3 { left: 763px; top: 106px; width: 232px; height: 478px; --bezel: 8px; --r: 36px; }
+</style></head>
+<body><div class="stage grain on-night" style="--grain:.07">
+  <div class="crosses"></div>
+  <div class="frame"></div>
+  <div class="glow"></div>
+  <div class="device p1"><div class="screen"><img src="cap/phone-warren-sheet-dark@2x.png"></div></div>
+  <div class="device p3"><div class="screen"><img src="cap/phone-pratt-dark@2x.png"></div></div>
+  <div class="device p2"><div class="screen"><img src="cap/phone-roof-util-light@2x.png"></div></div>
+</div></body></html>
