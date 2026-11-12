@@ -2,7 +2,7 @@
 
 A desktop workbench for 2D trusses that solves as you draw. Place nodes, connect them, pin some to the ground, hang loads, and every member shows the force it carries, its utilization, and the deflected shape. Drag a node and the whole load path re-solves on every pointer move.
 
-Built with Uno Platform (`Uno.Sdk 7.0.0-dev.115`, Skia renderer, SkiaSharp 4) for five heads: desktop (Windows, macOS and Linux through Skia), Windows App SDK, WebAssembly, Android and iOS. It follows the system theme (a light blueprint sheet or a dark drafting table), lays itself out for phones, tablets and desktops, and edits by mouse and keyboard or by touch. The product and interaction design are in [`SPEC.md`](SPEC.md); this file covers what shipped, how it is built, and how it was validated.
+Built with Uno Platform (`Uno.Sdk 7.0.5`, Skia renderer, SkiaSharp 4) for five heads: desktop (Windows, macOS and Linux through Skia), Windows App SDK, WebAssembly, Android and iOS. It follows the system theme (a light blueprint sheet or a dark drafting table), lays itself out for phones, tablets and desktops, and edits by mouse and keyboard or by touch. The product and interaction design are in [`SPEC.md`](SPEC.md); this file covers what shipped, how it is built, and how it was validated.
 
 ![Warren truss with a member selected](docs/shot1.png)
 
