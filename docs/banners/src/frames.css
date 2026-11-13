@@ -1,0 +1,88 @@
+/* Shared frames and grounds for the Loadpath banners. Every colour is the app's own:
+   Loadpath/Styles/ColorPaletteOverride.xaml (Light, and Dark keyed "Default") and the Warn step of the utilization ramp
+   in Loadpath/App.xaml. Grounds mix two of these at a time; grids, hairlines and shadows are the same values at reduced
+   alpha. The app's look is a blueprint drafting sheet (paper, ink, blueprint-blue structure, hairlines, "+" grid
+   crosses), so the grounds are drafting surfaces: the light sheet, the night drafting table, and a deep blueprint. */
+:root {
+  /* Light: the blueprint sheet */
+  --primary: #3446D6;          /* PrimaryColor */
+  --primary-pressed: #3142C7;  /* PrimaryVariantDarkColor */
+  --primary-soft: #9AA6E8;     /* PrimaryVariantLightColor */
+  --pc: #E5E8FA;               /* PrimaryContainerColor */
+  --paper: #F7F8FB;            /* BackgroundColor, SurfaceColor */
+  --raised: #EEF0F7;           /* SurfaceVariantColor, SecondaryContainerColor */
+  --ink: #15171A;              /* OnSurfaceColor, SurfaceInverseColor */
+  --ink-2: #4D535C;            /* OnSurfaceVariantColor, SecondaryColor */
+  --outline: #7C8399;          /* OutlineColor */
+  --rule: #AEB5CC;             /* OutlineVariantColor */
+  --error: #C42323;            /* ErrorColor */
+  --warn: #93600F;             /* App.xaml WarnColor (Light) */
+  /* Dark ("Default"): the drafting table at night */
+  --n-primary: #8FA0FF;        /* PrimaryColor */
+  --n-on-primary: #0C1020;     /* OnPrimaryColor */
+  --n-primary-soft: #4B5BB0;   /* PrimaryVariantLightColor */
+  --n-pc: #1D2540;             /* PrimaryContainerColor */
+  --n-paper: #10141B;          /* BackgroundColor, SurfaceColor */
+  --n-raised: #181D27;         /* SurfaceVariantColor */
+  --n-raised-2: #1B2130;       /* TertiaryContainerColor */
+  --n-ink: #E6E9F0;            /* OnSurfaceColor */
+  --n-ink-2: #A9B1BF;          /* OnSurfaceVariantColor */
+  --n-outline: #68728A;        /* OutlineColor */
+  --n-rule: #3D465A;           /* OutlineVariantColor */
+  --n-error: #FF6E6A;          /* ErrorColor */
+  --n-error-c: #3A1C20;        /* ErrorContainerColor */
+  --n-warn: #E3A64B;           /* App.xaml WarnColor (Dark) */
+}
+@font-face { font-family: 'JetBrains Mono'; font-weight: 500; src: url('fonts/JetBrainsMono-Medium.ttf'); }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--paper); }
+.stage { position: absolute; inset: 0; overflow: hidden; }
+img { display: block; }
+
+/* Paper grain from an SVG turbulence, over the ground only */
+.grain::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: var(--grain, .05); mix-blend-mode: overlay; z-index: 50;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 240px 240px;
+}
+
+/* The drafting grid: "+" crosses on a 40 px pitch, the app's canvas grid mark. --cross is the ink (a palette colour
+   with alpha). Set as a layer with .crosses on any absolutely placed box. */
+.crosses { position: absolute; inset: 0; pointer-events: none;
+  -webkit-mask-image: radial-gradient(var(--fade, 75% 85% at 50% 45%), #000 30%, transparent 100%);
+          mask-image: radial-gradient(var(--fade, 75% 85% at 50% 45%), #000 30%, transparent 100%); }
+.crosses::before { content: ''; position: absolute; inset: 0; background: var(--cross, rgba(52,70,214,.2));
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M20 15.5v9M15.5 20h9' stroke='black' stroke-width='1'/></svg>");
+          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M20 15.5v9M15.5 20h9' stroke='black' stroke-width='1'/></svg>");
+  -webkit-mask-size: var(--pitch, 40px) var(--pitch, 40px); mask-size: var(--pitch, 40px) var(--pitch, 40px);
+  -webkit-mask-position: var(--grid-pos, 0 0); mask-position: var(--grid-pos, 0 0); }
+
+/* Generic desktop window: a slim neutral title bar, three hollow dots and an empty address pill; no marks */
+.win { position: absolute; border-radius: 10px; overflow: hidden; background: var(--paper);
+  box-shadow: 0 0 0 1px rgba(21,23,26,.12), 0 1px 2px rgba(21,23,26,.06), 0 12px 26px -8px rgba(21,23,26,.16), 0 38px 76px -22px rgba(21,23,26,.30); }
+.win .bar { height: var(--bar, 24px); display: flex; align-items: center; gap: 6px; padding: 0 11px; background: var(--raised);
+  border-bottom: 1px solid rgba(21,23,26,.09); }
+.win .bar i { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(21,23,26,.24); }
+.win .bar b { margin: 0 auto; width: 26%; height: 11px; border-radius: 6px; background: rgba(21,23,26,.06); }
+.win.night { background: var(--n-paper);
+  box-shadow: 0 0 0 1px rgba(230,233,240,.09), 0 1px 2px rgba(0,0,0,.3), 0 14px 30px -8px rgba(0,0,0,.5), 0 44px 84px -22px rgba(0,0,0,.65); }
+.win.night .bar { background: var(--n-raised); border-bottom-color: rgba(230,233,240,.07); }
+.win.night .bar i { border-color: rgba(230,233,240,.26); }
+.win.night .bar b { background: rgba(230,233,240,.07); }
+.win img { width: 100%; height: auto; }
+
+/* Generic phone and tablet: slate bezel from the night palette with a soft edge light; no notch, camera, buttons or logo */
+.device { position: absolute; background: linear-gradient(150deg, #2A3140, var(--n-paper) 55%, #222936); padding: var(--bezel, 8px);
+  border-radius: var(--r, 36px);
+  box-shadow: inset 0 0 0 1px rgba(230,233,240,.10), inset 0 1px 0 rgba(230,233,240,.16), 0 0 0 1px rgba(21,23,26,.35),
+              0 2px 4px rgba(21,23,26,.10), 0 14px 30px -8px rgba(21,23,26,.26), 0 40px 72px -24px rgba(21,23,26,.40); }
+.device .screen { width: 100%; height: 100%; overflow: hidden; border-radius: calc(var(--r, 36px) - var(--bezel, 8px)); background: #000; }
+.device .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.on-night .device { box-shadow: inset 0 0 0 1px rgba(230,233,240,.12), inset 0 1px 0 rgba(230,233,240,.18), 0 0 0 1px rgba(0,0,0,.6),
+              0 2px 4px rgba(0,0,0,.3), 0 16px 34px -8px rgba(0,0,0,.55), 0 44px 80px -24px rgba(0,0,0,.7); }
+
+/* A loose sheet or card: a capture with a hairline edge and a drafting-table shadow */
+.sheet { position: absolute; overflow: hidden; border-radius: var(--r, 6px);
+  box-shadow: 0 0 0 1px rgba(21,23,26,.10), 0 2px 3px rgba(21,23,26,.06), 0 16px 30px -10px rgba(21,23,26,.22), 0 44px 80px -30px rgba(21,23,26,.35); }
+.on-night .sheet { box-shadow: 0 0 0 1px rgba(230,233,240,.10), 0 2px 4px rgba(0,0,0,.35), 0 18px 34px -10px rgba(0,0,0,.55), 0 48px 90px -30px rgba(0,0,0,.7); }
+.sheet img { width: 100%; height: auto; }

@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>focus-truss-titled</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* The truss canvas at night: the Warren sample's member forces drawn by line style (tension as an open ribbon,
+     compression hatched), its loads, reactions, deflected ghost and dimension chain, laid back like a sheet on the
+     drafting table and falling off into it. The ground is the canvas's own paper (Dark Background), so the sheet's edge
+     dissolves; a Dark PrimaryContainer haze sits above it. */
+  .stage { background: radial-gradient(70% 55% at 50% 0%, color-mix(in srgb, var(--n-pc) 90%, var(--primary)) 0%, var(--n-paper) 75%), var(--n-paper); }
+  .plane { position: absolute; left: 35px; top: 150px; width: 1130px; transform-origin: 50% 100%;
+    transform: perspective(1500px) rotateX(24deg) rotateZ(-1.5deg);
+    -webkit-mask-image: radial-gradient(62% 66% at 50% 54%, #000 62%, transparent 100%); mask-image: radial-gradient(62% 66% at 50% 54%, #000 62%, transparent 100%); }
+  .plane img { width: 100%; height: auto; }
+  .title { position: absolute; left: 0; right: 0; top: 70px; text-align: center; font: 500 64px/1 "JetBrains Mono"; letter-spacing: .08em; color: var(--n-primary); }
+  .vignette { position: absolute; inset: 0; background: radial-gradient(90% 90% at 50% 55%, rgba(16,20,27,0) 55%, rgba(8,10,14,.55) 100%); }
+</style></head>
+<body><div class="stage grain" style="--grain:.05">
+  <div class="plane"><img src="cap/truss-forces-dark@3x.png"></div>
+  <div class="vignette"></div>
+  <div class="title">LOADPATH</div>
+</div></body></html>

@@ -13,5 +13,17 @@
     <NoWarn>$(NoWarn);NU1507;NETSDK1201;PRI257</NoWarn>
     <!-- Uno0001: API not implemented on the current Uno target; calling it is a silent no-op. -->
     <WarningsAsErrors>$(WarningsAsErrors);Uno0001</WarningsAsErrors>
+
+    <!--
+      Build gate: a compiler or NuGet warning fails the build, so the 0-warning state holds by itself. Trim analysis
+      stays a warning: the iOS build and the WebAssembly publish report thousands of IL warnings, all from Uno's and
+      MVUX's generated code and from framework assemblies, none from code this repo can change.
+    -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- NuGet audit stays a warning: a newly published advisory, or an unreachable audit source, must not fail a build of unchanged code. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+    <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
+    <!-- .editorconfig rules set to warning gate the build too (today: file-scoped namespaces). -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 </Project>

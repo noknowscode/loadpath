@@ -1,7 +1,11 @@
 namespace Loadpath.Commands;
 
-/// <summary>One named action. Menus, the palette, the floating bar and shortcuts all invoke through this.</summary>
-public sealed class AppCommand
+/// <summary>
+/// One named action. Menus, the palette, the floating bar and shortcuts all invoke through this. It is an
+/// <see cref="ICommand"/> so a menu item can bind it; menus are built when they open, so they read
+/// <see cref="CanExecute"/> then and nothing listens for changes.
+/// </summary>
+public sealed class AppCommand : ICommand
 {
     public AppCommand(string id, string title, string category, string? shortcut, Action execute, Func<bool>? canExecute = null, string? icon = null)
     {
@@ -31,4 +35,11 @@ public sealed class AppCommand
         _execute();
         return true;
     }
+
+    bool ICommand.CanExecute(object? parameter) => CanExecute;
+
+    void ICommand.Execute(object? parameter) => TryExecute();
+
+    /// <summary>Never raised: see the class summary.</summary>
+    event EventHandler? ICommand.CanExecuteChanged { add { } remove { } }
 }

@@ -18,5 +18,4 @@ public sealed class Member
     public ElementRef Ref => ElementRef.Member(Id);
 
     public bool Connects(int nodeId) => StartNodeId == nodeId || EndNodeId == nodeId;
-    public int OtherEnd(int nodeId) => StartNodeId == nodeId ? EndNodeId : StartNodeId;
 }

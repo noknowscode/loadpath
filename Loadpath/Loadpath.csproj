@@ -1,6 +1,15 @@
 <Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net10.0-desktop</TargetFrameworks>
+    <!--
+      Four heads. Uno.Sdk skips the ones the build OS can't build (iOS off macOS).
+      net10.0 is not a head: Loadpath.Tests references it to test the app layer (engine, tools, files).
+    -->
+    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-browserwasm;net10.0-desktop;net10.0</TargetFrameworks>
+    <!--
+      App-only override for single-head builds (tests, CI, RID-specific publish): -p:LoadpathTargetFrameworks=net10.0-desktop.
+      A global -p:TargetFrameworks would also reach Loadpath.Core, a plain net10.0 library, and the test project.
+    -->
+    <TargetFrameworks Condition="'$(LoadpathTargetFrameworks)' != ''">$(LoadpathTargetFrameworks)</TargetFrameworks>
 
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
@@ -15,15 +24,36 @@
     <!--
       SkiaRenderer: the workspace is an SKCanvasElement.
       MVUX: the presentation model (Uno.Extensions.Reactive).
-      No Material, Toolkit, or Extensions hosting: the visual system is custom and the app has three services.
+      Hosting, Logging: the app's services live in one container (AppServices) and log through ILogger.
+      ThemeService: IThemeService puts the saved theme choice on the window.
+      Toolkit: utu:Responsive and ResponsiveView for the width layouts, utu:SafeArea for the phone's system bars. Only
+      the helpers are used; ToolkitResources is not merged, so Fluent (XamlControlsResources) plus the app's own tokens
+      and control styles stay the only control theme. No Material.
     -->
     <UnoFeatures>
       SkiaRenderer;
       MVUX;
+      Hosting;
+      Logging;
+      ThemeService;
+      Toolkit;
     </UnoFeatures>
   </PropertyGroup>
 
+  <!--
+    WebAssembly: the unsaved-changes prompt (BrowserUnloadGuard). Its JSImport interop is generated as unsafe code, and
+    Uno.Sdk embeds only AppManifest.js from WasmScripts by default, so the script that arms the prompt is listed here.
+  -->
+  <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'browserwasm'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'browserwasm'">
+    <EmbeddedResource Include="Platforms/WebAssembly/WasmScripts/UnsavedChanges.js" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../Loadpath.Core/Loadpath.Core.csproj" />
+    <!-- The page model's internal hooks (tab selection, failure reporting) are tested directly. -->
+    <InternalsVisibleTo Include="Loadpath.Tests" />
   </ItemGroup>
 </Project>

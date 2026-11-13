@@ -3,9 +3,9 @@
                     xmlns:c="using:Loadpath.Controls">
   <!-- Icon: a Viewbox around a stroked Path, so it scales instead of clipping (PathIcon clips on Skia). -->
   <Style TargetType="c:Icon">
-    <Setter Property="Width" Value="16" />
-    <Setter Property="Height" Value="16" />
-    <Setter Property="Foreground" Value="{StaticResource InkSecondaryBrush}" />
+    <Setter Property="Width" Value="{StaticResource IconSize}" />
+    <Setter Property="Height" Value="{StaticResource IconSize}" />
+    <Setter Property="Foreground" Value="{ThemeResource InkSecondaryBrush}" />
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Template">

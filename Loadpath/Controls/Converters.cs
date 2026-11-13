@@ -31,27 +31,29 @@ public sealed class TextToVisibilityConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
 }
 
-/// <summary>Resource key (e.g. "DangerBrush") → Brush from application resources.</summary>
+/// <summary>
+/// Resource key (e.g. "DangerBrush") → the themed brush for that key. The brush is shared and recolored in place when
+/// the theme changes (<see cref="ThemeBrushes"/>), so a bound element follows Light and Dark without re-binding.
+/// </summary>
 public sealed class KeyToBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
         var key = value as string;
         if (string.IsNullOrEmpty(key)) key = parameter as string ?? "InkBrush";
-        return Application.Current.Resources.TryGetValue(key, out var brush) && brush is Brush b ? b : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        return ThemeBrushes.Get(key);
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
 }
 
-/// <summary>bool → one of two brush keys. ConverterParameter is "WhenTrueKey|WhenFalseKey".</summary>
+/// <summary>bool → one of two themed brushes by key. ConverterParameter is "WhenTrueKey|WhenFalseKey".</summary>
 public sealed class BoolToBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
         var keys = (parameter as string ?? "InkBrush|InkBrush").Split('|');
-        var key = value is true ? keys[0] : keys[^1];
-        return Application.Current.Resources.TryGetValue(key, out var brush) && brush is Brush b ? b : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        return ThemeBrushes.Get(value is true ? keys[0] : keys[^1]);
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();

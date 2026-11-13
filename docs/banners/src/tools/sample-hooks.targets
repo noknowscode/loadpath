@@ -1,0 +1,9 @@
+<Project>
+  <!-- Banner capture build only, outside the app's repository: compile Loadpath's own Debug fixtures
+       (Presentation/DebugFixtures.cs, read by EditorStartup: LOADPATH_SAMPLE, LOADPATH_PRESET, LOADPATH_EDIT...) into an
+       otherwise Release WebAssembly publish, with Uno Studio off (NO_UNO_STUDIO, the app's own switch in App.xaml.cs),
+       so a capture can open on the app's sample and preset structures. cap.js hands the variables to the runtime. -->
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);DEBUG;NO_UNO_STUDIO</DefineConstants>
+  </PropertyGroup>
+</Project>

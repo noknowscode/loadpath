@@ -17,6 +17,15 @@ public class ShareCodeTests
         return doc;
     }
 
+    /// <summary>Saved documents and share files are named after the document; '/' is invalid on every platform.</summary>
+    [Theory]
+    [InlineData("Warren truss", "Warren truss")]
+    [InlineData(" Bridge / v2 ", "Bridge _ v2")]
+    [InlineData("   ", "Untitled")]
+    [InlineData("", "Untitled")]
+    public void A_document_name_becomes_a_safe_file_name(string name, string expected) =>
+        Assert.Equal(expected, DocumentSerializer.SafeFileName(name));
+
     [Theory]
     [InlineData("warren")]
     [InlineData("cantilever")]
@@ -92,6 +101,21 @@ public class PresetTests
             data.Add(p.Id, 30, 16, 4);
         }
         return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public void A_tile_thumbnail_draws_every_member_inside_its_box(string id, double span, int panels, double depth)
+    {
+        var snapshot = TrussPresets.Build(id, new PresetParameters(span, panels, depth));
+
+        var segments = Loadpath.Presentation.PresetSketch.Of(snapshot).Split(';');
+
+        Assert.Equal(snapshot.Members.Count, segments.Length);
+        var values = segments.SelectMany(s => s.Split(',')).Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        Assert.Equal(4 * segments.Length, values.Count);
+        Assert.All(values.Where((_, i) => i % 2 == 0), x => Assert.InRange(x, 0, 156));
+        Assert.All(values.Where((_, i) => i % 2 == 1), y => Assert.InRange(y, 0, 52));
     }
 
     [Theory]

@@ -1,6 +1,3 @@
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-
 namespace Loadpath.Controls;
 
 /// <summary>A 16-unit stroked line icon that follows Foreground. Kind is a name in IconLibrary.</summary>

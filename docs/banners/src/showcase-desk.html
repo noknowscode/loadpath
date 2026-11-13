@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>showcase-desk</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* House style on the light blueprint sheet: paper (Background) into PrimaryContainer, the canvas's "+" grid in Primary,
+     and the canvas frame's dashed hairline around the whole banner. */
+  .stage { background:
+      radial-gradient(70% 62% at 50% 42%, rgba(247,248,251,1) 0%, rgba(247,248,251,0) 72%),
+      linear-gradient(180deg, var(--raised) 0%, var(--pc) 100%); }
+  .crosses { --cross: rgba(52,70,214,.26); --fade: 82% 92% at 50% 46%; }
+  .frame { position: absolute; inset: 16px; border: 1px dashed rgba(52,70,214,.30); border-radius: 2px; }
+  .floor { position: absolute; left: 10%; right: 10%; bottom: 18px; height: 54px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(21,23,26,.16), rgba(21,23,26,0)); filter: blur(6px); }
+  .win { left: 124px; top: 46px; width: 800px; --bar: 22px; }
+  .p1 { left: 58px; top: 186px; width: 196px; height: 408px; --bezel: 7px; --r: 32px; }
+  .p2 { left: 946px; top: 150px; width: 196px; height: 408px; --bezel: 7px; --r: 32px; }
+</style></head>
+<body><div class="stage grain">
+  <div class="crosses"></div>
+  <div class="frame"></div>
+  <div class="floor"></div>
+  <div class="win"><div class="bar"><i></i><i></i><i></i><b></b></div><img src="cap/desk-m12-light@2x.png"></div>
+  <div class="device p1"><div class="screen"><img src="cap/phone-pratt-sheet-dark@2x.png"></div></div>
+  <div class="device p2"><div class="screen"><img src="cap/phone-roof-light@2x.png"></div></div>
+</div></body></html>

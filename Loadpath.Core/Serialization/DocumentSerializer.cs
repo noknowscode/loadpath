@@ -12,12 +12,31 @@ public static class DocumentSerializer
     public const int CurrentVersion = 1;
     public const string Extension = ".loadpath";
 
-    private static readonly JsonSerializerOptions Options = new()
+    /// <summary>A document name made safe as a file name on this platform: invalid characters become '_'; blank is "Untitled".</summary>
+    public static string SafeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var clean = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
+        return clean.Length == 0 ? "Untitled" : clean;
+    }
+
+    /// <summary>
+    /// Source-generated metadata: trimmed heads (WebAssembly) turn reflection-based System.Text.Json off, so the
+    /// reflection overloads would throw there. Indented for files, compact for share codes.
+    /// </summary>
+    internal static readonly DocumentJsonContext Indented = new(new JsonSerializerOptions
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
+    });
+
+    private static readonly DocumentJsonContext Compact = new(new JsonSerializerOptions
+    {
+        WriteIndented = false,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    });
 
     public sealed class FileModel
     {
@@ -45,10 +64,11 @@ public static class DocumentSerializer
         public string Section { get; set; } = Model.Section.Chs48.Id;
     }
 
-    private static readonly JsonSerializerOptions CompactOptions = new(Options) { WriteIndented = false };
-
     /// <summary>Serialize the document. Compact output drops whitespace; share codes use it.</summary>
-    public static string Serialize(StructureDocument doc, bool indented = true)
+    public static string Serialize(StructureDocument doc, bool indented = true) =>
+        JsonSerializer.Serialize(ToModel(doc), (indented ? Indented : Compact).FileModel);
+
+    internal static FileModel ToModel(StructureDocument doc)
     {
         var model = new FileModel { Name = doc.Name };
         foreach (var n in doc.Nodes)
@@ -67,16 +87,30 @@ public static class DocumentSerializer
         {
             model.Members.Add(new MemberModel { Id = m.Id, Start = m.StartNodeId, End = m.EndNodeId, Section = m.Section.Id });
         }
-        return JsonSerializer.Serialize(model, indented ? Options : CompactOptions);
+        return model;
     }
 
-    public static DocumentSnapshot Deserialize(string json)
+    public static DocumentSnapshot Deserialize(string json) =>
+        FromModel(JsonSerializer.Deserialize(json, Indented.FileModel) ?? throw new InvalidDataException("Empty document."));
+
+    /// <summary>
+    /// Check the whole document before anything is built from it. Restoring replaces the open document piece by piece,
+    /// so a duplicate id or a member to a missing node found halfway would leave the editor holding part of each.
+    /// </summary>
+    internal static DocumentSnapshot FromModel(FileModel model)
     {
-        var model = JsonSerializer.Deserialize<FileModel>(json, Options) ?? throw new InvalidDataException("Empty document.");
         if (model.Version > CurrentVersion) throw new InvalidDataException($"Document version {model.Version} is newer than this app supports.");
-        var nodeIds = model.Nodes.Select(n => n.Id).ToHashSet();
+        var nodeIds = new HashSet<int>();
+        foreach (var n in model.Nodes)
+        {
+            if (!nodeIds.Add(n.Id)) throw new InvalidDataException($"Node {n.Id} appears twice.");
+            if (!double.IsFinite(n.X) || !double.IsFinite(n.Y) || !double.IsFinite(n.Fx ?? 0) || !double.IsFinite(n.Fy ?? 0))
+                throw new InvalidDataException($"Node {n.Id} has a position or load that is not a finite number.");
+        }
+        var memberIds = new HashSet<int>();
         foreach (var m in model.Members)
         {
+            if (!memberIds.Add(m.Id)) throw new InvalidDataException($"Member {m.Id} appears twice.");
             if (!nodeIds.Contains(m.Start) || !nodeIds.Contains(m.End)) throw new InvalidDataException($"Member {m.Id} references a missing node.");
         }
         return new DocumentSnapshot
@@ -85,9 +119,16 @@ public static class DocumentSerializer
             Nodes = model.Nodes.Select(n => (
                 n.Id,
                 new Vec2(n.X, n.Y),
-                Enum.TryParse<SupportKind>(n.Support, out var s) ? s : SupportKind.None,
+                // TryParse also takes numbers, including ones that name no support kind.
+                Enum.TryParse<SupportKind>(n.Support, out var s) && Enum.IsDefined(s) ? s : SupportKind.None,
                 new Vec2(n.Fx ?? 0, n.Fy ?? 0))).ToList(),
             Members = model.Members.Select(m => (m.Id, m.Start, m.End, m.Section)).ToList(),
         };
     }
+}
+
+[JsonSerializable(typeof(DocumentSerializer.FileModel))]
+[JsonSerializable(typeof(Autosave.FileModel), TypeInfoPropertyName = "AutosaveFileModel")]
+internal sealed partial class DocumentJsonContext : JsonSerializerContext
+{
 }

@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>stylized-split-hero</title>
+<link rel="stylesheet" href="frames.css">
+<style>
+  /* One workbench, Light and Dark, cut on a single diagonal at the angle of the Warren's web members (rise 2 m over a
+     1 m half-panel: 63.4 degrees). The same turned window is drawn twice, once per theme, each clipped to its side of
+     the cut, so the ground and the window split on one line. */
+  .half { position: absolute; inset: 0; overflow: hidden; }
+  .day { background: radial-gradient(80% 90% at 20% 30%, var(--paper), var(--pc) 90%); clip-path: polygon(0 0, var(--cut-top) 0, var(--cut-bottom) 100%, 0 100%); }
+  .night { background: radial-gradient(80% 90% at 80% 30%, color-mix(in srgb, var(--n-pc) 80%, var(--primary)), var(--n-paper) 85%); clip-path: polygon(var(--cut-top) 0, 100% 0, 100% 100%, var(--cut-bottom) 100%); }
+  .stage { --cut-top: 1230px; --cut-bottom: 690px; perspective: 3500px; }
+  .day .crosses { --cross: rgba(52,70,214,.22); --fade: 90% 100% at 30% 40%; }
+  .night .crosses { --cross: rgba(143,160,255,.15); --fade: 90% 100% at 70% 40%; }
+  .rig { position: absolute; left: 150px; top: 84px; width: 1640px; transform-origin: 50% 0; transform: perspective(3800px) rotateY(-9deg) rotateX(5deg); }
+  .rig .win { position: relative; width: 100%; --bar: 34px; }
+  .line { position: absolute; left: 0; top: 0; width: 2px; height: 100%; background: var(--primary-soft); transform-origin: 0 0; }
+</style></head>
+<body><div class="stage grain" style="--grain:.05">
+  <div class="half day"><div class="crosses"></div>
+    <div class="rig"><div class="win"><div class="bar"><i></i><i></i><i></i><b></b></div><img src="cap/desk-warren-light@2x.png"></div></div></div>
+  <div class="half night on-night"><div class="crosses"></div>
+    <div class="rig"><div class="win night"><div class="bar"><i></i><i></i><i></i><b></b></div><img src="cap/desk-warren-dark@2x.png"></div></div></div>
+  <svg width="1920" height="1080" style="position:absolute;inset:0"><line x1="1230" y1="0" x2="690" y2="1080" stroke="#8FA0FF" stroke-width="1.5" /></svg>
+</div></body></html>

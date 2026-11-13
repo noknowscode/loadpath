@@ -1,0 +1,137 @@
+{
+  "id": "loadpath",
+  "displayName": "Loadpath",
+  "banners": [
+    {
+      "name": "showcase-desk",
+      "family": "showcase",
+      "title": "Desk and phones",
+      "description": "The workbench in a desktop window (Warren truss, member M12 selected, its inspector open; Light) between a Dark phone with the overloaded Pratt and its inspector sheet and a Light phone with the Howe roof truss, on the light blueprint sheet.",
+      "pick": false,
+      "files": {
+        "1x": "finals/showcase-desk@1x.png",
+        "2x": "finals/showcase-desk@2x.png"
+      }
+    },
+    {
+      "name": "showcase-phones",
+      "family": "showcase",
+      "title": "Three phones",
+      "description": "Three phones on a deep blueprint ground: the Warren truss with its inspector sheet (Dark), the Howe roof in Utilization (Light, centre, raised) and the overloaded Pratt with its red failure pills (Dark).",
+      "pick": false,
+      "files": {
+        "1x": "finals/showcase-phones@1x.png",
+        "2x": "finals/showcase-phones@2x.png"
+      }
+    },
+    {
+      "name": "showcase-daynight",
+      "family": "showcase",
+      "title": "Day and night",
+      "description": "The Warren truss on the light sheet in front, the same truss in Utilization on the dark drafting table behind, on a ground that turns from paper to night.",
+      "pick": false,
+      "files": {
+        "1x": "finals/showcase-daynight@1x.png",
+        "2x": "finals/showcase-daynight@2x.png"
+      }
+    },
+    {
+      "name": "focus-truss",
+      "family": "focused",
+      "title": "The truss canvas",
+      "description": "The Skia truss canvas at night: the Warren sample's member forces drawn by line style (tension open, compression hatched), loads, reactions, the deflected ghost and the dimension chain, laid back on the drafting table.",
+      "pick": true,
+      "files": {
+        "1x": "finals/focus-truss@1x.png",
+        "2x": "finals/focus-truss@2x.png",
+        "hero": "finals/focus-truss-hero.png"
+      }
+    },
+    {
+      "name": "focus-utilization",
+      "family": "focused",
+      "title": "Utilization ramp",
+      "description": "The Warren truss in Utilization mode (Dark): members on the ramp from Primary through Warn towards Error with percent labels, and the inspector's result for the 87 % end post M12.",
+      "pick": false,
+      "files": {
+        "1x": "finals/focus-utilization@1x.png",
+        "2x": "finals/focus-utilization@2x.png"
+      }
+    },
+    {
+      "name": "focus-failure",
+      "family": "focused",
+      "title": "Failure highlight",
+      "description": "An overloaded Pratt truss on the light sheet: red BUCKLES pills with utilization, dashed red Euler bows on the failing struts, and the inspector's failure list worst first.",
+      "pick": false,
+      "files": {
+        "1x": "finals/focus-failure@1x.png",
+        "2x": "finals/focus-failure@2x.png"
+      }
+    },
+    {
+      "name": "focus-palette",
+      "family": "focused",
+      "title": "Command palette",
+      "description": "The Ctrl+K command palette searched for \"toggle\" (six view toggles with their shortcuts), sharp over the blurred Dark workbench it opens on.",
+      "pick": false,
+      "files": {
+        "1x": "finals/focus-palette@1x.png",
+        "2x": "finals/focus-palette@2x.png"
+      }
+    },
+    {
+      "name": "stylized-split",
+      "family": "stylized",
+      "title": "Light and Dark split",
+      "description": "One workbench, Light and Dark, on one turned window cut by a single diagonal at the Warren web's 63.4 degree angle.",
+      "pick": true,
+      "files": {
+        "1x": "finals/stylized-split@1x.png",
+        "2x": "finals/stylized-split@2x.png",
+        "hero": "finals/stylized-split-hero.png"
+      }
+    },
+    {
+      "name": "stylized-stack",
+      "family": "stylized",
+      "title": "Tracing layers",
+      "description": "The Warren sample's canvas in four renderings (Forces and Utilization, Light and Dark) stacked like tracing layers, tied by dashed construction lines.",
+      "pick": false,
+      "files": {
+        "1x": "finals/stylized-stack@1x.png",
+        "2x": "finals/stylized-stack@2x.png"
+      }
+    },
+    {
+      "name": "stylized-mosaic",
+      "family": "stylized",
+      "title": "Preset wall",
+      "description": "The six parametric presets (Pratt, Howe, Warren, K truss, Fink and scissor roof) at their defaults, Light and Dark alternating, as a tilted wall of drawing sheets with soft outer columns.",
+      "pick": false,
+      "files": {
+        "1x": "finals/stylized-mosaic@1x.png",
+        "2x": "finals/stylized-mosaic@2x.png"
+      }
+    },
+    {
+      "name": "focus-truss-titled",
+      "family": "titled",
+      "title": "Truss canvas, titled",
+      "description": "focus-truss with the display name set as the app's own wordmark: LOADPATH in JetBrains Mono Medium in Dark Primary.",
+      "pick": false,
+      "files": {
+        "1x": "finals/focus-truss-titled@1x.png",
+        "2x": "finals/focus-truss-titled@2x.png"
+      }
+    }
+  ],
+  "notes": [
+    "The Release WebAssembly build has the app's own Debug fixtures compiled in (src/tools/sample-hooks.targets) so captures open on the samples and presets by environment variable; every state shown is also reachable through the UI (sample buttons, Presets), nothing was typed or edited.",
+    "Captures come from five sessions of the same build (src/tools/sessions/); the app has no clock and its fixtures and solver are deterministic, so figures agree across frames (M12 87 %, 41.93 kN; Pratt 294 %). Only the status bar's solve time differs (0.7 or 1.1 ms).",
+    "showcase-desk pairs the desktop session with the phone session, and focus-utilization pairs the canvas session with the inspector session: same build and data, not one browser session.",
+    "Turned planes (perspective) are resampled once by Chromium's compositor, so their text is about one device pixel softer than flat captures at 2x; no capture is shown above its native pixels, and the palette, inspector cards and phones are flat.",
+    "Showcase banners show whole screens, so their UI text is below 10 px at 1x, as in the house-style banners; the mosaic's and the stack's sheet text is decorative and not meant to be read.",
+    "The titled variant uses JetBrains Mono Medium, the app's wordmark face (Inter is the UI text face)."
+  ]
+}
